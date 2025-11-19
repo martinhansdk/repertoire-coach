@@ -17,13 +17,22 @@
   - Flutter platform channels for communication
 
 ### Backend Services
-- **Firebase** (recommended option):
-  - **Firebase Authentication**: User login and identity management
-  - **Cloud Firestore**: NoSQL database for song metadata, user data, section markers
-  - **Firebase Storage**: Cloud storage for audio files
-  - **Firebase Functions**: Optional serverless functions for backend logic
+- **Supabase** (open-source Firebase alternative):
+  - **PostgreSQL Database**: Relational database for all app data
+  - **Supabase Auth**: User authentication and identity management
+  - **Supabase Storage**: S3-compatible object storage for audio files
+  - **Real-time Subscriptions**: PostgreSQL changes streamed to clients
+  - **Row Level Security (RLS)**: Database-level access control for choir-based permissions
+  - **Auto-generated APIs**: REST and GraphQL APIs from database schema
+  - **Edge Functions**: Optional Deno-based serverless functions
 
-Alternative: Custom backend with PostgreSQL + S3-compatible storage
+**Why Supabase:**
+- Open source (can self-host if needed, no vendor lock-in)
+- PostgreSQL provides relational model with foreign keys and complex queries
+- More cost-effective at scale than Firebase
+- Real-time capabilities similar to Firestore
+- Good Flutter support via official `supabase_flutter` package
+- Row Level Security maps well to choir-based access control
 
 ### Audio Playback
 - **just_audio** package (recommended):
@@ -163,93 +172,265 @@ class UserPlaybackState {
 }
 ```
 
-## Database Schema (Firestore)
+## Database Schema (PostgreSQL)
 
-### Collections Structure
+### Table Structure
+
+```sql
+-- Users table (managed by Supabase Auth, extended with custom fields)
+CREATE TABLE users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  display_name VARCHAR(255),
+  last_accessed_concert_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Choirs table
+CREATE TABLE choirs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Choir members junction table (many-to-many relationship)
+CREATE TABLE choir_members (
+  choir_id UUID NOT NULL REFERENCES choirs(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (choir_id, user_id)
+);
+
+-- Concerts table
+CREATE TABLE concerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  choir_id UUID NOT NULL REFERENCES choirs(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  concert_date DATE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Songs table
+CREATE TABLE songs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  concert_id UUID NOT NULL REFERENCES concerts(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tracks table
+CREATE TABLE tracks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL,  -- soprano, alto, tenor, bass, full, other
+  audio_url TEXT,
+  storage_path TEXT,  -- Path in Supabase Storage
+  duration_ms INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Sections table (per-user, private)
+CREATE TABLE sections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+  track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  start_time_ms INTEGER NOT NULL,
+  end_time_ms INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Playback states table (per-user, private)
+CREATE TABLE playback_states (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+  track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+  position_ms INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, song_id, track_id)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_choir_members_user ON choir_members(user_id);
+CREATE INDEX idx_choir_members_choir ON choir_members(choir_id);
+CREATE INDEX idx_concerts_choir_date ON concerts(choir_id, concert_date);
+CREATE INDEX idx_songs_concert ON songs(concert_id);
+CREATE INDEX idx_tracks_song ON tracks(song_id);
+CREATE INDEX idx_sections_user_song ON sections(user_id, song_id);
+CREATE INDEX idx_playback_states_user ON playback_states(user_id);
+
+-- Updated_at triggers
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_choirs_updated_at BEFORE UPDATE ON choirs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_concerts_updated_at BEFORE UPDATE ON concerts
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_songs_updated_at BEFORE UPDATE ON songs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_playback_states_updated_at BEFORE UPDATE ON playback_states
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
-users/
-  {userId}/
-    - email
-    - displayName
-    - choirIds  // Array of choir IDs user belongs to
-    - lastAccessedConcertId  // Most recent concert (per-user)
-    - createdAt
 
-choirs/
-  {choirId}/
-    - name
-    - ownerId  // User who created the choir
-    - memberIds  // Array of user IDs (all members)
-    - createdAt
-    - updatedAt
+### Common Queries
 
-concerts/
-  {concertId}/
-    - choirId  // Which choir this belongs to
-    - name
-    - concertDate  // Date of concert (for sorting)
-    - createdAt
-    - updatedAt
-
-songs/
-  {songId}/
-    - concertId  // Concert this belongs to (determines choir access)
-    - title
-    - createdAt
-    - updatedAt
-
-    tracks/ (subcollection)
-      {trackId}/
-        - name
-        - type
-        - audioUrl
-        - duration
-        - createdAt
-
-sections/
-  {sectionId}/
-    - userId  // Sections are per-user
-    - songId
-    - trackId
-    - name
-    - startTime
-    - endTime
-    - createdAt
-
-playbackStates/
-  {stateId}/  // Composite ID: userId_songId_trackId
-    - userId
-    - songId
-    - trackId
-    - position  // Last playback position in milliseconds
-    - updatedAt
+**Get user's choirs:**
+```sql
+SELECT c.* FROM choirs c
+JOIN choir_members cm ON c.id = cm.choir_id
+WHERE cm.user_id = $1
+ORDER BY c.name;
 ```
 
-### Queries and Indexes
+**Get concerts for user (across all choirs, sorted by date):**
+```sql
+SELECT con.*, c.name as choir_name FROM concerts con
+JOIN choirs c ON con.choir_id = c.id
+JOIN choir_members cm ON c.id = cm.choir_id
+WHERE cm.user_id = $1
+ORDER BY
+  CASE WHEN con.concert_date >= CURRENT_DATE THEN 0 ELSE 1 END,
+  CASE WHEN con.concert_date >= CURRENT_DATE THEN con.concert_date END ASC,
+  CASE WHEN con.concert_date < CURRENT_DATE THEN con.concert_date END DESC;
+```
 
-**Common Queries:**
-- Get user's choirs: `choirs.where('memberIds', 'array-contains', userId)`
-- Get concerts for a choir: `concerts.where('choirId', '==', choirId).orderBy('concertDate')`
-- Get all concerts for user (via their choirs): Client-side filtering after fetching concerts for each choir
-- Get songs in a concert: `songs.where('concertId', '==', concertId)`
-- Get user's sections for a song: `sections.where('userId', '==', userId).where('songId', '==', songId)`
-- Get playback state: `playbackStates.doc('${userId}_${songId}_${trackId}')`
-- Get user's last accessed concert: Read from `users/{userId}.lastAccessedConcertId`
+**Get songs in a concert:**
+```sql
+SELECT * FROM songs
+WHERE concert_id = $1
+ORDER BY title;
+```
 
-**Required Firestore Indexes:**
-- Composite index: `concerts` collection on `choirId` (ascending) + `concertDate` (ascending)
-- Composite index: `sections` collection on `userId` (ascending) + `songId` (ascending)
-- Single field index: `choirs.memberIds` (array-contains)
+**Get user's sections for a song:**
+```sql
+SELECT * FROM sections
+WHERE user_id = $1 AND song_id = $2
+ORDER BY start_time_ms;
+```
 
-### Security Rules Considerations
-- Users can only read/write choirs they are members of
-- Only choir owner can modify choir membership
-- Users can read/write concerts belonging to their choirs
-- Users can read/write songs in concerts belonging to their choirs
-- Users can only read/write their own sections and playback states
-- Audio files in Storage: accessible to choir members whose concerts contain the song
-- Prevent deletion of concerts with songs
-- Choir owner cannot remove themselves unless transferring ownership
+**Get or create playback state:**
+```sql
+INSERT INTO playback_states (user_id, song_id, track_id, position_ms)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id, song_id, track_id)
+DO UPDATE SET position_ms = $4, updated_at = NOW()
+RETURNING *;
+```
+
+### Row Level Security (RLS) Policies
+
+**Users table:**
+```sql
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own profile
+CREATE POLICY users_select_own ON users
+  FOR SELECT USING (auth.uid() = id);
+
+-- Users can update their own profile
+CREATE POLICY users_update_own ON users
+  FOR UPDATE USING (auth.uid() = id);
+```
+
+**Choirs table:**
+```sql
+ALTER TABLE choirs ENABLE ROW LEVEL SECURITY;
+
+-- Users can read choirs they're members of
+CREATE POLICY choirs_select_member ON choirs
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM choir_members
+      WHERE choir_id = id AND user_id = auth.uid()
+    )
+  );
+
+-- Users can create choirs (they become owner)
+CREATE POLICY choirs_insert_own ON choirs
+  FOR INSERT WITH CHECK (owner_id = auth.uid());
+
+-- Only owner can update choir
+CREATE POLICY choirs_update_owner ON choirs
+  FOR UPDATE USING (owner_id = auth.uid());
+
+-- Only owner can delete choir
+CREATE POLICY choirs_delete_owner ON choirs
+  FOR DELETE USING (owner_id = auth.uid());
+```
+
+**Choir members table:**
+```sql
+ALTER TABLE choir_members ENABLE ROW LEVEL SECURITY;
+
+-- Users can read members of choirs they belong to
+CREATE POLICY choir_members_select ON choir_members
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM choir_members cm
+      WHERE cm.choir_id = choir_id AND cm.user_id = auth.uid()
+    )
+  );
+
+-- Only choir owner can add members
+CREATE POLICY choir_members_insert ON choir_members
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM choirs
+      WHERE id = choir_id AND owner_id = auth.uid()
+    )
+  );
+
+-- Only choir owner can remove members
+CREATE POLICY choir_members_delete ON choir_members
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM choirs
+      WHERE id = choir_id AND owner_id = auth.uid()
+    )
+  );
+```
+
+**Concerts, Songs, Tracks tables:**
+```sql
+-- Similar RLS policies: users can read/write if they're choir members
+-- (Policies check membership via choir_members join)
+```
+
+**Sections and Playback States:**
+```sql
+ALTER TABLE sections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE playback_states ENABLE ROW LEVEL SECURITY;
+
+-- Users can only access their own sections and playback states
+CREATE POLICY sections_own ON sections
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY playback_states_own ON playback_states
+  FOR ALL USING (user_id = auth.uid());
+```
+
+### Data Integrity Constraints
+
+- Foreign keys enforce referential integrity
+- CASCADE deletes handle cleanup (e.g., deleting choir removes members, concerts, songs)
+- Primary keys prevent duplicates
+- NOT NULL constraints on required fields
+- Unique constraints on email addresses
 
 ## Audio Playback Architecture
 
@@ -324,7 +505,7 @@ Root
 - **Shared Preferences**: User settings, last accessed concert ID, playback preferences, etc.
 
 ### Cloud Storage
-- **Firebase Storage** structure:
+- **Supabase Storage** structure:
   ```
   audio_files/
     {choirId}/
@@ -333,14 +514,19 @@ Root
           {trackId}.mp3
   ```
 
+- **Storage Policies** (RLS for file access):
+  - Only choir members can upload/download audio files for their choir's songs
+  - Files organized by choir ID for access control
+
 ### Sync Strategy
 1. Choir member imports audio file for a track
 2. File saved to local storage temporarily
-3. Upload to Firebase Storage in background (choir-scoped path)
-4. Save track metadata (including cloud URL) to Firestore
+3. Upload to Supabase Storage in background (choir-scoped path)
+4. Save track metadata (including storage URL) to PostgreSQL
 5. Delete local temp file, keep cached version
 6. Other choir members: download on-demand or pre-cache
-7. Per-user data (sections, playback positions) syncs independently
+7. Per-user data (sections, playback positions) syncs via PostgreSQL real-time
+8. Real-time subscriptions notify clients of data changes
 
 ## Error Handling
 
@@ -372,27 +558,31 @@ Root
 - Debounce search/filter operations
 
 ### Network Performance
-- Batch Firestore operations
-- Use Firestore offline persistence
+- Batch PostgreSQL operations using transactions
+- Implement offline queue for pending operations
 - Compress audio uploads if needed
 - Show upload/download progress
+- Use Supabase real-time sparingly (only for critical updates)
 
 ## Security Considerations
 
 ### Authentication
-- Firebase Authentication with email/password
-- Optional: Google Sign-In, Apple Sign-In
-- Secure token management
+- Supabase Auth with email/password
+- Optional: Google Sign-In, Apple Sign-In, magic links
+- JWT-based authentication
+- Secure token management (handled by Supabase)
 
 ### Data Privacy
-- User songs and sections are private by default
-- Firestore security rules enforce user isolation
-- Audio files have user-specific access rules
+- User sections and playback states are private (enforced by RLS)
+- Choir content shared only among members (enforced by RLS)
+- Row Level Security policies enforce data isolation
+- Audio files accessible only to choir members (Storage policies)
 
 ### Storage Security
-- Use Firebase Storage security rules
+- Supabase Storage policies for access control
 - Signed URLs for audio file access
 - No public access to uploaded files
+- Choir-based access enforced at storage level
 
 ## Testing Strategy
 
@@ -408,7 +598,8 @@ Root
 
 ### Integration Tests
 - End-to-end user flows
-- Firebase integration
+- Supabase integration (database and storage)
+- Real-time subscription handling
 - Audio playback scenarios
 
 ### Platform-Specific Tests
@@ -427,11 +618,13 @@ Root
 - Playback position saving
 
 ### Phase 2: Cloud Integration
-- Firebase setup
-- User authentication
-- Cloud storage for audio (choir-scoped)
-- Firestore for shared data (choirs, concerts, songs)
-- Firestore for per-user data (sections, playback states)
+- Supabase project setup
+- PostgreSQL database schema creation
+- Row Level Security policies implementation
+- User authentication (Supabase Auth)
+- Cloud storage for audio (choir-scoped, Supabase Storage)
+- Storage policies for choir-based access
+- Real-time subscriptions for data sync
 - Choir membership sync
 - Concert and song sync across choir members
 
@@ -466,7 +659,7 @@ Root
 
 ### Web
 - Build: `flutter build web`
-- Deploy: Firebase Hosting, Netlify, or any static host
+- Deploy: Vercel, Netlify, Supabase hosting, or any static host
 - PWA support for offline capability
 
 ### CI/CD

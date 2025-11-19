@@ -8,11 +8,11 @@
 - [x] Create README.md
 - [ ] Initialize Flutter project
 - [ ] Setup project structure (folders: core, data, domain, presentation)
-- [ ] Add dependencies to pubspec.yaml (just_audio, riverpod, firebase packages)
-- [ ] Setup Firebase project
-- [ ] Configure Firebase for Android
-- [ ] Configure Firebase for iOS
-- [ ] Configure Firebase for Web
+- [ ] Add dependencies to pubspec.yaml (just_audio, riverpod, supabase_flutter packages)
+- [ ] Setup Supabase project
+- [ ] Configure Supabase for Android
+- [ ] Configure Supabase for iOS
+- [ ] Configure Supabase for Web
 
 ## Phase 1: Core Functionality (Local-First)
 
@@ -74,29 +74,32 @@
 
 ## Phase 2: Cloud Integration
 
-### Firebase Setup
-- [ ] Setup Firebase Authentication
+### Supabase Setup
+- [ ] Create Supabase project
+- [ ] Setup PostgreSQL database schema (tables, indexes, triggers)
+- [ ] Implement Row Level Security (RLS) policies for all tables
+- [ ] Setup Supabase Authentication
 - [ ] Implement login/signup screens
-- [ ] Setup Cloud Firestore
-- [ ] Define Firestore security rules (choir-based access control)
-- [ ] Setup Firebase Storage
-- [ ] Define Storage security rules (choir-based access)
+- [ ] Setup Supabase Storage buckets
+- [ ] Define Storage policies (choir-based access control)
 
 ### Data Synchronization
-- [ ] Implement remote data sources (Firestore + Storage)
-- [ ] Sync choir data to Firestore (shared among members)
+- [ ] Implement remote data sources (PostgreSQL + Supabase Storage)
+- [ ] Integrate Supabase client in Flutter app
+- [ ] Sync choir data to PostgreSQL (shared among members)
 - [ ] Sync choir membership changes
-- [ ] Sync concert data to Firestore (within choirs, sorted by date)
-- [ ] Sync song metadata to Firestore (within concerts, shared)
-- [ ] Upload audio files to Firebase Storage (choir-scoped paths)
-- [ ] Sync tracks to Firestore (shared)
-- [ ] Sync section markers to Firestore (per-user, private)
-- [ ] Sync playback positions to Firestore (per-user, private)
+- [ ] Sync concert data to PostgreSQL (within choirs, sorted by date)
+- [ ] Sync song metadata to PostgreSQL (within concerts, shared)
+- [ ] Upload audio files to Supabase Storage (choir-scoped paths)
+- [ ] Sync tracks to PostgreSQL (shared)
+- [ ] Sync section markers to PostgreSQL (per-user, private)
+- [ ] Sync playback positions to PostgreSQL (per-user, private)
 - [ ] Sync user's last accessed concert
 - [ ] Download audio files from cloud
+- [ ] Implement real-time subscriptions for critical data updates
 - [ ] Handle offline/online modes
+- [ ] Implement offline queue for pending operations
 - [ ] Background sync service
-- [ ] Create required Firestore indexes
 
 ### User Management
 - [ ] User profile screen
