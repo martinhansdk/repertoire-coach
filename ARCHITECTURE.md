@@ -56,7 +56,7 @@ Alternatives: Provider, Bloc, GetX
 lib/
 ├── core/               # Shared utilities, constants, base classes
 ├── data/              # Data layer
-│   ├── models/        # Data models (Song, Track, Section, User)
+│   ├── models/        # Data models (Concert, Song, Track, Section, User)
 │   ├── repositories/  # Repository implementations
 │   └── datasources/   # Remote (Firebase) and local (SQLite) data sources
 ├── domain/            # Business logic layer
@@ -75,16 +75,30 @@ lib/
 
 ### Core Entities
 
+#### Concert
+```dart
+class Concert {
+  String id;
+  String userId;
+  String name;  // Concert title
+  int sortOrder;  // Custom sort order (user-defined)
+  DateTime createdAt;
+  DateTime lastAccessedAt;  // Track when concert was last opened
+  List<String> songIds;  // Songs in this concert
+}
+```
+
 #### Song
 ```dart
 class Song {
   String id;
   String userId;  // Owner of the song
   String title;
+  List<String> concertIds;  // Concerts this song belongs to (many-to-many)
   DateTime createdAt;
   DateTime updatedAt;
   List<Track> tracks;
-  List<Section> sections;  // User-specific sections
+  // Note: Sections are stored separately and follow the song across concerts
 }
 ```
 
@@ -136,10 +150,20 @@ users/
     - displayName
     - createdAt
 
+concerts/
+  {concertId}/
+    - userId
+    - name
+    - sortOrder
+    - songIds  // Array of song IDs
+    - createdAt
+    - lastAccessedAt
+
 songs/
   {songId}/
     - userId
     - title
+    - concertIds  // Array of concert IDs (many-to-many)
     - createdAt
     - updatedAt
 
@@ -161,10 +185,25 @@ songs/
         - createdAt
 ```
 
+### Queries and Indexes
+
+**Common Queries:**
+- Get all concerts for a user: `concerts.where('userId', '==', userId).orderBy('sortOrder')`
+- Get most recently accessed concert: `concerts.where('userId', '==', userId).orderBy('lastAccessedAt', 'desc').limit(1)`
+- Get all songs in a concert: `songs.where('concertIds', 'array-contains', concertId)`
+- Get all concerts for a song: `concerts.where('songIds', 'array-contains', songId)`
+
+**Required Firestore Indexes:**
+- Composite index: `concerts` collection on `userId` (ascending) + `sortOrder` (ascending)
+- Composite index: `concerts` collection on `userId` (ascending) + `lastAccessedAt` (descending)
+
 ### Security Rules Considerations
+- Users can only read/write their own concerts
 - Users can only read/write their own songs
 - Users can only read/write their own sections
 - Audio files in Storage have user-specific access rules
+- Prevent orphaned songs (must belong to at least one concert)
+- Handle concert deletion (reassign or prevent if songs would become orphaned)
 
 ## Audio Playback Architecture
 
@@ -209,27 +248,34 @@ class AudioPlayerState {
 ### Media Hierarchy
 ```
 Root
-├── All Songs
-│   ├── Song 1
-│   ├── Song 2
+├── Concerts
+│   ├── Concert A
+│   │   ├── Song 1 (Soprano)
+│   │   ├── Song 1 (Alto)
+│   │   ├── Song 1 (Tenor)
+│   │   ├── Song 2 (Soprano)
+│   │   └── ...
+│   ├── Concert B
+│   │   └── ...
 │   └── ...
-└── Recent
+└── Recent Concert (Most Recently Accessed)
     └── ...
 ```
 
 ### Implementation Approach
 1. Create native Android MediaBrowserService
-2. Query Flutter app's song library via platform channel
-3. Expose songs as browsable media items
-4. Handle playback commands (play, pause, skip, etc.)
-5. Update Flutter app state via platform channel
+2. Query Flutter app's concerts and song library via platform channel
+3. Expose concerts as browsable folders and songs as media items
+4. Default to most recently accessed concert
+5. Handle playback commands (play, pause, skip, etc.)
+6. Update Flutter app state via platform channel
 
 ## File Storage Strategy
 
 ### Local Storage
-- **SQLite**: Cache song/track metadata for offline access
+- **SQLite**: Cache concert, song, and track metadata for offline access
 - **File System**: Cache audio files for offline playback
-- **Shared Preferences**: User settings, last played song, etc.
+- **Shared Preferences**: User settings, last accessed concert ID, last played song, etc.
 
 ### Cloud Storage
 - **Firebase Storage** structure:
@@ -325,7 +371,8 @@ Root
 
 ### Phase 1: Core Functionality
 - Basic Flutter app setup
-- Song library UI
+- Concert management UI
+- Song library UI (within concerts)
 - Audio file import
 - Local playback (without cloud)
 
@@ -333,7 +380,8 @@ Root
 - Firebase setup
 - User authentication
 - Cloud storage for audio
-- Firestore for metadata
+- Firestore for metadata (concerts, songs, sections)
+- Concert and song sync across devices
 
 ### Phase 3: Advanced Playback
 - Section marking

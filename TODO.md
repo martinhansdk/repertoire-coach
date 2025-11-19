@@ -5,7 +5,7 @@
 - [x] Create REQUIREMENTS.md
 - [x] Create ARCHITECTURE.md
 - [x] Create TODO.md
-- [ ] Create README.md
+- [x] Create README.md
 - [ ] Initialize Flutter project
 - [ ] Setup project structure (folders: core, data, domain, presentation)
 - [ ] Add dependencies to pubspec.yaml (just_audio, riverpod, firebase packages)
@@ -17,7 +17,7 @@
 ## Phase 1: Core Functionality (Local-First)
 
 ### Data Layer
-- [ ] Create data models (Song, Track, Section, User)
+- [ ] Create data models (Concert, Song, Track, Section, User)
 - [ ] Setup local database (SQLite/drift)
 - [ ] Implement local repository interfaces
 - [ ] Implement local data sources
@@ -26,19 +26,32 @@
 - [ ] Define domain entities
 - [ ] Create repository interfaces
 - [ ] Implement use cases:
+  - [ ] Create concert
+  - [ ] Get all concerts (sorted by custom order)
+  - [ ] Get most recently accessed concert
+  - [ ] Update concert (rename, reorder)
+  - [ ] Delete concert (with orphan prevention)
+  - [ ] Update concert last accessed time
   - [ ] Add song
   - [ ] Delete song
+  - [ ] Add song to concert
+  - [ ] Remove song from concert
   - [ ] Add track to song
   - [ ] Delete track
-  - [ ] Get all songs
+  - [ ] Get all songs in concert
   - [ ] Get song by ID
 
-### Presentation Layer - Song Library
+### Presentation Layer - Concert & Song Management
 - [ ] Create app shell (navigation, theme)
-- [ ] Song library screen (list view)
-- [ ] Add song dialog/screen
+- [ ] Concert list screen (shows all concerts in custom order)
+- [ ] Create/edit concert dialog
+- [ ] Concert reordering UI (drag-to-reorder or manual sort)
+- [ ] Song library screen (list view within concert)
+- [ ] Add song dialog/screen (with concert assignment)
 - [ ] Song detail screen
 - [ ] Add track functionality (file picker integration)
+- [ ] Manage song concert assignments (add to multiple concerts)
+- [ ] Default to most recently accessed concert on app launch
 
 ### Audio Playback (Local Files)
 - [ ] Setup audio player service
@@ -61,11 +74,14 @@
 ### Data Synchronization
 - [ ] Implement remote data sources (Firestore + Storage)
 - [ ] Upload audio files to Firebase Storage
-- [ ] Sync song metadata to Firestore
+- [ ] Sync concert data to Firestore (name, sortOrder, songIds, lastAccessedAt)
+- [ ] Sync song metadata to Firestore (including concertIds array)
 - [ ] Sync tracks to Firestore
+- [ ] Sync section markers to Firestore (per-user, follows song across concerts)
 - [ ] Download audio files from cloud
 - [ ] Handle offline/online modes
 - [ ] Background sync service
+- [ ] Create required Firestore indexes for concert queries
 
 ### User Management
 - [ ] User profile screen
@@ -117,14 +133,17 @@
 - [ ] Create Android module in Flutter project
 - [ ] Implement MediaBrowserService
 - [ ] Implement MediaSession
-- [ ] Build media hierarchy (browsable songs)
+- [ ] Build media hierarchy (browsable concerts and songs)
+- [ ] Expose concerts as folders in Android Auto
+- [ ] Default to most recently accessed concert
 - [ ] Handle playback commands from Auto
 
 ### Platform Channel Integration
 - [ ] Create platform channel between Flutter and Android
-- [ ] Expose song library to native Android
+- [ ] Expose concert and song library to native Android
 - [ ] Send playback commands from native to Flutter
 - [ ] Update native MediaSession from Flutter playback state
+- [ ] Sync last accessed concert between Flutter and native
 
 ### Testing & Refinement
 - [ ] Test with Android Auto simulator
