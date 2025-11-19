@@ -157,10 +157,6 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 
 ## Future Considerations (Not in Initial Version)
 - Hide/show specific concerts from personal view
-- Practice session tracking/statistics
-- Adjustable playback speed
-- Pitch adjustment
 - Multiple language support
-- Export practice logs
 - Choir owner transfer
 - Bulk member management
