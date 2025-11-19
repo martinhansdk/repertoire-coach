@@ -1,7 +1,7 @@
 # Choir Practice App - Requirements
 
 ## Overview
-A mobile and desktop application for practicing choir singing, allowing users to manage songs with multiple voice parts and practice specific sections.
+A collaborative mobile and desktop application for practicing choir singing. Users organize into choirs, share concerts and songs with multiple voice parts, and maintain personal practice metadata including section markers and playback positions.
 
 ## Platform Requirements
 
@@ -16,49 +16,60 @@ A mobile and desktop application for practicing choir singing, allowing users to
 
 ## Core Features
 
-### 1. Concert/Category Management
-- **Concerts**: Users organize songs into concerts (categories)
-- **Concert Properties**: Each concert has a simple title/name
-- **Custom Sort Order**: Users can reorder concerts in custom order
-- **Many-to-Many Relationship**: Songs can belong to multiple concerts
-- **Required Assignment**: Each song must belong to at least one concert
-- **Default View**: App opens to the most recently accessed concert
-- **Last Accessed Tracking**: System tracks when each concert was last opened/viewed
+### 1. Choir Management (User Groups)
+- **Choirs**: Groups of users who share concerts and songs
+- **Choir Creation**: Any user can create a choir and becomes its owner
+- **Membership Management**: Choir owner can add/remove members
+- **Multi-Choir Membership**: Users can be members of multiple choirs
+- **Shared Content**: All choir members see the same concerts and songs
 
-### 2. Song Library Management
-- Users can add songs to their personal library
-- Each song can have multiple audio tracks representing different voice parts
-- Support for standard choir voice parts: Soprano, Alto, Tenor, Bass
-- Support for additional tracks: Full Choir, Piano Accompaniment, etc.
-- **Cross-Concert Metadata**: User's section markers and metadata follow the song across all concerts it belongs to
+### 2. Concert Management
+- **Concerts**: Belong to a specific choir, visible to all choir members
+- **Concert Properties**: Each concert has a title/name and date
+- **Concert Date**: Required field for automatic sorting
+- **Automatic Sorting**: Concerts displayed by date:
+  - Upcoming concerts first (soonest to farthest)
+  - Past concerts after (most recent to oldest)
+- **Concert Visibility**: Users see all concerts from all their choirs
+- **Collaborative Management**: Any choir member can add/edit/delete concerts
+- **Per-User Tracking**: System tracks most recently accessed concert per user
 
-### 3. Audio File Management
-- **Import Method**: Users import audio files from their device
+### 3. Song Library Management
+- **Shared Songs**: Songs belong to concerts and are shared among all choir members
+- **Multiple Tracks**: Each song can have multiple audio tracks for different voice parts
+- **Voice Parts**: Support for Soprano, Alto, Tenor, Bass, Full Choir, Piano Accompaniment, etc.
+- **Collaborative Management**: Any choir member can add/edit songs and upload tracks
+- **Per-User Metadata**: Each user maintains private section markers that follow the song across all contexts
+
+### 4. Audio File Management
+- **Import Method**: Choir members import audio files from their device
 - **Supported Formats**: MP3, M4A
-- **Cloud Storage**: Audio files sync to cloud storage for access across all devices
-- **File Organization**: Files organized by song and track type
+- **Shared Storage**: Audio files uploaded to cloud storage, accessible to all choir members
+- **File Organization**: Files organized by choir, concert, song, and track type
 
-### 4. Playback Features
+### 5. Playback Features
 - Select a song from library
 - Choose which track/voice part to play
 - Standard playback controls (play, pause, seek)
 - **Quick Rewind**: Button to go back 10 seconds instantly
 - Display current playback position and total duration
+- **Resume Playback**: System saves playback position per user per song for resuming later
 
-### 5. Section Marking & Practice
+### 6. Section Marking & Practice
 - **Mark Sections During Playback**: Users can mark start and end points of sections while listening
 - **Save Sections**: Marked sections are saved with the song for future reference
 - **Section Looping**: Ability to loop/repeat saved sections continuously
 - **Per-User Sections**: Section markers are user-specific (different users can mark different sections)
 
-### 6. Data Synchronization
-- **Audio Files**: Stored in cloud, accessible across all user devices
-- **Song Metadata**: Song names, track information synced to cloud
-- **Concert Data**: Concert names, sort order, song assignments synced to cloud
-- **Section Markers**: User-specific, synced to cloud across user's devices (follow the song regardless of concert)
+### 7. Data Synchronization
+- **Choirs**: Choir data, membership synced to cloud
+- **Concerts**: Concert names, dates, song assignments synced to cloud (shared within choir)
+- **Songs**: Song metadata, track information synced to cloud (shared within choir)
+- **Audio Files**: Stored in cloud, accessible to all choir members
+- **Per-User Data**: Section markers, playback positions, most recently accessed concert synced per user
 - **User Authentication**: Required for syncing data across devices
 
-### 7. Android Auto Integration
+### 8. Android Auto Integration
 - Display concerts and song library in Android Auto interface
 - Browse songs by concert
 - Show currently playing track and voice part
@@ -67,47 +78,59 @@ A mobile and desktop application for practicing choir singing, allowing users to
 
 ## User Workflows
 
+### Creating a Choir
+1. User creates a new choir (enters choir name)
+2. User becomes the choir owner
+3. User can invite/add other members by email or user ID
+4. Choir syncs to all members' devices
+
+### Managing Choir Membership (Owner Only)
+1. Choir owner views member list
+2. Owner can add new members
+3. Owner can remove members
+4. Changes sync to all devices
+
 ### Creating a Concert
-1. User creates a new concert (enters concert name)
-2. Concert appears in their concert list
-3. User can reorder concerts by dragging or using sort controls
-4. Concert syncs to all user's devices
+1. User selects a choir
+2. User creates a new concert (enters concert name and date)
+3. Concert appears in all choir members' concert lists
+4. Concerts automatically sorted by date (upcoming first, then past)
+5. Concert syncs to all choir members' devices
 
 ### Adding a Song
-1. User selects a concert (or creates a new one)
+1. User selects a choir and concert
 2. User creates a new song entry (enters song name)
-3. User assigns song to one or more concerts
-4. User adds audio tracks for different voice parts
-5. User imports audio files from device for each track
-6. Files upload to cloud storage
-7. Song appears in assigned concerts on all user's devices
+3. User adds audio tracks for different voice parts
+4. User imports audio files from device for each track
+5. Files upload to cloud storage
+6. Song appears in the concert for all choir members
 
 ### Practicing a Song
-1. App opens to most recently accessed concert
+1. App opens to user's most recently accessed concert
 2. User selects a song from the concert
 3. User selects which voice part to practice (e.g., Tenor)
-4. User plays the track
-5. User can:
+4. Audio resumes from user's last saved playback position (if any)
+5. User plays the track
+6. User can:
    - Use quick rewind to replay difficult parts
    - Mark section start/end points during playback
-   - Save sections for later practice (sections follow the song to all concerts)
+   - Save sections for later practice (private to user, follows song everywhere)
    - Loop specific sections repeatedly
+7. Playback position automatically saved for next session
 
 ### Using Saved Sections
-1. User opens a song they've practiced before (from any concert)
-2. User sees list of saved sections (e.g., "Bridge - measures 32-40")
+1. User opens a song they've practiced before (from any choir/concert)
+2. User sees their private list of saved sections (e.g., "Bridge - measures 32-40")
 3. Sections are the same regardless of which concert the song is accessed from
 4. User selects a section to practice
 5. App loops that section until user stops
 
-### Managing Concerts
-1. User can view all concerts in custom sort order
-2. User can reorder concerts
-3. User can rename concerts
-4. User can view all songs in a concert
-5. User can add existing songs to additional concerts
-6. User can remove songs from concerts (if song belongs to multiple concerts)
-7. System tracks last accessed time when user opens a concert
+### Browsing Concerts
+1. User views all concerts from all their choirs
+2. Concerts automatically sorted by date (upcoming first, then past)
+3. User can see which choir each concert belongs to
+4. User can filter/search concerts
+5. System remembers and opens to most recently accessed concert
 
 ## Technical Requirements
 
@@ -127,14 +150,17 @@ A mobile and desktop application for practicing choir singing, allowing users to
 
 ### Security
 - Secure user authentication
-- Private user data (section markers, playlists)
+- Private user data (section markers, playback positions)
+- Choir-based access control (only members can access choir content)
+- Choir owner permissions for member management
 - Secure cloud storage for audio files
 
 ## Future Considerations (Not in Initial Version)
-- Sharing songs between users
-- Playlist creation
+- Hide/show specific concerts from personal view
 - Practice session tracking/statistics
 - Adjustable playback speed
 - Pitch adjustment
 - Multiple language support
 - Export practice logs
+- Choir owner transfer
+- Bulk member management

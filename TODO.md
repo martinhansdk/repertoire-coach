@@ -17,7 +17,7 @@
 ## Phase 1: Core Functionality (Local-First)
 
 ### Data Layer
-- [ ] Create data models (Concert, Song, Track, Section, User)
+- [ ] Create data models (Choir, Concert, Song, Track, Section, User, UserPlaybackState)
 - [ ] Setup local database (SQLite/drift)
 - [ ] Implement local repository interfaces
 - [ ] Implement local data sources
@@ -26,31 +26,40 @@
 - [ ] Define domain entities
 - [ ] Create repository interfaces
 - [ ] Implement use cases:
-  - [ ] Create concert
-  - [ ] Get all concerts (sorted by custom order)
-  - [ ] Get most recently accessed concert
-  - [ ] Update concert (rename, reorder)
-  - [ ] Delete concert (with orphan prevention)
-  - [ ] Update concert last accessed time
-  - [ ] Add song
+  - [ ] Create choir
+  - [ ] Get user's choirs
+  - [ ] Add member to choir (owner only)
+  - [ ] Remove member from choir (owner only)
+  - [ ] Update choir name
+  - [ ] Create concert (within choir)
+  - [ ] Get concerts for choir (sorted by date)
+  - [ ] Get all concerts for user (across all choirs, sorted by date)
+  - [ ] Update concert (rename, change date)
+  - [ ] Delete concert
+  - [ ] Update user's last accessed concert
+  - [ ] Add song (to concert)
   - [ ] Delete song
-  - [ ] Add song to concert
-  - [ ] Remove song from concert
+  - [ ] Update song
   - [ ] Add track to song
   - [ ] Delete track
   - [ ] Get all songs in concert
   - [ ] Get song by ID
+  - [ ] Save playback position
+  - [ ] Get playback position
 
-### Presentation Layer - Concert & Song Management
+### Presentation Layer - Choir, Concert & Song Management
 - [ ] Create app shell (navigation, theme)
-- [ ] Concert list screen (shows all concerts in custom order)
-- [ ] Create/edit concert dialog
-- [ ] Concert reordering UI (drag-to-reorder or manual sort)
+- [ ] Choir list screen
+- [ ] Create choir dialog
+- [ ] Choir detail screen (view members, concerts)
+- [ ] Manage choir members screen (owner only)
+- [ ] Concert list screen (shows all user's concerts sorted by date: upcoming, then past)
+- [ ] Create/edit concert dialog (with date picker)
+- [ ] Filter concerts by choir
 - [ ] Song library screen (list view within concert)
-- [ ] Add song dialog/screen (with concert assignment)
+- [ ] Add song dialog/screen
 - [ ] Song detail screen
 - [ ] Add track functionality (file picker integration)
-- [ ] Manage song concert assignments (add to multiple concerts)
 - [ ] Default to most recently accessed concert on app launch
 
 ### Audio Playback (Local Files)
@@ -60,6 +69,8 @@
 - [ ] Progress tracking
 - [ ] Playback UI (now playing screen)
 - [ ] Quick rewind button (10 seconds)
+- [ ] Save playback position automatically
+- [ ] Resume from saved position on track load
 
 ## Phase 2: Cloud Integration
 
@@ -67,24 +78,30 @@
 - [ ] Setup Firebase Authentication
 - [ ] Implement login/signup screens
 - [ ] Setup Cloud Firestore
-- [ ] Define Firestore security rules
+- [ ] Define Firestore security rules (choir-based access control)
 - [ ] Setup Firebase Storage
-- [ ] Define Storage security rules
+- [ ] Define Storage security rules (choir-based access)
 
 ### Data Synchronization
 - [ ] Implement remote data sources (Firestore + Storage)
-- [ ] Upload audio files to Firebase Storage
-- [ ] Sync concert data to Firestore (name, sortOrder, songIds, lastAccessedAt)
-- [ ] Sync song metadata to Firestore (including concertIds array)
-- [ ] Sync tracks to Firestore
-- [ ] Sync section markers to Firestore (per-user, follows song across concerts)
+- [ ] Sync choir data to Firestore (shared among members)
+- [ ] Sync choir membership changes
+- [ ] Sync concert data to Firestore (within choirs, sorted by date)
+- [ ] Sync song metadata to Firestore (within concerts, shared)
+- [ ] Upload audio files to Firebase Storage (choir-scoped paths)
+- [ ] Sync tracks to Firestore (shared)
+- [ ] Sync section markers to Firestore (per-user, private)
+- [ ] Sync playback positions to Firestore (per-user, private)
+- [ ] Sync user's last accessed concert
 - [ ] Download audio files from cloud
 - [ ] Handle offline/online modes
 - [ ] Background sync service
-- [ ] Create required Firestore indexes for concert queries
+- [ ] Create required Firestore indexes
 
 ### User Management
 - [ ] User profile screen
+- [ ] View user's choirs
+- [ ] Leave choir functionality
 - [ ] Sign out functionality
 - [ ] Account settings
 

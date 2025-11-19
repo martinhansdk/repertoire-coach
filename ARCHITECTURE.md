@@ -56,7 +56,7 @@ Alternatives: Provider, Bloc, GetX
 lib/
 ├── core/               # Shared utilities, constants, base classes
 ├── data/              # Data layer
-│   ├── models/        # Data models (Concert, Song, Track, Section, User)
+│   ├── models/        # Data models (Choir, Concert, Song, Track, Section, User, UserPlaybackState)
 │   ├── repositories/  # Repository implementations
 │   └── datasources/   # Remote (Firebase) and local (SQLite) data sources
 ├── domain/            # Business logic layer
@@ -75,16 +75,27 @@ lib/
 
 ### Core Entities
 
+#### Choir
+```dart
+class Choir {
+  String id;
+  String name;
+  String ownerId;  // User who created and manages the choir
+  List<String> memberIds;  // All members (including owner)
+  DateTime createdAt;
+  DateTime updatedAt;
+}
+```
+
 #### Concert
 ```dart
 class Concert {
   String id;
-  String userId;
+  String choirId;  // Which choir this concert belongs to
   String name;  // Concert title
-  int sortOrder;  // Custom sort order (user-defined)
+  DateTime concertDate;  // Date of the concert (required for sorting)
   DateTime createdAt;
-  DateTime lastAccessedAt;  // Track when concert was last opened
-  List<String> songIds;  // Songs in this concert
+  DateTime updatedAt;
 }
 ```
 
@@ -92,13 +103,11 @@ class Concert {
 ```dart
 class Song {
   String id;
-  String userId;  // Owner of the song
+  String concertId;  // Concert this song belongs to (which determines choir access)
   String title;
-  List<String> concertIds;  // Concerts this song belongs to (many-to-many)
   DateTime createdAt;
   DateTime updatedAt;
-  List<Track> tracks;
-  // Note: Sections are stored separately and follow the song across concerts
+  // Note: Tracks are subcollection, Sections are stored separately per-user
 }
 ```
 
@@ -136,7 +145,21 @@ class User {
   String id;
   String email;
   String displayName;
+  List<String> choirIds;  // Choirs user is a member of
+  String? lastAccessedConcertId;  // Most recently accessed concert (per-user)
   DateTime createdAt;
+}
+```
+
+#### UserPlaybackState
+```dart
+class UserPlaybackState {
+  String id;  // Composite: userId_songId_trackId
+  String userId;
+  String songId;
+  String trackId;
+  int position;  // Last playback position in milliseconds
+  DateTime updatedAt;
 }
 ```
 
@@ -148,22 +171,30 @@ users/
   {userId}/
     - email
     - displayName
+    - choirIds  // Array of choir IDs user belongs to
+    - lastAccessedConcertId  // Most recent concert (per-user)
     - createdAt
+
+choirs/
+  {choirId}/
+    - name
+    - ownerId  // User who created the choir
+    - memberIds  // Array of user IDs (all members)
+    - createdAt
+    - updatedAt
 
 concerts/
   {concertId}/
-    - userId
+    - choirId  // Which choir this belongs to
     - name
-    - sortOrder
-    - songIds  // Array of song IDs
+    - concertDate  // Date of concert (for sorting)
     - createdAt
-    - lastAccessedAt
+    - updatedAt
 
 songs/
   {songId}/
-    - userId
+    - concertId  // Concert this belongs to (determines choir access)
     - title
-    - concertIds  // Array of concert IDs (many-to-many)
     - createdAt
     - updatedAt
 
@@ -175,35 +206,50 @@ songs/
         - duration
         - createdAt
 
-    sections/ (subcollection)
-      {sectionId}/
-        - userId
-        - trackId
-        - name
-        - startTime
-        - endTime
-        - createdAt
+sections/
+  {sectionId}/
+    - userId  // Sections are per-user
+    - songId
+    - trackId
+    - name
+    - startTime
+    - endTime
+    - createdAt
+
+playbackStates/
+  {stateId}/  // Composite ID: userId_songId_trackId
+    - userId
+    - songId
+    - trackId
+    - position  // Last playback position in milliseconds
+    - updatedAt
 ```
 
 ### Queries and Indexes
 
 **Common Queries:**
-- Get all concerts for a user: `concerts.where('userId', '==', userId).orderBy('sortOrder')`
-- Get most recently accessed concert: `concerts.where('userId', '==', userId).orderBy('lastAccessedAt', 'desc').limit(1)`
-- Get all songs in a concert: `songs.where('concertIds', 'array-contains', concertId)`
-- Get all concerts for a song: `concerts.where('songIds', 'array-contains', songId)`
+- Get user's choirs: `choirs.where('memberIds', 'array-contains', userId)`
+- Get concerts for a choir: `concerts.where('choirId', '==', choirId).orderBy('concertDate')`
+- Get all concerts for user (via their choirs): Client-side filtering after fetching concerts for each choir
+- Get songs in a concert: `songs.where('concertId', '==', concertId)`
+- Get user's sections for a song: `sections.where('userId', '==', userId).where('songId', '==', songId)`
+- Get playback state: `playbackStates.doc('${userId}_${songId}_${trackId}')`
+- Get user's last accessed concert: Read from `users/{userId}.lastAccessedConcertId`
 
 **Required Firestore Indexes:**
-- Composite index: `concerts` collection on `userId` (ascending) + `sortOrder` (ascending)
-- Composite index: `concerts` collection on `userId` (ascending) + `lastAccessedAt` (descending)
+- Composite index: `concerts` collection on `choirId` (ascending) + `concertDate` (ascending)
+- Composite index: `sections` collection on `userId` (ascending) + `songId` (ascending)
+- Single field index: `choirs.memberIds` (array-contains)
 
 ### Security Rules Considerations
-- Users can only read/write their own concerts
-- Users can only read/write their own songs
-- Users can only read/write their own sections
-- Audio files in Storage have user-specific access rules
-- Prevent orphaned songs (must belong to at least one concert)
-- Handle concert deletion (reassign or prevent if songs would become orphaned)
+- Users can only read/write choirs they are members of
+- Only choir owner can modify choir membership
+- Users can read/write concerts belonging to their choirs
+- Users can read/write songs in concerts belonging to their choirs
+- Users can only read/write their own sections and playback states
+- Audio files in Storage: accessible to choir members whose concerts contain the song
+- Prevent deletion of concerts with songs
+- Choir owner cannot remove themselves unless transferring ownership
 
 ## Audio Playback Architecture
 
@@ -273,26 +319,28 @@ Root
 ## File Storage Strategy
 
 ### Local Storage
-- **SQLite**: Cache concert, song, and track metadata for offline access
+- **SQLite**: Cache choir, concert, song, and track metadata for offline access
 - **File System**: Cache audio files for offline playback
-- **Shared Preferences**: User settings, last accessed concert ID, last played song, etc.
+- **Shared Preferences**: User settings, last accessed concert ID, playback preferences, etc.
 
 ### Cloud Storage
 - **Firebase Storage** structure:
   ```
   audio_files/
-    {userId}/
-      {songId}/
-        {trackId}.mp3
+    {choirId}/
+      {concertId}/
+        {songId}/
+          {trackId}.mp3
   ```
 
 ### Sync Strategy
-1. User imports audio file
+1. Choir member imports audio file for a track
 2. File saved to local storage temporarily
-3. Upload to Firebase Storage in background
-4. Save metadata (including cloud URL) to Firestore
+3. Upload to Firebase Storage in background (choir-scoped path)
+4. Save track metadata (including cloud URL) to Firestore
 5. Delete local temp file, keep cached version
-6. On other devices: download on-demand or pre-cache
+6. Other choir members: download on-demand or pre-cache
+7. Per-user data (sections, playback positions) syncs independently
 
 ## Error Handling
 
@@ -371,17 +419,21 @@ Root
 
 ### Phase 1: Core Functionality
 - Basic Flutter app setup
-- Concert management UI
+- Choir management UI (create, view, manage members)
+- Concert management UI (within choirs, sorted by date)
 - Song library UI (within concerts)
 - Audio file import
 - Local playback (without cloud)
+- Playback position saving
 
 ### Phase 2: Cloud Integration
 - Firebase setup
 - User authentication
-- Cloud storage for audio
-- Firestore for metadata (concerts, songs, sections)
-- Concert and song sync across devices
+- Cloud storage for audio (choir-scoped)
+- Firestore for shared data (choirs, concerts, songs)
+- Firestore for per-user data (sections, playback states)
+- Choir membership sync
+- Concert and song sync across choir members
 
 ### Phase 3: Advanced Playback
 - Section marking
