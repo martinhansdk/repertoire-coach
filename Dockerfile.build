@@ -1,0 +1,76 @@
+# Dockerfile for building Flutter apps
+# Supports Android APK/AAB and Web builds
+# Note: iOS builds require macOS/Xcode and cannot be built in Docker
+
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    unzip \
+    xz-utils \
+    zip \
+    libglu1-mesa \
+    openjdk-11-jdk \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up Android SDK
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV PATH=${PATH}:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools
+
+RUN mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools && \
+    cd ${ANDROID_SDK_ROOT}/cmdline-tools && \
+    wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip && \
+    unzip commandlinetools-linux-9477386_latest.zip && \
+    rm commandlinetools-linux-9477386_latest.zip && \
+    mv cmdline-tools latest
+
+# Accept Android licenses and install build tools
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+# Install Flutter
+ENV FLUTTER_VERSION=3.24.0
+ENV FLUTTER_HOME=/opt/flutter
+ENV PATH=${PATH}:${FLUTTER_HOME}/bin
+
+RUN git clone https://github.com/flutter/flutter.git -b stable ${FLUTTER_HOME} && \
+    cd ${FLUTTER_HOME} && \
+    git checkout ${FLUTTER_VERSION} && \
+    flutter precache && \
+    flutter doctor
+
+# Set up working directory
+WORKDIR /app
+
+# Copy pubspec files first for better caching
+COPY pubspec.yaml pubspec.lock ./
+
+# Get dependencies
+RUN flutter pub get
+
+# Copy the rest of the application
+COPY . .
+
+# Build script that can be overridden
+# Default: build Android APK
+CMD ["flutter", "build", "apk", "--release"]
+
+# Usage examples:
+# Build Android APK:
+#   docker build -f Dockerfile.build -t choir-app-builder .
+#   docker run --rm -v $(pwd)/build:/app/build choir-app-builder
+#
+# Build Android App Bundle:
+#   docker run --rm -v $(pwd)/build:/app/build choir-app-builder flutter build appbundle --release
+#
+# Build Web:
+#   docker run --rm -v $(pwd)/build:/app/build choir-app-builder flutter build web --release
+#
+# Run tests:
+#   docker run --rm choir-app-builder flutter test

@@ -1,0 +1,42 @@
+# Build outputs
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation (not needed for builds)
+*.md
+docs/
+
+# Local configuration
+.env
+.env.local
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.log
+*.tmp
+*.swp
