@@ -262,6 +262,19 @@ Always ask Claude to update docs when:
 
 ## Git Workflow with Claude
 
+### When Claude Should Auto-Commit
+
+Claude should **automatically commit** after completing these types of changes (without being asked):
+- Documentation updates (README, REQUIREMENTS, ARCHITECTURE, TODO, etc.)
+- Project naming changes
+- Configuration file changes
+- Completing discrete features or tasks
+- Refactoring that doesn't change functionality
+
+The user shouldn't need to ask for commits on routine changes - just do it!
+
+### Creating Commits
+
 Claude can help with commits:
 ```
 Create a commit for the changes we just made to [feature].
