@@ -1,4 +1,4 @@
-# Working with Claude on the Choir Practice App
+# Working with Claude on Repertoire Coach
 
 This document provides context and guidelines for working with Claude Code (or any AI assistant) on this project.
 

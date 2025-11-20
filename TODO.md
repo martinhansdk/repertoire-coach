@@ -1,4 +1,4 @@
-# Choir Practice App - TODO List
+# Repertoire Coach - TODO List
 
 ## Project Setup
 - [x] Initialize git repository

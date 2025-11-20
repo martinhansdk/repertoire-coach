@@ -1,4 +1,4 @@
-# Choir Practice App - Requirements
+# Repertoire Coach - Requirements
 
 ## Overview
 A collaborative mobile and desktop application for practicing choir singing. Users organize into choirs, share concerts and songs with multiple voice parts, and maintain personal practice metadata including section markers and playback positions.

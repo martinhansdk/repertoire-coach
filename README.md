@@ -1,4 +1,4 @@
-# Choir Practice App
+# Repertoire Coach
 
 A cross-platform mobile and desktop application designed to help choir members practice their vocal parts. Import songs with multiple voice tracks (Soprano, Alto, Tenor, Bass, etc.), mark tricky sections, and practice on-the-go with Android Auto support.
 

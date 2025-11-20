@@ -1,4 +1,4 @@
-# Choir Practice App - Technical Architecture
+# Repertoire Coach - Technical Architecture
 
 ## Technology Stack
 
