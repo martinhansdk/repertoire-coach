@@ -12,37 +12,42 @@ Use `Dockerfile.build` to build Flutter apps in a consistent, containerized envi
 
 ### Building the Container
 
+Build the image once (or when Flutter/Android SDK versions change):
+
 ```bash
-docker build -f Dockerfile.build -t choir-app-builder .
+docker build -f Dockerfile.build -t repertoire-coach-builder .
 ```
 
 ### Usage Examples
 
 **Build Android APK:**
 ```bash
-docker run --rm -v $(pwd)/build:/app/build choir-app-builder
+docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build apk --release
 ```
 
 **Build Android App Bundle (for Play Store):**
 ```bash
-docker run --rm -v $(pwd)/build:/app/build choir-app-builder \
-  flutter build appbundle --release
+docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build appbundle --release
 ```
 
 **Build Web App:**
 ```bash
-docker run --rm -v $(pwd)/build:/app/build choir-app-builder \
-  flutter build web --release
+docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build web --release
+```
+
+**Get Dependencies:**
+```bash
+docker run --rm -v $(pwd):/app repertoire-coach-builder flutter pub get
 ```
 
 **Run Tests:**
 ```bash
-docker run --rm choir-app-builder flutter test
+docker run --rm -v $(pwd):/app repertoire-coach-builder flutter test
 ```
 
 **Run Flutter Analyze:**
 ```bash
-docker run --rm choir-app-builder flutter analyze
+docker run --rm -v $(pwd):/app repertoire-coach-builder flutter analyze
 ```
 
 ### Note on iOS Builds
@@ -171,7 +176,7 @@ For production builds:
    - Configure signing in `android/app/build.gradle`
 
 2. **Web:**
-   - Build: `docker run --rm -v $(pwd)/build:/app/build choir-app-builder flutter build web --release`
+   - Build: `docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build web --release`
    - Deploy to: Vercel, Netlify, or static hosting
    - Serve from `build/web` directory
 
@@ -210,13 +215,13 @@ For production Supabase deployment:
 **Problem:** "Flutter SDK not found"
 ```bash
 # Rebuild the image
-docker build -f Dockerfile.build -t choir-app-builder --no-cache .
+docker build -f Dockerfile.build -t repertoire-coach-builder --no-cache .
 ```
 
 **Problem:** Build artifacts not appearing
 ```bash
 # Ensure volume mount is correct (use absolute path on Windows)
-docker run --rm -v /absolute/path/to/build:/app/build choir-app-builder
+docker run --rm -v /absolute/path/to/project:/app repertoire-coach-builder flutter build apk --release
 ```
 
 ### Supabase Issues

@@ -48,29 +48,28 @@ RUN git clone https://github.com/flutter/flutter.git -b stable ${FLUTTER_HOME} &
 # Set up working directory
 WORKDIR /app
 
-# Copy pubspec files first for better caching
-COPY pubspec.yaml pubspec.lock ./
+# No project files copied - they'll be mounted at runtime
+# This allows the image to be built before the Flutter project exists
 
-# Get dependencies
-RUN flutter pub get
-
-# Copy the rest of the application
-COPY . .
-
-# Build script that can be overridden
-# Default: build Android APK
-CMD ["flutter", "build", "apk", "--release"]
+# Default command: show Flutter version
+# Override this when running the container for actual builds
+CMD ["flutter", "--version"]
 
 # Usage examples:
+# Build the image (only needed once):
+#   docker build -f Dockerfile.build -t repertoire-coach-builder .
+#
 # Build Android APK:
-#   docker build -f Dockerfile.build -t choir-app-builder .
-#   docker run --rm -v $(pwd)/build:/app/build choir-app-builder
+#   docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build apk --release
 #
 # Build Android App Bundle:
-#   docker run --rm -v $(pwd)/build:/app/build choir-app-builder flutter build appbundle --release
+#   docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build appbundle --release
 #
 # Build Web:
-#   docker run --rm -v $(pwd)/build:/app/build choir-app-builder flutter build web --release
+#   docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build web --release
 #
 # Run tests:
-#   docker run --rm choir-app-builder flutter test
+#   docker run --rm -v $(pwd):/app repertoire-coach-builder flutter test
+#
+# Get dependencies:
+#   docker run --rm -v $(pwd):/app repertoire-coach-builder flutter pub get
