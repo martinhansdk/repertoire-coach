@@ -45,14 +45,44 @@ choir-app/
 
 ### Prerequisites
 
-- Flutter SDK (latest stable version)
-- Android Studio / Xcode (for mobile development)
-- Firebase account
+- Docker (for building)
+- Android device with USB debugging enabled (for Android testing)
 - Git
 
-### Setup Instructions
+### Building the App
 
-(To be added as development progresses)
+See [DOCKER.md](DOCKER.md) for detailed Docker setup and build instructions.
+
+**Quick start:**
+
+```bash
+# Build Docker image (only needed once)
+docker build -f Dockerfile.build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t repertoire-coach-builder .
+
+# Build Android APK
+sg docker -c "docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build apk --debug"
+
+# Build Web version
+sg docker -c "docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build web"
+```
+
+### Running the App
+
+**Android:**
+```bash
+# Install on connected Android device
+adb install build/app/outputs/flutter-apk/app-debug.apk
+
+# Or copy build/app/outputs/flutter-apk/app-debug.apk to your phone and install manually
+```
+
+**Web (Desktop):**
+```bash
+# Serve the web build locally
+cd build/web
+python3 -m http.server 8000
+# Open http://localhost:8000 in your browser
+```
 
 ## Documentation
 

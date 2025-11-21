@@ -54,6 +54,37 @@ docker run --rm -v $(pwd):/app repertoire-coach-builder flutter test
 docker run --rm -v $(pwd):/app repertoire-coach-builder flutter analyze
 ```
 
+### Running the Built App
+
+After building, you can run the app on different platforms:
+
+**Android:**
+```bash
+# Install APK on connected Android device via USB
+adb install build/app/outputs/flutter-apk/app-debug.apk
+
+# For release builds
+adb install build/app/outputs/flutter-apk/app-release.apk
+
+# Or manually: Copy the APK file to your phone and install it
+```
+
+**Web:**
+```bash
+# After building with: docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build web
+# Serve the web build locally with any HTTP server
+
+# Option 1: Python
+cd build/web && python3 -m http.server 8000
+# Open http://localhost:8000
+
+# Option 2: Node.js (if installed)
+cd build/web && npx http-server -p 8000
+
+# Option 3: PHP (if installed)
+cd build/web && php -S localhost:8000
+```
+
 ### Note on iOS Builds
 iOS builds require macOS and Xcode, which cannot run in Docker. For iOS builds:
 - Build on a Mac with Xcode installed
