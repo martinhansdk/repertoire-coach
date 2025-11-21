@@ -6,8 +6,8 @@
 - [x] Create ARCHITECTURE.md
 - [x] Create TODO.md
 - [x] Create README.md
-- [ ] Initialize Flutter project
-- [ ] Setup project structure (folders: core, data, domain, presentation)
+- [x] Initialize Flutter project
+- [x] Setup project structure (folders: core, data, domain, presentation)
 - [ ] Add dependencies to pubspec.yaml (just_audio, riverpod, supabase_flutter packages)
 - [ ] Setup Supabase project
 - [ ] Configure Supabase for Android

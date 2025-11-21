@@ -12,11 +12,15 @@ Use `Dockerfile.build` to build Flutter apps in a consistent, containerized envi
 
 ### Building the Container
 
-Build the image once (or when Flutter/Android SDK versions change):
+Build the image once (or when Flutter/Android SDK versions change).
+
+**Important:** Pass your user and group IDs to avoid permission issues:
 
 ```bash
-docker build -f Dockerfile.build -t repertoire-coach-builder .
+docker build -f Dockerfile.build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t repertoire-coach-builder .
 ```
+
+This ensures files created by Docker have the correct ownership.
 
 ### Usage Examples
 
