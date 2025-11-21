@@ -87,6 +87,44 @@ jobs:
         path: build/web/
         retention-days: 7
 
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Build iOS app (Debug)
+      run: flutter build ios --debug --no-codesign
+
+    - name: Upload iOS Debug artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-debug-app
+        path: build/ios/iphoneos/Runner.app
+        retention-days: 7
+
+    - name: Build iOS app (Release)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: flutter build ios --release --no-codesign
+
+    - name: Upload iOS Release artifact
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-release-app
+        path: build/ios/iphoneos/Runner.app
+        retention-days: 30
+
   analyze:
     runs-on: ubuntu-latest
 
