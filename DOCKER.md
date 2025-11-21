@@ -26,22 +26,22 @@ This ensures files created by Docker have the correct ownership.
 
 **Build Android APK:**
 ```bash
-docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build apk --release
+docker run --rm -v $(pwd):/app repertoire-coach-builder sh -c 'flutter pub get && flutter build apk --release'
+```
+
+**Build Android APK (debug):**
+```bash
+docker run --rm -v $(pwd):/app repertoire-coach-builder sh -c 'flutter pub get && flutter build apk --debug'
 ```
 
 **Build Android App Bundle (for Play Store):**
 ```bash
-docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build appbundle --release
+docker run --rm -v $(pwd):/app repertoire-coach-builder sh -c 'flutter pub get && flutter build appbundle --release'
 ```
 
 **Build Web App:**
 ```bash
-docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build web --release
-```
-
-**Get Dependencies:**
-```bash
-docker run --rm -v $(pwd):/app repertoire-coach-builder flutter pub get
+docker run --rm -v $(pwd):/app repertoire-coach-builder sh -c 'flutter pub get && flutter build web --release'
 ```
 
 **Run Tests:**
