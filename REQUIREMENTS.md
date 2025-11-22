@@ -82,6 +82,17 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 - Playback controls accessible from car display
 - Follow Android Auto safety guidelines for in-car use
 
+### 9. Multi-Language Support
+- **Supported Languages**: English (default), Danish
+- **Language Detection**: Automatically detect language from device settings on first launch
+- **User Preference**: Language preference saved to user profile and synced across devices
+- **In-App Switching**: Users can change language anytime from settings menu
+- **Translated Content**:
+  - UI elements (buttons, labels, menus, navigation)
+  - Validation messages and error messages
+  - System notifications and prompts
+- **Not Translated**: User-generated content (choir names, concert names, song titles, marker labels)
+
 ## User Workflows
 
 ### Creating a Choir
@@ -144,6 +155,14 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 4. User can filter/search concerts
 5. System remembers and opens to most recently accessed concert
 
+### Changing Language Settings
+1. User opens app settings
+2. User selects "Language" option
+3. User sees available languages (English, Danish)
+4. User selects preferred language
+5. App UI updates immediately to selected language
+6. Language preference syncs to cloud for use on other devices
+
 ## Technical Requirements
 
 ### Performance
@@ -169,6 +188,7 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 
 ## Future Considerations (Not in Initial Version)
 - Hide/show specific concerts from personal view
-- Multiple language support
+- Additional language support beyond English and Danish
 - Choir owner transfer
 - Bulk member management
+- Translation of user-generated content (optional feature)

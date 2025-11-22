@@ -52,6 +52,16 @@ Alternative: **audioplayers** package
 
 Alternatives: Provider, Bloc, GetX
 
+### Internationalization (i18n)
+- **Flutter intl** / **flutter_localizations**:
+  - Built-in Flutter localization support
+  - ARB (Application Resource Bundle) files for translations
+  - Type-safe message access
+  - Compile-time validation of translation keys
+  - Supports plurals, genders, date/time formatting
+
+**Supported Languages**: English (en), Danish (da)
+
 ## Architecture Patterns
 
 ### Application Architecture
@@ -167,6 +177,7 @@ class User {
   String displayName;
   List<String> choirIds;  // Choirs user is a member of
   String? lastAccessedConcertId;  // Most recently accessed concert (per-user)
+  String languagePreference;  // User's preferred language code (e.g., 'en', 'da')
   DateTime createdAt;
 }
 ```
@@ -194,6 +205,7 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE NOT NULL,
   display_name VARCHAR(255),
   last_accessed_concert_id UUID,
+  language_preference VARCHAR(10) DEFAULT 'en',  -- ISO 639-1 language code
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -638,6 +650,79 @@ Root
 5. Handle playback commands (play, pause, skip, etc.)
 6. Update Flutter app state via platform channel
 
+## Internationalization (i18n)
+
+### Localization Approach
+- **Flutter intl package**: Use Flutter's official internationalization support
+- **ARB files**: Application Resource Bundle format for translations
+- **Generated code**: Type-safe access to translated strings
+
+### File Structure
+```
+lib/
+├── l10n/
+│   ├── app_en.arb     # English translations (base)
+│   ├── app_da.arb     # Danish translations
+│   └── l10n.dart      # Generated localization class
+```
+
+### ARB File Format
+Example `app_en.arb`:
+```json
+{
+  "@@locale": "en",
+  "appTitle": "Repertoire Coach",
+  "choirLabel": "Choir",
+  "concertLabel": "Concert",
+  "songLabel": "Song",
+  "playButton": "Play",
+  "pauseButton": "Pause",
+  "settingsLabel": "Settings",
+  "languageLabel": "Language",
+  "errorNetworkUnavailable": "Network unavailable. Please check your connection.",
+  "validationRequiredField": "This field is required",
+  "validationEmailInvalid": "Please enter a valid email address"
+}
+```
+
+### Language Detection & Storage
+1. **First Launch**: Detect device locale using `Platform.localeName`
+2. **Fallback**: Default to English if device locale not supported
+3. **User Preference**: Store selected language in `users.language_preference` column
+4. **Sync**: Language preference syncs across user's devices via Supabase
+5. **App Startup**: Load language preference from user profile, apply immediately
+
+### Implementation
+```dart
+// MaterialApp configuration
+MaterialApp(
+  localizationsDelegates: [
+    AppLocalizations.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: [
+    Locale('en', ''),  // English
+    Locale('da', ''),  // Danish
+  ],
+  locale: userLanguagePreference,  // From user profile
+  // ...
+)
+```
+
+### What Gets Translated
+- **UI Elements**: All buttons, labels, menu items, tab titles
+- **Validation Messages**: Form validation errors
+- **Error Messages**: Network errors, auth errors, storage errors
+- **System Prompts**: Confirmation dialogs, notifications
+- **Date/Time Formatting**: Locale-specific formatting
+
+### What Stays Untranslated
+- **User Content**: Choir names, concert names, song titles
+- **Marker Labels**: User-created marker labels
+- **User Names**: Display names, email addresses
+
 ## File Storage Strategy
 
 ### Local Storage
@@ -752,12 +837,14 @@ Root
 
 ### Phase 1: Core Functionality
 - Basic Flutter app setup
+- Internationalization setup (Flutter intl, ARB files for English and Danish)
 - Choir management UI (create, view, manage members)
 - Concert management UI (within choirs, sorted by date)
 - Song library UI (within concerts)
 - Audio file import
 - Local playback (without cloud)
 - Playback position saving
+- Language preference in settings
 
 ### Phase 2: Cloud Integration
 - Supabase project setup
@@ -771,9 +858,10 @@ Root
 - Concert and song sync across choir members
 
 ### Phase 3: Advanced Playback
-- Section marking
-- Section saving
-- Section looping
+- Marker set creation and management
+- Shared vs private marker sets
+- Marker creation during playback
+- Marker-based looping
 - Quick rewind button
 
 ### Phase 4: Multi-Platform
