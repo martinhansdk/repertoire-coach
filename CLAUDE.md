@@ -165,7 +165,14 @@ Make sure to:
 - Follow the data models in ARCHITECTURE.md
 - Use Riverpod providers
 - Handle errors appropriately
+- **ALWAYS write comprehensive tests** (unit, widget, and/or integration tests)
 ```
+
+**IMPORTANT: Testing is Mandatory**
+- Every feature implementation MUST include tests
+- Write tests for all new code (domain entities, repositories, providers, widgets)
+- Tests should cover happy paths, edge cases, and error scenarios
+- Aim for high test coverage to ensure code quality and prevent regressions
 
 ### Phase 3: Review
 ```
@@ -213,10 +220,23 @@ All tables use Row Level Security. Users can only access:
 
 ## Testing with Claude
 
+**⚠️ Tests Are NOT Optional**
+Every implementation MUST include tests. Do not consider a feature "complete" without comprehensive test coverage.
+
+**Test Types to Include:**
+
 **Unit Tests:**
 ```
 Write unit tests for [use case] following Flutter testing best practices.
 Include edge cases from REQUIREMENTS.md.
+Test all domain entities, use cases, and repository implementations.
+```
+
+**Widget Tests:**
+```
+Write widget tests for all UI components.
+Test user interactions, state changes, and rendering.
+Verify proper display of data in different states (loading, error, success, empty).
 ```
 
 **Integration Tests:**
@@ -230,6 +250,11 @@ Test the complete flow from UI to Supabase.
 Write tests to verify RLS policies for [table].
 Ensure users can't access data outside their choirs.
 ```
+
+**Test Coverage Goals:**
+- Domain layer: 100% (entities, use cases)
+- Data layer: 90%+ (repositories, models)
+- Presentation layer: 80%+ (widgets, providers)
 
 ## Troubleshooting with Claude
 
