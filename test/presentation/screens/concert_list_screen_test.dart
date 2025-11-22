@@ -76,7 +76,7 @@ void main() {
       expect(find.text('No Concerts'), findsOneWidget);
       expect(find.text('Join a choir to see concerts'), findsOneWidget);
       expect(find.byIcon(Icons.event_note_outlined), findsOneWidget);
-    }, skip: 'Timer pending after widget disposal - infrastructure issue');
+    }, skip: true); // TODO: Fix timer infrastructure issue - "Timer pending after widget disposal"
 
     testWidgets('should display error state when loading fails',
         (tester) async {
@@ -122,6 +122,6 @@ void main() {
 
       // Assert
       expect(find.text('Tapped: Spring Concert 2025'), findsOneWidget);
-    }, skip: 'Timer pending after widget disposal - infrastructure issue');
+    }, skip: true); // TODO: Fix timer infrastructure issue - "Timer pending after widget disposal"
   });
 }

@@ -62,7 +62,7 @@ void main() {
 
       // Assert
       expect(tapped, isTrue);
-    }, skip: 'Timer pending after widget disposal - infrastructure issue');
+    }, skip: true); // TODO: Fix timer infrastructure issue - "Timer pending after widget disposal"
 
     testWidgets('should display upcoming icon for future concerts',
         (tester) async {
