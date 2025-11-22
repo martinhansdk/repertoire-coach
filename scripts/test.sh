@@ -17,18 +17,21 @@ if [ "$1" = "--verbose" ]; then
   VERBOSE=true
 fi
 
+# Get absolute path to project root
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 # Create logs directory if it doesn't exist
-mkdir -p logs
+mkdir -p "${PROJECT_ROOT}/logs"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
-LOGFILE="logs/test-${TIMESTAMP}.log"
+LOGFILE="${PROJECT_ROOT}/logs/test-${TIMESTAMP}.log"
 
 echo "Running flutter test..."
 
 # Run flutter test and capture output
 if docker run --rm \
-  -v "$(pwd):/app" \
+  -v "${PROJECT_ROOT}:/app" \
   repertoire-coach-builder \
   sh -c 'flutter pub get >/dev/null 2>&1 && flutter test' \
   > "$LOGFILE" 2>&1; then

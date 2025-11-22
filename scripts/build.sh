@@ -10,6 +10,9 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Get absolute path to project root
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 # Parse arguments
 PLATFORM=$1
 BUILD_MODE=${2:-"--debug"}
@@ -30,12 +33,12 @@ if [[ ! "$BUILD_MODE" =~ ^(--debug|--release)$ ]]; then
 fi
 
 # Create logs directory if it doesn't exist
-mkdir -p logs
+mkdir -p "${PROJECT_ROOT}/logs"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
 MODE=$(echo "$BUILD_MODE" | sed 's/--//')
-LOGFILE="logs/build-${PLATFORM}-${MODE}-${TIMESTAMP}.log"
+LOGFILE="${PROJECT_ROOT}/logs/build-${PLATFORM}-${MODE}-${TIMESTAMP}.log"
 
 echo "Building Flutter app for $PLATFORM ($MODE mode)..."
 
@@ -54,7 +57,7 @@ esac
 
 # Run build and capture output
 if docker run --rm \
-  -v "$(pwd):/app" \
+  -v "${PROJECT_ROOT}:/app" \
   repertoire-coach-builder \
   sh -c "$BUILD_CMD" \
   > "$LOGFILE" 2>&1; then

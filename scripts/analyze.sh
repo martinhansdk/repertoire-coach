@@ -10,18 +10,21 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Get absolute path to project root
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 # Create logs directory if it doesn't exist
-mkdir -p logs
+mkdir -p "${PROJECT_ROOT}/logs"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
-LOGFILE="logs/analyze-${TIMESTAMP}.log"
+LOGFILE="${PROJECT_ROOT}/logs/analyze-${TIMESTAMP}.log"
 
 echo "Running flutter analyze..."
 
 # Run flutter analyze and capture output
 if docker run --rm \
-  -v "$(pwd):/app" \
+  -v "${PROJECT_ROOT}:/app" \
   repertoire-coach-builder \
   sh -c 'flutter pub get >/dev/null 2>&1 && flutter analyze' \
   > "$LOGFILE" 2>&1; then
@@ -31,7 +34,7 @@ if docker run --rm \
   exit 0
 else
   # Failure - count issues
-  ISSUE_COUNT=$(grep -c "error •\|warning •\|info •" "$LOGFILE" 2>/dev/null || echo "unknown")
+  ISSUE_COUNT=$(grep -c "error •\|warning •\|info •" "$LOGFILE" 2>/dev/null) || ISSUE_COUNT="unknown"
 
   if [ "$ISSUE_COUNT" != "unknown" ] && [ "$ISSUE_COUNT" -gt 0 ]; then
     echo -e "${RED}✗${NC} Analysis failed - $ISSUE_COUNT issues found"
