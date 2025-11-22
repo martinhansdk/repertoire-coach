@@ -135,14 +135,15 @@ class Song {
 class Track {
   String id;
   String songId;
-  String name;  // "Soprano", "Tenor", "Full Choir", etc.
-  VoiceType type;  // Enum: soprano, alto, tenor, bass, full, other
+  String name;  // "Soprano", "Tenor", "Full Choir", "Instrumental", "Monday Runthrough", etc.
   String audioUrl;  // Cloud storage URL
   String? localPath;  // Local cached file path
   int duration;  // Duration in milliseconds
   DateTime createdAt;
 }
 ```
+
+**Note**: Track uses only the `name` field for maximum flexibility. The name can represent any track type: voice parts (e.g., "Soprano", "Tenor"), ensemble recordings (e.g., "Full Choir"), instrumental tracks, or practice recordings (e.g., "Monday Runthrough").
 
 #### MarkerSet
 ```dart
@@ -250,8 +251,7 @@ CREATE TABLE songs (
 CREATE TABLE tracks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  type VARCHAR(50) NOT NULL,  -- soprano, alto, tenor, bass, full, other
+  name VARCHAR(255) NOT NULL,  -- Flexible: voice parts, ensemble, instrumental, practice recordings, etc.
   audio_url TEXT,
   storage_path TEXT,  -- Path in Supabase Storage
   duration_ms INTEGER,
