@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 set -o pipefail
 
 # Flutter test script with concise output and detailed logging
@@ -17,17 +16,27 @@ LOGFILE="${PROJECT_ROOT}/logs/test-${TIMESTAMP}.log"
 
 echo "Running flutter test..."
 
-# Run inside docker with script logic
+# Run inside docker and capture all output to log file
 docker run --rm \
   -v "${PROJECT_ROOT}:/app" \
   repertoire-coach-builder \
   sh -c '
-    echo "Running flutter pub get..."
     flutter pub get
-    echo ""
-    echo "Running flutter test..."
     flutter test
-  ' 2>&1 | tee "$LOGFILE"
+  ' > "$LOGFILE" 2>&1
 
-# Capture exit code (tee passes through the exit code of the first command)
-exit ${PIPESTATUS[0]}
+EXIT_CODE=$?
+
+# Show concise summary
+if [ $EXIT_CODE -eq 0 ]; then
+  # Count passing tests
+  PASS_COUNT=$(grep -c "All tests passed" "$LOGFILE" 2>/dev/null || echo "0")
+  echo "✓ Flutter tests passed"
+else
+  echo "✗ Flutter tests failed (exit code $EXIT_CODE)"
+  echo "Last 20 lines of output:"
+  tail -20 "$LOGFILE"
+fi
+
+echo "Full log: $LOGFILE"
+exit $EXIT_CODE
