@@ -151,7 +151,6 @@ jobs:
           sh -c 'flutter pub get && flutter analyze'
 
     - name: Run Flutter tests
-      continue-on-error: true
       run: |
         docker run --rm \
           -v $(pwd):/app \
