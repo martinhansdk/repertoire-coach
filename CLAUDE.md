@@ -256,6 +256,47 @@ Ensure users can't access data outside their choirs.
 - Data layer: 90%+ (repositories, models)
 - Presentation layer: 80%+ (widgets, providers)
 
+## Pre-Commit Validation (MANDATORY)
+
+**⚠️ CRITICAL: Always validate before committing**
+
+Before any commit, Claude MUST run these commands to verify the code is correct:
+
+### 1. Run Flutter Analyze
+```bash
+docker run --rm -v $(pwd):/app repertoire-coach-builder sh -c 'flutter pub get && flutter analyze'
+```
+**Purpose:** Catch linting errors, type errors, and code quality issues
+**Must Pass:** Zero issues found
+
+### 2. Run Flutter Tests
+```bash
+docker run --rm -v $(pwd):/app repertoire-coach-builder sh -c 'flutter pub get && flutter test'
+```
+**Purpose:** Verify all tests pass with the changes
+**Must Pass:** All tests passing (or only known skipped tests)
+
+### 3. Only Then Commit
+If both analyze and test pass, then commit:
+```bash
+git add <files>
+git commit -m "message"
+git push
+```
+
+**Why This Matters:**
+- CI runs these same checks - catching issues locally saves time
+- Multiple fix commits clutter the history
+- Shows proper software engineering discipline
+- Prevents breaking the build for other developers
+
+**Examples of Issues This Catches:**
+- Type errors (e.g., passing String to bool parameter)
+- Unused imports
+- Missing const keywords
+- Compilation errors
+- Broken tests from code changes
+
 ## Troubleshooting with Claude
 
 **When stuck:**
