@@ -156,4 +156,4 @@ jobs:
         docker run --rm \
           -v $(pwd):/app \
           repertoire-coach-builder \
-          flutter test
+          sh -c 'flutter pub get && flutter test'
