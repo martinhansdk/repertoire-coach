@@ -30,12 +30,15 @@ LOGFILE="${PROJECT_ROOT}/logs/test-${TIMESTAMP}.log"
 echo "Running flutter test..."
 
 # Run flutter test and capture output
-if docker run --rm \
+docker run --rm \
   -v "${PROJECT_ROOT}:/app" \
   repertoire-coach-builder \
   sh -c 'flutter pub get >/dev/null 2>&1 && flutter test' \
-  > "$LOGFILE" 2>&1; then
+  > "$LOGFILE" 2>&1
 
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
   # Success - parse test results
   SUMMARY=$(tail -1 "$LOGFILE" 2>/dev/null || echo "")
 

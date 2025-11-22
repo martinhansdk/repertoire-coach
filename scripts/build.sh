@@ -56,12 +56,15 @@ case $PLATFORM in
 esac
 
 # Run build and capture output
-if docker run --rm \
+docker run --rm \
   -v "${PROJECT_ROOT}:/app" \
   repertoire-coach-builder \
   sh -c "$BUILD_CMD" \
-  > "$LOGFILE" 2>&1; then
+  > "$LOGFILE" 2>&1
 
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
   # Success
   echo -e "${GREEN}✓${NC} Build complete for $PLATFORM ($MODE)"
   echo "  Output: build/$PLATFORM/"
