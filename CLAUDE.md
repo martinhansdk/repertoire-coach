@@ -260,35 +260,102 @@ Ensure users can't access data outside their choirs.
 
 **⚠️ CRITICAL: Always validate before committing**
 
-Before any commit, Claude MUST run these commands to verify the code is correct:
+Before any commit, Claude MUST run validation to verify the code is correct.
 
-### 1. Run Flutter Analyze
+### Quick Validation (Recommended)
+Run both analyze and test with concise output:
 ```bash
-docker run --rm -v $(pwd):/app repertoire-coach-builder sh -c 'flutter pub get && flutter analyze'
+scripts/validate.sh
 ```
-**Purpose:** Catch linting errors, type errors, and code quality issues
-**Must Pass:** Zero issues found
 
-### 2. Run Flutter Tests
-```bash
-docker run --rm -v $(pwd):/app repertoire-coach-builder sh -c 'flutter pub get && flutter test'
+**Output on success:**
 ```
-**Purpose:** Verify all tests pass with the changes
-**Must Pass:** All tests passing (or only known skipped tests)
+Running flutter analyze...
+✓ Analysis complete - No issues found
 
-### 3. Only Then Commit
-If both analyze and test pass, then commit:
-```bash
-git add <files>
-git commit -m "message"
-git push
+Running flutter test...
+✓ Tests complete - 82 passed, 3 skipped, 0 failed
+
+✓ Validation passed
 ```
+
+**Output on failure:**
+```
+Running flutter analyze...
+✗ Analysis failed - 3 issues found
+  See logs/analyze-2025-11-22-183045.log for details
+
+✗ Validation failed
+```
+
+### Individual Scripts
+
+**Run analyze only:**
+```bash
+scripts/analyze.sh
+```
+
+**Run tests only:**
+```bash
+scripts/test.sh
+
+# Or with verbose output:
+scripts/test.sh --verbose
+```
+
+**Build for platforms:**
+```bash
+scripts/build.sh android --debug
+scripts/build.sh web --release
+scripts/build.sh ios --debug
+```
+
+### Log Files
+
+All scripts write detailed logs to `logs/` directory:
+- `logs/analyze-YYYY-MM-DD-HHMMSS.log` - Full analyze output
+- `logs/test-YYYY-MM-DD-HHMMSS.log` - Full test output
+- `logs/build-{platform}-{mode}-YYYY-MM-DD-HHMMSS.log` - Full build output
+
+**View log details:**
+```bash
+# Find latest log
+ls -t logs/analyze-*.log | head -1
+
+# View specific log
+cat logs/analyze-2025-11-22-183045.log
+```
+
+### Validation Workflow
+
+1. **Run validation:**
+   ```bash
+   scripts/validate.sh
+   ```
+
+2. **If validation passes, commit:**
+   ```bash
+   git add <files>
+   git commit -m "message"
+   git push
+   ```
+
+3. **If validation fails, check logs:**
+   ```bash
+   # Find the latest log file
+   ls -t logs/ | head -1
+
+   # View the log
+   cat logs/analyze-2025-11-22-183045.log
+   ```
 
 **Why This Matters:**
 - CI runs these same checks - catching issues locally saves time
 - Multiple fix commits clutter the history
 - Shows proper software engineering discipline
 - Prevents breaking the build for other developers
+- Concise output saves tokens when working with LLMs
+- Detailed logs available when debugging needed
 
 **Examples of Issues This Catches:**
 - Type errors (e.g., passing String to bool parameter)
