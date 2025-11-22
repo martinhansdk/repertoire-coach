@@ -20,6 +20,9 @@ void main() {
 
       // Assert
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Clean up pending timers
+      await tester.pumpAndSettle();
     });
 
     testWidgets('should display concert list when data is loaded',
@@ -54,6 +57,9 @@ void main() {
 
       // Assert
       expect(find.text(AppConstants.appName), findsOneWidget);
+
+      // Clean up pending timers
+      await tester.pumpAndSettle();
     });
 
     testWidgets('should display empty state when no concerts', (tester) async {
