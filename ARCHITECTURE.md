@@ -65,9 +65,9 @@ Alternatives: Provider, Bloc, GetX
 lib/
 ├── core/               # Shared utilities, constants, base classes
 ├── data/              # Data layer
-│   ├── models/        # Data models (Choir, Concert, Song, Track, Section, User, UserPlaybackState)
+│   ├── models/        # Data models (Choir, Concert, Song, Track, MarkerSet, Marker, User, UserPlaybackState)
 │   ├── repositories/  # Repository implementations
-│   └── datasources/   # Remote (Firebase) and local (SQLite) data sources
+│   └── datasources/   # Remote (Supabase) and local (SQLite) data sources
 ├── domain/            # Business logic layer
 │   ├── entities/      # Domain entities
 │   ├── repositories/  # Repository interfaces
@@ -116,7 +116,7 @@ class Song {
   String title;
   DateTime createdAt;
   DateTime updatedAt;
-  // Note: Tracks are subcollection, Sections are stored separately per-user
+  // Note: Tracks are separate entities, MarkerSets belong to tracks
 }
 ```
 
@@ -134,16 +134,27 @@ class Track {
 }
 ```
 
-#### Section
+#### MarkerSet
 ```dart
-class Section {
+class MarkerSet {
   String id;
-  String songId;
-  String trackId;
-  String userId;  // Sections are per-user
-  String name;  // User-defined name for section
-  int startTime;  // Start position in milliseconds
-  int endTime;    // End position in milliseconds
+  String trackId;  // Which track this marker set belongs to
+  String name;  // Name of the set (e.g., "Musical Structure", "Bar Numbers")
+  bool isShared;  // true = shared with choir, false = private to user
+  String createdByUserId;  // User who created this marker set
+  DateTime createdAt;
+  DateTime updatedAt;
+}
+```
+
+#### Marker
+```dart
+class Marker {
+  String id;
+  String markerSetId;  // Which marker set this belongs to
+  String label;  // Marker label (e.g., "intro", "verse 1", "25")
+  int positionMs;  // Position in track in milliseconds
+  int order;  // Order within the marker set for display
   DateTime createdAt;
 }
 ```
@@ -235,15 +246,24 @@ CREATE TABLE tracks (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Sections table (per-user, private)
-CREATE TABLE sections (
+-- Marker sets table (shared or private)
+CREATE TABLE marker_sets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
   track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
-  start_time_ms INTEGER NOT NULL,
-  end_time_ms INTEGER NOT NULL,
+  is_shared BOOLEAN NOT NULL DEFAULT false,
+  created_by_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Markers table (positions within marker sets)
+CREATE TABLE markers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  marker_set_id UUID NOT NULL REFERENCES marker_sets(id) ON DELETE CASCADE,
+  label VARCHAR(255) NOT NULL,
+  position_ms INTEGER NOT NULL,
+  display_order INTEGER NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -263,7 +283,9 @@ CREATE INDEX idx_choir_members_choir ON choir_members(choir_id);
 CREATE INDEX idx_concerts_choir_date ON concerts(choir_id, concert_date);
 CREATE INDEX idx_songs_concert ON songs(concert_id);
 CREATE INDEX idx_tracks_song ON tracks(song_id);
-CREATE INDEX idx_sections_user_song ON sections(user_id, song_id);
+CREATE INDEX idx_marker_sets_track ON marker_sets(track_id);
+CREATE INDEX idx_marker_sets_user ON marker_sets(created_by_user_id);
+CREATE INDEX idx_markers_set ON markers(marker_set_id);
 CREATE INDEX idx_playback_states_user ON playback_states(user_id);
 
 -- Updated_at triggers
@@ -282,6 +304,8 @@ CREATE TRIGGER update_choirs_updated_at BEFORE UPDATE ON choirs
 CREATE TRIGGER update_concerts_updated_at BEFORE UPDATE ON concerts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_songs_updated_at BEFORE UPDATE ON songs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_marker_sets_updated_at BEFORE UPDATE ON marker_sets
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_playback_states_updated_at BEFORE UPDATE ON playback_states
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -316,11 +340,16 @@ WHERE concert_id = $1
 ORDER BY title;
 ```
 
-**Get user's sections for a song:**
+**Get marker sets for a track (shared + user's private):**
 ```sql
-SELECT * FROM sections
-WHERE user_id = $1 AND song_id = $2
-ORDER BY start_time_ms;
+SELECT ms.*,
+       (SELECT json_agg(m.* ORDER BY m.display_order)
+        FROM markers m
+        WHERE m.marker_set_id = ms.id) as markers
+FROM marker_sets ms
+WHERE ms.track_id = $1
+  AND (ms.is_shared = true OR ms.created_by_user_id = $2)
+ORDER BY ms.is_shared DESC, ms.name;
 ```
 
 **Get or create playback state:**
@@ -411,15 +440,127 @@ CREATE POLICY choir_members_delete ON choir_members
 -- (Policies check membership via choir_members join)
 ```
 
-**Sections and Playback States:**
+**Marker Sets and Markers:**
 ```sql
-ALTER TABLE sections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marker_sets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE markers ENABLE ROW LEVEL SECURITY;
+
+-- Users can read shared marker sets if they're choir members
+-- Users can read/write their own private marker sets
+CREATE POLICY marker_sets_select ON marker_sets
+  FOR SELECT USING (
+    is_shared = true AND EXISTS (
+      -- Check if user is member of choir that owns the track
+      SELECT 1 FROM tracks t
+      JOIN songs s ON t.song_id = s.id
+      JOIN concerts c ON s.concert_id = c.id
+      JOIN choir_members cm ON c.choir_id = cm.choir_id
+      WHERE t.id = track_id AND cm.user_id = auth.uid()
+    )
+    OR (is_shared = false AND created_by_user_id = auth.uid())
+  );
+
+-- Choir members can create shared marker sets for their choir's tracks
+-- Users can create private marker sets for any track they can access
+CREATE POLICY marker_sets_insert ON marker_sets
+  FOR INSERT WITH CHECK (
+    (is_shared = true AND EXISTS (
+      SELECT 1 FROM tracks t
+      JOIN songs s ON t.song_id = s.id
+      JOIN concerts c ON s.concert_id = c.id
+      JOIN choir_members cm ON c.choir_id = cm.choir_id
+      WHERE t.id = track_id AND cm.user_id = auth.uid()
+    ))
+    OR (is_shared = false AND created_by_user_id = auth.uid())
+  );
+
+-- Choir members can update shared marker sets
+-- Users can only update their own private marker sets
+CREATE POLICY marker_sets_update ON marker_sets
+  FOR UPDATE USING (
+    (is_shared = true AND EXISTS (
+      SELECT 1 FROM tracks t
+      JOIN songs s ON t.song_id = s.id
+      JOIN concerts c ON s.concert_id = c.id
+      JOIN choir_members cm ON c.choir_id = cm.choir_id
+      WHERE t.id = track_id AND cm.user_id = auth.uid()
+    ))
+    OR (is_shared = false AND created_by_user_id = auth.uid())
+  );
+
+-- Only creators can delete their own marker sets
+CREATE POLICY marker_sets_delete ON marker_sets
+  FOR DELETE USING (created_by_user_id = auth.uid());
+
+-- Markers inherit access from their marker set
+CREATE POLICY markers_select ON markers
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM marker_sets ms
+      WHERE ms.id = marker_set_id
+      AND (
+        ms.is_shared = true AND EXISTS (
+          SELECT 1 FROM tracks t
+          JOIN songs s ON t.song_id = s.id
+          JOIN concerts c ON s.concert_id = c.id
+          JOIN choir_members cm ON c.choir_id = cm.choir_id
+          WHERE t.id = ms.track_id AND cm.user_id = auth.uid()
+        )
+        OR (ms.is_shared = false AND ms.created_by_user_id = auth.uid())
+      )
+    )
+  );
+
+CREATE POLICY markers_insert ON markers
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM marker_sets ms
+      WHERE ms.id = marker_set_id
+      AND (
+        (ms.is_shared = true AND EXISTS (
+          SELECT 1 FROM tracks t
+          JOIN songs s ON t.song_id = s.id
+          JOIN concerts c ON s.concert_id = c.id
+          JOIN choir_members cm ON c.choir_id = cm.choir_id
+          WHERE t.id = ms.track_id AND cm.user_id = auth.uid()
+        ))
+        OR (ms.is_shared = false AND ms.created_by_user_id = auth.uid())
+      )
+    )
+  );
+
+CREATE POLICY markers_update ON markers
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM marker_sets ms
+      WHERE ms.id = marker_set_id
+      AND (
+        (ms.is_shared = true AND EXISTS (
+          SELECT 1 FROM tracks t
+          JOIN songs s ON t.song_id = s.id
+          JOIN concerts c ON s.concert_id = c.id
+          JOIN choir_members cm ON c.choir_id = cm.choir_id
+          WHERE t.id = ms.track_id AND cm.user_id = auth.uid()
+        ))
+        OR (ms.is_shared = false AND ms.created_by_user_id = auth.uid())
+      )
+    )
+  );
+
+CREATE POLICY markers_delete ON markers
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM marker_sets ms
+      WHERE ms.id = marker_set_id AND ms.created_by_user_id = auth.uid()
+    )
+  );
+```
+
+**Playback States:**
+```sql
 ALTER TABLE playback_states ENABLE ROW LEVEL SECURITY;
 
--- Users can only access their own sections and playback states
-CREATE POLICY sections_own ON sections
-  FOR ALL USING (user_id = auth.uid());
-
+-- Users can only access their own playback states
 CREATE POLICY playback_states_own ON playback_states
   FOR ALL USING (user_id = auth.uid());
 ```
@@ -573,7 +714,8 @@ Root
 - Secure token management (handled by Supabase)
 
 ### Data Privacy
-- User sections and playback states are private (enforced by RLS)
+- Private marker sets and playback states are user-specific (enforced by RLS)
+- Shared marker sets visible and editable by all choir members (enforced by RLS)
 - Choir content shared only among members (enforced by RLS)
 - Row Level Security policies enforce data isolation
 - Audio files accessible only to choir members (Storage policies)

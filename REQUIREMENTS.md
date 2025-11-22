@@ -55,18 +55,24 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 - Display current playback position and total duration
 - **Resume Playback**: System saves playback position per user per song for resuming later
 
-### 6. Section Marking & Practice
-- **Mark Sections During Playback**: Users can mark start and end points of sections while listening
-- **Save Sections**: Marked sections are saved with the song for future reference
-- **Section Looping**: Ability to loop/repeat saved sections continuously
-- **Per-User Sections**: Section markers are user-specific (different users can mark different sections)
+### 6. Marker Sets & Practice
+- **Marker Sets**: Named collections of position markers for a track (e.g., "Musical Structure", "Bar Numbers", "Lyrics")
+- **Shared Marker Sets**: Visible to all choir members, any member can create/edit
+  - Examples: "intro", "verse 1", "chorus", "outro" or bar numbers "1", "25", "48"
+- **Private Marker Sets**: Per-user marker sets for personal practice notes
+  - Examples: "hard part in outro", "sections to review"
+- **Mark Positions During Playback**: Users can mark positions while listening and add labels
+- **Create Marker Sets**: Users can organize markers into named sets
+- **Section Looping**: Select any marker range from any set to loop/repeat continuously
+- **Collaborative Editing**: Any choir member can improve/correct shared marker sets
 
 ### 7. Data Synchronization
 - **Choirs**: Choir data, membership synced to cloud
 - **Concerts**: Concert names, dates, song assignments synced to cloud (shared within choir)
 - **Songs**: Song metadata, track information synced to cloud (shared within choir)
 - **Audio Files**: Stored in cloud, accessible to all choir members
-- **Per-User Data**: Section markers, playback positions, most recently accessed concert synced per user
+- **Shared Marker Sets**: Marker sets and markers synced to cloud (shared within choir, editable by any member)
+- **Per-User Data**: Private marker sets, playback positions, most recently accessed concert synced per user
 - **User Authentication**: Required for syncing data across devices
 
 ### 8. Android Auto Integration
@@ -113,17 +119,23 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 5. User plays the track
 6. User can:
    - Use quick rewind to replay difficult parts
-   - Mark section start/end points during playback
-   - Save sections for later practice (private to user, follows song everywhere)
-   - Loop specific sections repeatedly
+   - View available marker sets (both shared and private)
+   - Create new markers during playback with labels
+   - Organize markers into named sets (shared or private)
+   - Select marker ranges from any set to loop repeatedly
+   - Edit/improve existing shared marker sets
 7. Playback position automatically saved for next session
 
-### Using Saved Sections
-1. User opens a song they've practiced before (from any choir/concert)
-2. User sees their private list of saved sections (e.g., "Bridge - measures 32-40")
-3. Sections are the same regardless of which concert the song is accessed from
-4. User selects a section to practice
-5. App loops that section until user stops
+### Using Marker Sets for Practice
+1. User opens a song they've practiced before (or any choir song)
+2. User sees available marker sets:
+   - Shared sets created by choir members (e.g., "Musical Structure", "Bar Numbers")
+   - Their own private sets (e.g., "My Practice Sections")
+3. User selects a marker set to view (e.g., "Musical Structure")
+4. User sees markers within that set (e.g., "intro", "verse 1", "chorus")
+5. User selects a range between markers to practice (e.g., from "verse 1" to "chorus")
+6. App loops that range until user stops
+7. User can switch between different marker sets to navigate the track in different ways
 
 ### Browsing Concerts
 1. User views all concerts from all their choirs
