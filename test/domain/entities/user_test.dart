@@ -10,7 +10,7 @@ void main() {
         id: '1',
         email: 'test@example.com',
         displayName: 'Test User',
-        choirIds: ['choir1', 'choir2'],
+        choirIds: const ['choir1', 'choir2'],
         lastAccessedConcertId: 'concert1',
         languagePreference: 'en',
         createdAt: now,
@@ -32,7 +32,7 @@ void main() {
         id: '1',
         email: 'test@example.com',
         displayName: 'Test User',
-        choirIds: [],
+        choirIds: const [],
         languagePreference: 'en',
         createdAt: DateTime.now(),
       );
@@ -48,7 +48,7 @@ void main() {
         id: '1',
         email: 'test@example.com',
         displayName: 'Test User',
-        choirIds: ['choir1'],
+        choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: now,
       );
@@ -56,7 +56,7 @@ void main() {
         id: '1',
         email: 'test@example.com',
         displayName: 'Test User',
-        choirIds: ['choir1'],
+        choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: now,
       );
@@ -64,7 +64,7 @@ void main() {
         id: '2',
         email: 'test@example.com',
         displayName: 'Test User',
-        choirIds: ['choir1'],
+        choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: now,
       );
@@ -80,7 +80,7 @@ void main() {
         id: '1',
         email: 'test@example.com',
         displayName: 'Test User',
-        choirIds: ['choir1'],
+        choirIds: const ['choir1'],
         lastAccessedConcertId: 'concert1',
         languagePreference: 'en',
         createdAt: DateTime.now(),

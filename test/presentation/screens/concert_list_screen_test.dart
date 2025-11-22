@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/core/constants.dart';
-import 'package:repertoire_coach/domain/entities/concert.dart';
 import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/screens/concert_list_screen.dart';
 
