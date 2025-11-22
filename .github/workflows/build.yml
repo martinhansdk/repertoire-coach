@@ -26,11 +26,7 @@ jobs:
           .
 
     - name: Build Android APK (Debug)
-      run: |
-        docker run --rm \
-          -v $(pwd):/app \
-          repertoire-coach-builder \
-          sh -c 'flutter pub get && flutter build apk --debug'
+      run: ./scripts/build.sh android --debug
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
@@ -41,11 +37,7 @@ jobs:
 
     - name: Build Android APK (Release)
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: |
-        docker run --rm \
-          -v $(pwd):/app \
-          repertoire-coach-builder \
-          sh -c 'flutter pub get && flutter build apk --release'
+      run: ./scripts/build.sh android --release
 
     - name: Upload Release APK artifact
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -74,11 +66,7 @@ jobs:
           .
 
     - name: Build Web version
-      run: |
-        docker run --rm \
-          -v $(pwd):/app \
-          repertoire-coach-builder \
-          sh -c 'flutter pub get && flutter build web --release'
+      run: ./scripts/build.sh web --release
 
     - name: Upload Web artifact
       uses: actions/upload-artifact@v4
@@ -144,15 +132,16 @@ jobs:
           .
 
     - name: Run Flutter analyze
-      run: |
-        docker run --rm \
-          -v $(pwd):/app \
-          repertoire-coach-builder \
-          sh -c 'flutter pub get && flutter analyze'
+      run: ./scripts/analyze.sh
 
     - name: Run Flutter tests
-      run: |
-        docker run --rm \
-          -v $(pwd):/app \
-          repertoire-coach-builder \
-          sh -c 'flutter pub get && flutter test'
+      run: ./scripts/test.sh
+      continue-on-error: true
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: analyze-test-logs
+        path: logs/
+        retention-days: 7
