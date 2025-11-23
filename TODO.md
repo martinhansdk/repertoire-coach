@@ -14,61 +14,75 @@
 - [ ] Configure Supabase for iOS
 - [ ] Configure Supabase for Web
 
-## Vertical Slice - Concert List Feature (COMPLETED)
+## Vertical Slice - Concert List Feature with Local-First Architecture (COMPLETED)
 **Status:** ✅ Complete
-**Date:** 2025-11-22
+**Date:** 2025-11-23
 
-Implemented a complete working feature demonstrating the full stack:
+Implemented a complete offline-first feature demonstrating the full stack:
 - [x] Core layer (constants, theme)
 - [x] Domain entities (Choir, Concert)
 - [x] Domain repository interface
-- [x] Data models (ChoirModel, ConcertModel)
-- [x] Mock repository implementation with dummy data
-- [x] Riverpod providers for state management
+- [x] Data models (ChoirModel, ConcertModel) with Drift conversions
+- [x] Drift SQLite database schema
+- [x] Local data source with CRUD operations
+- [x] Repository implementation using Drift
+- [x] Riverpod providers with proper dependency injection
 - [x] Concert card widget
 - [x] Concert list screen with loading/error/empty states
 - [x] Main app setup with Riverpod integration
 - [x] Unit tests for entities (5 tests)
-- [x] Unit tests for repository (6 tests)
+- [x] Unit tests for repository (5 tests)
 - [x] Widget tests for concert card (4 tests)
 - [x] Widget tests for concert list screen (6 tests)
 - [x] App smoke test (1 test)
+- [x] Docker build infrastructure with SQLite support
 
-**Test Results:** 22 of 25 tests passing (3 timer-related infrastructure issues to fix later)
+**Test Results:** ✅ 85 tests passing, 3 skipped
 
 **What Works:**
-- Users can view a list of concerts from mock data
-- Concerts are automatically sorted (upcoming first, then past)
-- Choir name displayed with each concert
-- Pull-to-refresh functionality
-- Loading and error states handled
-- Clean architecture demonstrated across all layers
+- ✅ Data persists across app restarts (SQLite)
+- ✅ App works 100% offline
+- ✅ Concerts are automatically sorted (upcoming first, then past)
+- ✅ Choir name displayed with each concert
+- ✅ Pull-to-refresh functionality
+- ✅ Loading, error, and empty states handled
+- ✅ Clean architecture demonstrated across all layers
+- ✅ Reactive streams - UI updates automatically on data changes
 
-**Next Steps:** Replace mock repository with Supabase integration in Phase 2
+**Next Steps:** Add more features (choirs, songs, tracks) using local-first pattern, then add Supabase cloud sync in Phase 2
 
 ## Phase 1: Core Functionality (Local-First)
 
 ### Data Layer
-- [ ] Create data models (Choir, Concert, Song, Track, Section, User, UserPlaybackState)
-- [ ] Setup local database (SQLite/drift)
-- [ ] Implement local repository interfaces
-- [ ] Implement local data sources
+- [x] Create data models for Concert (Choir, Song, Track, Section, User, UserPlaybackState - pending)
+- [x] Setup local database (SQLite/drift)
+- [x] Implement local repository interface for Concert
+- [x] Implement local data source for Concert
+- [ ] Add data models for remaining entities (Choir, Song, Track, Section, User, UserPlaybackState)
+- [ ] Add Drift tables for remaining entities
+- [ ] Implement local data sources for remaining entities
+- [ ] Implement repositories for remaining entities
 
 ### Domain Layer
-- [ ] Define domain entities
-- [ ] Create repository interfaces
-- [ ] Implement use cases:
+- [x] Define domain entities (Concert, Choir, Song, Track, Section, User, UserPlaybackState)
+- [x] Create repository interface for Concert
+- [ ] Create repository interfaces for remaining entities
+- [x] Implement use cases for Concert (implicit in repository):
+  - [x] Get concerts for choir (sorted by date)
+  - [x] Get all concerts for user (across all choirs, sorted by date)
+  - [x] Get concert by ID
+- [ ] Implement use cases for Choir:
   - [ ] Create choir
   - [ ] Get user's choirs
   - [ ] Add member to choir (owner only)
   - [ ] Remove member from choir (owner only)
   - [ ] Update choir name
+- [ ] Implement use cases for Concert management:
   - [ ] Create concert (within choir)
-  - [ ] Get concerts for choir (sorted by date)
-  - [ ] Get all concerts for user (across all choirs, sorted by date)
   - [ ] Update concert (rename, change date)
   - [ ] Delete concert
   - [ ] Update user's last accessed concert
+- [ ] Implement use cases for Song:
   - [ ] Add song (to concert)
   - [ ] Delete song
   - [ ] Update song
@@ -76,16 +90,19 @@ Implemented a complete working feature demonstrating the full stack:
   - [ ] Delete track
   - [ ] Get all songs in concert
   - [ ] Get song by ID
+- [ ] Implement use cases for Playback:
   - [ ] Save playback position
   - [ ] Get playback position
 
 ### Presentation Layer - Choir, Concert & Song Management
-- [ ] Create app shell (navigation, theme)
+- [x] Create app shell (navigation, theme)
+- [x] Concert list screen (shows all user's concerts sorted by date: upcoming, then past)
+- [x] Concert card widget
+- [x] Concert provider with Riverpod
 - [ ] Choir list screen
 - [ ] Create choir dialog
 - [ ] Choir detail screen (view members, concerts)
 - [ ] Manage choir members screen (owner only)
-- [ ] Concert list screen (shows all user's concerts sorted by date: upcoming, then past)
 - [ ] Create/edit concert dialog (with date picker)
 - [ ] Filter concerts by choir
 - [ ] Song library screen (list view within concert)
