@@ -4,8 +4,7 @@ import 'package:drift/web.dart';
 /// Open database connection for web platform (uses IndexedDB)
 LazyDatabase openDatabaseConnection() {
   return LazyDatabase(() async {
-    return WebDatabase.withStorage(
-      await DriftWebStorage.indexedDbIfSupported('repertoire_coach_db'),
-    );
+    final storage = DriftWebStorage.indexedDb('repertoire_coach_db');
+    return WebDatabase.withStorage(storage);
   });
 }
