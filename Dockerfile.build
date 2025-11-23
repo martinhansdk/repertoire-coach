@@ -40,7 +40,7 @@ RUN yes | sdkmanager --licenses && \
     sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
 # Install Flutter (latest stable)
-ENV FLUTTER_VERSION=3.38.0
+ENV FLUTTER_VERSION=3.38.1
 ENV FLUTTER_HOME=/opt/flutter
 ENV PATH=${PATH}:${FLUTTER_HOME}/bin
 
