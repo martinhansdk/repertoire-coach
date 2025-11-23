@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     zip \
     libglu1-mesa \
-    openjdk-25-jdk \
+    openjdk-17-jdk \
     wget \
     libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
