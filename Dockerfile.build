@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     zip \
     libglu1-mesa \
-    openjdk-11-jdk \
+    openjdk-25-jdk \
     wget \
     libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -40,7 +40,7 @@ RUN yes | sdkmanager --licenses && \
     sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
 # Install Flutter (latest stable)
-ENV FLUTTER_VERSION=3.38.1
+ENV FLUTTER_VERSION=3.38.3
 ENV FLUTTER_HOME=/opt/flutter
 ENV PATH=${PATH}:${FLUTTER_HOME}/bin
 
