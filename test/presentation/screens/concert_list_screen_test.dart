@@ -1,18 +1,45 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/core/constants.dart';
+import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
+import 'package:repertoire_coach/data/datasources/local/local_concert_data_source.dart';
+import 'package:repertoire_coach/data/models/concert_model.dart';
+import 'package:repertoire_coach/data/repositories/concert_repository_impl.dart';
+import 'package:repertoire_coach/domain/repositories/concert_repository.dart';
 import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/screens/concert_list_screen.dart';
 
 void main() {
   group('ConcertListScreen Widget', () {
+    late db.AppDatabase database;
+    late LocalConcertDataSource dataSource;
+    late ConcertRepository repository;
+
+    setUp(() async {
+      // Create in-memory database for testing
+      database = db.AppDatabase.forTesting(NativeDatabase.memory());
+      dataSource = LocalConcertDataSource(database);
+      repository = ConcertRepositoryImpl(dataSource);
+
+      // Seed test data
+      await _seedTestData(dataSource);
+    });
+
+    tearDown(() async {
+      await database.close();
+    });
+
     testWidgets('should display loading indicator while fetching concerts',
         (tester) async {
       // Act
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            concertRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(
             home: ConcertListScreen(),
           ),
         ),
@@ -29,8 +56,11 @@ void main() {
         (tester) async {
       // Act
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            concertRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(
             home: ConcertListScreen(),
           ),
         ),
@@ -48,8 +78,11 @@ void main() {
     testWidgets('should display app bar with app name', (tester) async {
       // Act
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            concertRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(
             home: ConcertListScreen(),
           ),
         ),
@@ -63,11 +96,16 @@ void main() {
     });
 
     testWidgets('should display empty state when no concerts', (tester) async {
-      // Arrange - Override provider to return empty list
+      // Arrange - Create empty database for this test
+      final emptyDatabase = db.AppDatabase.forTesting(NativeDatabase.memory());
+      final emptyDataSource = LocalConcertDataSource(emptyDatabase);
+      final emptyRepository = ConcertRepositoryImpl(emptyDataSource);
+
+      // Override provider to use empty repository
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            concertsProvider.overrideWith((ref) async => []),
+            concertRepositoryProvider.overrideWithValue(emptyRepository),
           ],
           child: const MaterialApp(
             home: ConcertListScreen(),
@@ -82,7 +120,10 @@ void main() {
       expect(find.text('No Concerts'), findsOneWidget);
       expect(find.text('Join a choir to see concerts'), findsOneWidget);
       expect(find.byIcon(Icons.event_note_outlined), findsOneWidget);
-    }, skip: true); // TODO: Fix timer infrastructure issue - "Timer pending after widget disposal"
+
+      // Cleanup
+      await emptyDatabase.close();
+    });
 
     testWidgets('should display error state when loading fails',
         (tester) async {
@@ -112,8 +153,11 @@ void main() {
         (tester) async {
       // Act
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            concertRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(
             home: ConcertListScreen(),
           ),
         ),
@@ -128,6 +172,56 @@ void main() {
 
       // Assert
       expect(find.text('Tapped: Spring Concert 2025'), findsOneWidget);
-    }, skip: true); // TODO: Fix timer infrastructure issue - "Timer pending after widget disposal"
+    });
   });
+}
+
+/// Seed test data into the database
+Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
+  final testConcerts = [
+    ConcertModel(
+      id: '1',
+      choirId: 'choir1',
+      choirName: 'City Chamber Choir',
+      name: 'Spring Concert 2025',
+      concertDate: DateTime(2025, 4, 15),
+      createdAt: DateTime(2024, 12, 1),
+    ),
+    ConcertModel(
+      id: '2',
+      choirId: 'choir1',
+      choirName: 'City Chamber Choir',
+      name: 'Christmas Concert 2024',
+      concertDate: DateTime(2024, 12, 20),
+      createdAt: DateTime(2024, 10, 1),
+    ),
+    ConcertModel(
+      id: '3',
+      choirId: 'choir2',
+      choirName: 'Community Singers',
+      name: 'Summer Festival',
+      concertDate: DateTime(2025, 6, 10),
+      createdAt: DateTime(2024, 11, 15),
+    ),
+    ConcertModel(
+      id: '4',
+      choirId: 'choir2',
+      choirName: 'Community Singers',
+      name: 'Autumn Recital',
+      concertDate: DateTime(2024, 10, 5),
+      createdAt: DateTime(2024, 8, 1),
+    ),
+    ConcertModel(
+      id: '5',
+      choirId: 'choir1',
+      choirName: 'City Chamber Choir',
+      name: 'Winter Showcase',
+      concertDate: DateTime(2025, 2, 14),
+      createdAt: DateTime(2024, 11, 20),
+    ),
+  ];
+
+  for (final concert in testConcerts) {
+    await dataSource.upsertConcert(concert, markForSync: false);
+  }
 }

@@ -1,14 +1,33 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/datasources/local/database.dart' as db;
+import '../../data/datasources/local/local_concert_data_source.dart';
 import '../../data/repositories/concert_repository_impl.dart';
 import '../../domain/entities/concert.dart';
 import '../../domain/repositories/concert_repository.dart';
 
+/// Provider for the Drift database instance
+///
+/// This is a singleton that persists for the lifetime of the app.
+/// The database connection is lazily initialized on first access.
+final databaseProvider = Provider<db.AppDatabase>((ref) {
+  return db.AppDatabase();
+});
+
+/// Provider for the local concert data source
+///
+/// Wraps database operations for concert management.
+final localConcertDataSourceProvider = Provider<LocalConcertDataSource>((ref) {
+  final database = ref.watch(databaseProvider);
+  return LocalConcertDataSource(database);
+});
+
 /// Provider for the concert repository
 ///
 /// This provides a single instance of the repository throughout the app.
-/// In future, this can be easily swapped for a real Supabase implementation.
+/// Currently uses local Drift database. Future versions will add Supabase sync.
 final concertRepositoryProvider = Provider<ConcertRepository>((ref) {
-  return ConcertRepositoryImpl();
+  final localDataSource = ref.watch(localConcertDataSourceProvider);
+  return ConcertRepositoryImpl(localDataSource);
 });
 
 /// Provider for the list of concerts

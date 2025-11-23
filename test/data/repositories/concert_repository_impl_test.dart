@@ -1,13 +1,29 @@
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
+import 'package:repertoire_coach/data/datasources/local/local_concert_data_source.dart';
+import 'package:repertoire_coach/data/models/concert_model.dart';
 import 'package:repertoire_coach/data/repositories/concert_repository_impl.dart';
 import 'package:repertoire_coach/domain/repositories/concert_repository.dart';
 
 void main() {
   group('ConcertRepositoryImpl', () {
+    late db.AppDatabase database;
+    late LocalConcertDataSource dataSource;
     late ConcertRepository repository;
 
-    setUp(() {
-      repository = ConcertRepositoryImpl();
+    setUp(() async {
+      // Create in-memory database for testing
+      database = db.AppDatabase.forTesting(NativeDatabase.memory());
+      dataSource = LocalConcertDataSource(database);
+      repository = ConcertRepositoryImpl(dataSource);
+
+      // Seed test data
+      await _seedTestData(dataSource);
+    });
+
+    tearDown(() async {
+      await database.close();
     });
 
     test('should return all concerts sorted by date', () async {
@@ -103,16 +119,55 @@ void main() {
       expect(concert, isNull);
     });
 
-    test('should simulate network delay', () async {
-      // Arrange
-      final stopwatch = Stopwatch()..start();
-
-      // Act
-      await repository.getConcerts();
-      stopwatch.stop();
-
-      // Assert - should take at least 300ms (the mock delay)
-      expect(stopwatch.elapsedMilliseconds, greaterThanOrEqualTo(250));
-    });
   });
+}
+
+/// Seed test data into the database
+Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
+  final testConcerts = [
+    ConcertModel(
+      id: '1',
+      choirId: 'choir1',
+      choirName: 'City Chamber Choir',
+      name: 'Spring Concert 2025',
+      concertDate: DateTime(2025, 4, 15),
+      createdAt: DateTime(2024, 12, 1),
+    ),
+    ConcertModel(
+      id: '2',
+      choirId: 'choir1',
+      choirName: 'City Chamber Choir',
+      name: 'Christmas Concert 2024',
+      concertDate: DateTime(2024, 12, 20),
+      createdAt: DateTime(2024, 10, 1),
+    ),
+    ConcertModel(
+      id: '3',
+      choirId: 'choir2',
+      choirName: 'Community Singers',
+      name: 'Summer Festival',
+      concertDate: DateTime(2025, 6, 10),
+      createdAt: DateTime(2024, 11, 15),
+    ),
+    ConcertModel(
+      id: '4',
+      choirId: 'choir2',
+      choirName: 'Community Singers',
+      name: 'Autumn Recital',
+      concertDate: DateTime(2024, 10, 5),
+      createdAt: DateTime(2024, 8, 1),
+    ),
+    ConcertModel(
+      id: '5',
+      choirId: 'choir1',
+      choirName: 'City Chamber Choir',
+      name: 'Winter Showcase',
+      concertDate: DateTime(2025, 2, 14),
+      createdAt: DateTime(2024, 11, 20),
+    ),
+  ];
+
+  for (final concert in testConcerts) {
+    await dataSource.upsertConcert(concert, markForSync: false);
+  }
 }

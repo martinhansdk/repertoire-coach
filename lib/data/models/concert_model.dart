@@ -1,10 +1,13 @@
+import 'package:drift/drift.dart';
+
 import '../../domain/entities/concert.dart';
+import '../datasources/local/database.dart' as db;
 
 /// Concert data model
 ///
 /// Extends the domain entity and adds serialization capabilities.
-/// For now, this is a simple extension. In future, this will handle
-/// JSON serialization/deserialization for Supabase integration.
+/// Handles conversions between domain entities, Drift database records,
+/// and future JSON for Supabase integration.
 class ConcertModel extends Concert {
   const ConcertModel({
     required super.id,
@@ -36,6 +39,33 @@ class ConcertModel extends Concert {
       name: name,
       concertDate: concertDate,
       createdAt: createdAt,
+    );
+  }
+
+  /// Create a ConcertModel from a Drift database record
+  factory ConcertModel.fromDrift(db.Concert driftConcert) {
+    return ConcertModel(
+      id: driftConcert.id,
+      choirId: driftConcert.choirId,
+      choirName: driftConcert.choirName,
+      name: driftConcert.name,
+      concertDate: driftConcert.concertDate,
+      createdAt: driftConcert.createdAt,
+    );
+  }
+
+  /// Convert to Drift companion for database writes
+  db.ConcertsCompanion toDriftCompanion({bool markForSync = true}) {
+    return db.ConcertsCompanion(
+      id: Value(id),
+      choirId: Value(choirId),
+      choirName: Value(choirName),
+      name: Value(name),
+      concertDate: Value(concertDate),
+      createdAt: Value(createdAt),
+      updatedAt: Value(DateTime.now().toUtc()),
+      deleted: const Value(false),
+      synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }
 
