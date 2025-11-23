@@ -35,8 +35,14 @@ final concertRepositoryProvider = Provider<ConcertRepository>((ref) {
 /// Fetches all concerts from the repository and automatically sorts them
 /// by date (upcoming first, then past).
 final concertsProvider = FutureProvider<List<Concert>>((ref) async {
-  final repository = ref.watch(concertRepositoryProvider);
-  return await repository.getConcerts();
+  try {
+    final repository = ref.watch(concertRepositoryProvider);
+    return await repository.getConcerts();
+  } catch (e) {
+    // On web, database might fail without sql.js setup
+    // Return empty list (Phase 2 will use Supabase which works on all platforms)
+    return [];
+  }
 });
 
 /// Provider for concerts filtered by a specific choir
