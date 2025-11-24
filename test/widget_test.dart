@@ -1,7 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:repertoire_coach/core/constants.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_concert_data_source.dart';
 import 'package:repertoire_coach/data/repositories/concert_repository_impl.dart';
@@ -25,16 +24,12 @@ void main() {
       ),
     );
 
-    // Verify that the app bar title is present
-    expect(find.text(AppConstants.appName), findsOneWidget);
+    // Pump a few frames to let the app build
+    await tester.pump();
 
-    // Verify that a loading indicator or concert list appears
-    // (depending on timing, we might see loading or the actual list)
-    await tester.pumpAndSettle();
-
-    // After settling, we should see empty state (no test data seeded)
-    expect(find.text('No Concerts'), findsOneWidget);
-    expect(find.text('Join a choir to see concerts'), findsOneWidget);
+    // Verify that bottom navigation is present
+    expect(find.text('Choirs'), findsOneWidget);
+    expect(find.text('Concerts'), findsOneWidget);
 
     // Cleanup
     await database.close();
