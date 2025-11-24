@@ -1,10 +1,13 @@
+import 'package:drift/drift.dart';
+
 import '../../domain/entities/choir.dart';
+import '../datasources/local/database.dart' as db;
 
 /// Choir data model
 ///
 /// Extends the domain entity and adds serialization capabilities.
-/// For now, this is a simple extension. In future, this will handle
-/// JSON serialization/deserialization for Supabase integration.
+/// Handles conversions between domain entities, Drift database records,
+/// and future JSON for Supabase integration.
 class ChoirModel extends Choir {
   const ChoirModel({
     required super.id,
@@ -30,6 +33,29 @@ class ChoirModel extends Choir {
       name: name,
       ownerId: ownerId,
       createdAt: createdAt,
+    );
+  }
+
+  /// Create a ChoirModel from a Drift database record
+  factory ChoirModel.fromDrift(db.Choir driftChoir) {
+    return ChoirModel(
+      id: driftChoir.id,
+      name: driftChoir.name,
+      ownerId: driftChoir.ownerId,
+      createdAt: driftChoir.createdAt,
+    );
+  }
+
+  /// Convert to Drift companion for database writes
+  db.ChoirsCompanion toDriftCompanion({bool markForSync = true}) {
+    return db.ChoirsCompanion(
+      id: Value(id),
+      name: Value(name),
+      ownerId: Value(ownerId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(DateTime.now().toUtc()),
+      deleted: const Value(false),
+      synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }
 

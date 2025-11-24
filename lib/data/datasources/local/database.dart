@@ -3,6 +3,51 @@ import 'database_connection.dart';
 
 part 'database.g.dart';
 
+/// Table definition for choirs
+class Choirs extends Table {
+  /// Unique identifier (UUID)
+  TextColumn get id => text()();
+
+  /// Name of the choir
+  TextColumn get name => text()();
+
+  /// ID of the user who owns this choir
+  TextColumn get ownerId => text()();
+
+  /// When this record was created
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// When this record was last updated (for sync)
+  DateTimeColumn get updatedAt => dateTime()();
+
+  /// Soft delete flag (true = deleted, false = active)
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Table definition for choir membership (many-to-many relationship)
+class ChoirMembers extends Table {
+  /// ID of the choir
+  TextColumn get choirId => text()();
+
+  /// ID of the user who is a member
+  TextColumn get userId => text()();
+
+  /// When the user joined this choir
+  DateTimeColumn get joinedAt => dateTime()();
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {choirId, userId};
+}
+
 /// Table definition for concerts
 class Concerts extends Table {
   /// Unique identifier (UUID)
@@ -37,7 +82,7 @@ class Concerts extends Table {
 }
 
 /// Main application database
-@DriftDatabase(tables: [Concerts])
+@DriftDatabase(tables: [Choirs, ChoirMembers, Concerts])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -45,7 +90,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   /// Migration strategy for database upgrades
   @override
@@ -54,7 +99,19 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
         },
         onUpgrade: (Migrator m, int from, int to) async {
-          // Handle future schema migrations here
+          if (from == 1 && to == 2) {
+            // Add Choirs and ChoirMembers tables
+            await m.createTable(choirs);
+            await m.createTable(choirMembers);
+
+            // Create indexes for performance
+            await customStatement(
+              'CREATE INDEX idx_choir_members_user ON choir_members(user_id)',
+            );
+            await customStatement(
+              'CREATE INDEX idx_choir_members_choir ON choir_members(choir_id)',
+            );
+          }
         },
       );
 
