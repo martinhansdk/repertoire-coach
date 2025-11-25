@@ -54,9 +54,44 @@ docker run --rm -v $(pwd):/app repertoire-coach-builder flutter test
 docker run --rm -v $(pwd):/app repertoire-coach-builder flutter analyze
 ```
 
-### Running the Built App
+### Deploying to Devices
 
-After building, you can run the app on different platforms:
+**Automated Deployment Script (Recommended):**
+
+Use the `deploy.py` script to easily deploy builds from local or GitHub Actions:
+
+```bash
+# Interactive menu (auto-detects available builds)
+./scripts/deploy.py
+
+# Deploy local Android build
+./scripts/deploy.py --local
+
+# Deploy local iOS build
+./scripts/deploy.py --platform ios --local
+
+# Deploy from GitHub Actions
+./scripts/deploy.py --github
+
+# Deploy specific GitHub Actions run
+./scripts/deploy.py --run-id 12345
+
+# Show help
+./scripts/deploy.py --help
+```
+
+**Requirements:**
+- Android: `adb` (Android SDK Platform Tools)
+- iOS: `ideviceinstaller` (brew install ideviceinstaller) or `ios-deploy`
+- GitHub deploys: `gh` (GitHub CLI)
+
+The script will:
+- Show an interactive menu of available builds
+- Check for connected devices
+- Download GitHub artifacts if needed
+- Install the app on your device
+
+**Manual Deployment:**
 
 **Android:**
 ```bash
