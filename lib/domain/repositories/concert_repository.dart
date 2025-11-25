@@ -17,4 +17,19 @@ abstract class ConcertRepository {
 
   /// Get a specific concert by ID
   Future<Concert?> getConcertById(String concertId);
+
+  /// Create a new concert
+  ///
+  /// Throws an exception if a concert with the same ID already exists.
+  Future<void> createConcert(Concert concert);
+
+  /// Update an existing concert
+  ///
+  /// Returns true if update succeeded, false if concert not found.
+  Future<bool> updateConcert(Concert concert);
+
+  /// Delete a concert (soft delete)
+  ///
+  /// Concert is marked as deleted but not removed from database.
+  Future<void> deleteConcert(String concertId);
 }

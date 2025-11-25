@@ -1,6 +1,7 @@
 import '../../domain/entities/concert.dart';
 import '../../domain/repositories/concert_repository.dart';
 import '../datasources/local/local_concert_data_source.dart';
+import '../models/concert_model.dart';
 
 /// Concert repository implementation using local Drift database
 ///
@@ -34,5 +35,22 @@ class ConcertRepositoryImpl implements ConcertRepository {
     final concertModel = await _localDataSource.getConcertById(concertId);
 
     return concertModel?.toEntity();
+  }
+
+  @override
+  Future<void> createConcert(Concert concert) async {
+    final concertModel = ConcertModel.fromEntity(concert);
+    await _localDataSource.insertConcert(concertModel);
+  }
+
+  @override
+  Future<bool> updateConcert(Concert concert) async {
+    final concertModel = ConcertModel.fromEntity(concert);
+    return await _localDataSource.updateConcert(concertModel);
+  }
+
+  @override
+  Future<void> deleteConcert(String concertId) async {
+    await _localDataSource.deleteConcert(concertId);
   }
 }

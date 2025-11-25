@@ -4,6 +4,7 @@ import '../../core/constants.dart';
 import '../providers/choir_provider.dart';
 import '../providers/concert_provider.dart';
 import '../widgets/concert_card.dart';
+import '../widgets/create_concert_dialog.dart';
 
 /// Choir Detail Screen
 ///
@@ -31,6 +32,25 @@ class ChoirDetailScreen extends ConsumerWidget {
           loading: () => const Text('Loading...'),
           error: (_, __) => const Text('Error'),
         ),
+      ),
+      floatingActionButton: choirAsync.when(
+        data: (choir) => choir != null
+            ? FloatingActionButton.extended(
+                onPressed: () {
+                  showDialog<String>(
+                    context: context,
+                    builder: (context) => CreateConcertDialog(
+                      choirId: choir.id,
+                      choirName: choir.name,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Add Concert'),
+              )
+            : null,
+        loading: () => null,
+        error: (_, __) => null,
       ),
       body: choirAsync.when(
         data: (choir) {

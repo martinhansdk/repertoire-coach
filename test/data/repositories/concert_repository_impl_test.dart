@@ -119,6 +119,98 @@ void main() {
       expect(concert, isNull);
     });
 
+    test('should create a new concert', () async {
+      // Arrange
+      final newConcert = ConcertModel(
+        id: 'new-concert',
+        choirId: 'choir1',
+        choirName: 'City Chamber Choir',
+        name: 'New Year Concert',
+        concertDate: DateTime(2025, 1, 1),
+        createdAt: DateTime.now(),
+      );
+
+      // Act
+      await repository.createConcert(newConcert);
+
+      // Assert - verify it was created
+      final retrieved = await repository.getConcertById('new-concert');
+      expect(retrieved, isNotNull);
+      expect(retrieved!.id, 'new-concert');
+      expect(retrieved.name, 'New Year Concert');
+      expect(retrieved.choirId, 'choir1');
+    });
+
+    test('should update an existing concert', () async {
+      // Arrange
+      final existingConcert = await repository.getConcertById('1');
+      expect(existingConcert, isNotNull);
+
+      final updatedConcert = ConcertModel(
+        id: '1',
+        choirId: existingConcert!.choirId,
+        choirName: existingConcert.choirName,
+        name: 'Updated Concert Name',
+        concertDate: DateTime(2025, 5, 20),
+        createdAt: existingConcert.createdAt,
+      );
+
+      // Act
+      final success = await repository.updateConcert(updatedConcert);
+
+      // Assert
+      expect(success, isTrue);
+
+      // Verify the concert was updated
+      final retrieved = await repository.getConcertById('1');
+      expect(retrieved, isNotNull);
+      expect(retrieved!.name, 'Updated Concert Name');
+      expect(retrieved.concertDate, DateTime(2025, 5, 20));
+    });
+
+    test('should return false when updating non-existent concert', () async {
+      // Arrange
+      final nonExistentConcert = ConcertModel(
+        id: 'non-existent',
+        choirId: 'choir1',
+        choirName: 'City Chamber Choir',
+        name: 'Should Not Update',
+        concertDate: DateTime(2025, 1, 1),
+        createdAt: DateTime.now(),
+      );
+
+      // Act
+      final success = await repository.updateConcert(nonExistentConcert);
+
+      // Assert
+      expect(success, isFalse);
+    });
+
+    test('should delete a concert (soft delete)', () async {
+      // Arrange
+      const concertId = '1';
+
+      // Verify concert exists before deletion
+      final beforeDelete = await repository.getConcertById(concertId);
+      expect(beforeDelete, isNotNull);
+
+      // Act
+      await repository.deleteConcert(concertId);
+
+      // Assert - concert should no longer be retrievable
+      final afterDelete = await repository.getConcertById(concertId);
+      expect(afterDelete, isNull);
+
+      // Verify it's removed from the concerts list
+      final allConcerts = await repository.getConcerts();
+      expect(allConcerts.every((c) => c.id != concertId), isTrue);
+    });
+
+    test('should handle deleting non-existent concert gracefully', () async {
+      // Act & Assert - should not throw
+      await repository.deleteConcert('non-existent-id');
+    });
+
   });
 }
 
