@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -365,11 +366,42 @@ class Deployer:
         return False, f"{Color.RED}No iOS devices connected{Color.RESET}\n\nConnect an iOS device via USB."
 
     @staticmethod
-    def deploy_android(apk_path: Path) -> bool:
+    def uninstall_android(package_name: str) -> bool:
+        """Uninstall Android app"""
+        print(f"\n{Color.CYAN}Uninstalling {package_name}...{Color.RESET}")
+
+        try:
+            result = subprocess.run(
+                ["adb", "uninstall", package_name],
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode == 0:
+                print(f"{Color.GREEN}✓ Successfully uninstalled{Color.RESET}")
+                return True
+            else:
+                # App might not be installed, which is okay
+                print(f"{Color.YELLOW}App not installed (or already removed){Color.RESET}")
+                return True
+
+        except subprocess.CalledProcessError as e:
+            print(f"{Color.RED}✗ Uninstall failed: {e}{Color.RESET}")
+            return False
+
+    @staticmethod
+    def deploy_android(apk_path: Path, force: bool = False) -> bool:
         """Deploy APK to Android device"""
         print(f"\n{Color.CYAN}Deploying {apk_path.name}...{Color.RESET}")
 
         try:
+            # Uninstall first if force flag is set
+            if force:
+                # Extract package name from APK
+                package_name = Deployer._get_android_package_name(apk_path)
+                if package_name:
+                    Deployer.uninstall_android(package_name)
+
             # Install APK (replace if exists)
             result = subprocess.run(
                 ["adb", "install", "-r", str(apk_path)],
@@ -388,6 +420,32 @@ class Deployer:
         except subprocess.CalledProcessError as e:
             print(f"{Color.RED}✗ Deployment failed: {e}{Color.RESET}")
             return False
+
+    @staticmethod
+    def _get_android_package_name(apk_path: Path) -> Optional[str]:
+        """Extract package name from APK using aapt"""
+        try:
+            # Try to use aapt to get package name
+            result = subprocess.run(
+                ["aapt", "dump", "badging", str(apk_path)],
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode == 0:
+                # Parse output for package name
+                for line in result.stdout.split('\n'):
+                    if line.startswith("package:"):
+                        match = re.search(r"name='([^']+)'", line)
+                        if match:
+                            return match.group(1)
+
+        except FileNotFoundError:
+            # aapt not available, use hardcoded package name for this app
+            pass
+
+        # Fallback to hardcoded package name for this app
+        return "com.repertoirecoach.repertoire_coach"
 
     @staticmethod
     def deploy_ios(ipa_path: Path) -> bool:
@@ -442,32 +500,76 @@ class Deployer:
     @staticmethod
     def download_github_artifact(build: Build, temp_dir: Path) -> Optional[Path]:
         """Download artifact from GitHub Actions"""
-        print(f"\n{Color.CYAN}Downloading build from GitHub Actions (run #{build.run_id})...{Color.RESET}")
+        print(f"\n{Color.CYAN}Downloading build from GitHub Actions...{Color.RESET}")
+        print(f"  Run: #{build.run_id}")
+        print(f"  Artifact: {build.artifact_name}")
 
         try:
-            # Download artifact
-            subprocess.run(
-                ["gh", "run", "download", build.run_id, "--name", build.artifact_name, "--dir", str(temp_dir)],
+            # Download artifact (gh downloads as ZIP)
+            download_dir = temp_dir / "download"
+            download_dir.mkdir(exist_ok=True)
+
+            print(f"{Color.CYAN}Downloading artifact...{Color.RESET}")
+            result = subprocess.run(
+                ["gh", "run", "download", build.run_id, "--name", build.artifact_name, "--dir", str(download_dir)],
+                capture_output=True,
+                text=True,
                 check=True
             )
 
-            # Find the downloaded file
+            # The artifact content is downloaded directly into the directory
+            # Look for APK/IPA files recursively
             if build.platform == Platform.ANDROID:
-                apk_files = list(temp_dir.glob("*.apk"))
+                # Search for APK files recursively
+                apk_files = list(download_dir.rglob("*.apk"))
+
+                if not apk_files:
+                    # Check if there are any ZIP files that need extraction
+                    zip_files = list(download_dir.rglob("*.zip"))
+                    for zip_file in zip_files:
+                        print(f"{Color.CYAN}Extracting {zip_file.name}...{Color.RESET}")
+                        with zipfile.ZipFile(zip_file, 'r') as zf:
+                            zf.extractall(download_dir)
+
+                    # Try finding APK again
+                    apk_files = list(download_dir.rglob("*.apk"))
+
                 if apk_files:
-                    print(f"{Color.GREEN}✓ Downloaded {apk_files[0].name}{Color.RESET}")
+                    print(f"{Color.GREEN}✓ Found {apk_files[0].name}{Color.RESET}")
                     return apk_files[0]
             else:
-                ipa_files = list(temp_dir.glob("*.ipa"))
+                # Search for IPA files recursively
+                ipa_files = list(download_dir.rglob("*.ipa"))
+
+                if not ipa_files:
+                    # Check if there are any ZIP files that need extraction
+                    zip_files = list(download_dir.rglob("*.zip"))
+                    for zip_file in zip_files:
+                        print(f"{Color.CYAN}Extracting {zip_file.name}...{Color.RESET}")
+                        with zipfile.ZipFile(zip_file, 'r') as zf:
+                            zf.extractall(download_dir)
+
+                    # Try finding IPA again
+                    ipa_files = list(download_dir.rglob("*.ipa"))
+
                 if ipa_files:
-                    print(f"{Color.GREEN}✓ Downloaded {ipa_files[0].name}{Color.RESET}")
+                    print(f"{Color.GREEN}✓ Found {ipa_files[0].name}{Color.RESET}")
                     return ipa_files[0]
 
             print(f"{Color.RED}✗ Build file not found in artifact{Color.RESET}")
+            print(f"\nFiles in download directory:")
+            for f in download_dir.rglob("*"):
+                if f.is_file():
+                    print(f"  - {f.relative_to(download_dir)}")
             return None
 
         except subprocess.CalledProcessError as e:
             print(f"{Color.RED}✗ Download failed: {e}{Color.RESET}")
+            if e.stderr:
+                print(e.stderr)
+            return None
+        except zipfile.BadZipFile as e:
+            print(f"{Color.RED}✗ Failed to extract ZIP: {e}{Color.RESET}")
             return None
 
 
@@ -509,11 +611,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s                           # Interactive menu
-  %(prog)s --local                   # Use local build (interactive)
-  %(prog)s --github                  # Use GitHub build (interactive)
-  %(prog)s --platform ios --local    # Deploy local iOS build
-  %(prog)s --run-id 12345            # Deploy specific GitHub run
+  %(prog)s                                    # Interactive menu
+  %(prog)s --local                            # Use local build (interactive)
+  %(prog)s --github                           # Use GitHub build (interactive)
+  %(prog)s --platform ios --local             # Deploy local iOS build
+  %(prog)s --run-id 12345 --build-type debug  # Deploy specific GitHub run
+  %(prog)s --run-id 12345 --force             # Uninstall first, then deploy
         """
     )
 
@@ -540,6 +643,18 @@ Examples:
         "--run-id",
         type=str,
         help="Specific GitHub Actions run ID"
+    )
+
+    parser.add_argument(
+        "--build-type",
+        choices=["debug", "release"],
+        help="Build type (debug or release)"
+    )
+
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Uninstall existing app before installing (useful for switching between debug/release)"
     )
 
     args = parser.parse_args()
@@ -585,6 +700,10 @@ Examples:
         # Filter by run ID if specified
         if args.run_id:
             builds = [b for b in builds if b.run_id == args.run_id]
+
+        # Filter by build type if specified
+        if args.build_type:
+            builds = [b for b in builds if b.build_type == args.build_type]
     else:
         # All builds
         if platform_choice == Platform.ANDROID:
@@ -605,10 +724,12 @@ Examples:
         print(f"\nTry building first with: {Color.CYAN}scripts/build.sh {args.platform}{Color.RESET}")
         return 1
 
-    if len(builds) == 1:
-        # Auto-select if only one build
+    # Auto-select if only one build or specific run/build-type given
+    auto_select = len(builds) == 1 or (args.run_id and args.build_type)
+
+    if auto_select:
         selected_build = builds[0]
-        print(f"\n{Color.CYAN}Auto-selecting only available build:{Color.RESET}")
+        print(f"\n{Color.CYAN}Auto-selecting build:{Color.RESET}")
         print(f"{selected_build}\n")
     else:
         # Show interactive menu
@@ -633,7 +754,7 @@ Examples:
     if selected_build.source == BuildSource.LOCAL:
         # Deploy local build
         if selected_build.platform == Platform.ANDROID:
-            success = Deployer.deploy_android(selected_build.path)
+            success = Deployer.deploy_android(selected_build.path, force=args.force)
         else:
             success = Deployer.deploy_ios(selected_build.path)
     else:
@@ -646,7 +767,7 @@ Examples:
                 return 1
 
             if selected_build.platform == Platform.ANDROID:
-                success = Deployer.deploy_android(build_file)
+                success = Deployer.deploy_android(build_file, force=args.force)
             else:
                 success = Deployer.deploy_ios(build_file)
 
