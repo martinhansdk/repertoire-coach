@@ -419,13 +419,41 @@ Claude includes co-author attribution by default:
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
+## Deployment
+
+### Deploying to Physical Devices
+
+The project includes a comprehensive deployment script (`scripts/deploy.py`) that can:
+- Deploy Android/iOS builds from GitHub Actions or local builds
+- Provide interactive menu or accept CLI arguments
+- Auto-detect connected devices
+- Download and install builds automatically
+
+**Usage:**
+```bash
+# Interactive menu (auto-detects builds)
+./scripts/deploy.py
+
+# Deploy specific GitHub Actions run
+./scripts/deploy.py --run-id 12345
+
+# Deploy local build
+./scripts/deploy.py --local --build-type debug
+```
+
+**Requirements:**
+- Android: `adb` (Android SDK Platform Tools)
+- iOS: `ideviceinstaller` or `ios-deploy`
+- GitHub deploys: `gh` (GitHub CLI)
+
+See DOCKER.md for complete deployment documentation.
+
 ## What Claude Can't Do (Yet)
 
 - Run the Flutter app (can write code, can't execute)
-- Test on real devices
-- Deploy to app stores
+- Deploy to app stores (but can deploy to devices via deploy.py)
 - Set up actual Supabase projects (can provide SQL and config)
-- Sign Android/iOS builds
+- Sign Android/iOS builds for production
 
 For these, you'll need to follow the instructions Claude provides.
 
@@ -466,7 +494,8 @@ For these, you'll need to follow the instructions Claude provides.
 - **Requirements**: See REQUIREMENTS.md
 - **Architecture**: See ARCHITECTURE.md
 - **Tasks**: See TODO.md
-- **Docker**: See DOCKER.md
+- **Docker & Deployment**: See DOCKER.md
+- **Deploy to Device**: `./scripts/deploy.py` (see DOCKER.md)
 - **Database Schema**: ARCHITECTURE.md → Database Schema section
 - **Tech Stack**: ARCHITECTURE.md → Technology Stack section
 - **User Workflows**: REQUIREMENTS.md → User Workflows section
