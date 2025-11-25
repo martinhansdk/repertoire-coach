@@ -86,7 +86,9 @@ class Build:
         if not self.date:
             return "unknown"
 
-        delta = datetime.now() - self.date
+        # Make datetime timezone-aware if needed for comparison
+        now = datetime.now(self.date.tzinfo) if self.date.tzinfo else datetime.now()
+        delta = now - self.date
         if delta.days > 0:
             return f"{delta.days} day{'s' if delta.days != 1 else ''} ago"
         elif delta.seconds > 3600:
@@ -221,7 +223,7 @@ class BuildFinder:
         try:
             # Get recent workflow runs
             result = subprocess.run(
-                ["gh", "run", "list", "--workflow=build.yml", "--json",
+                ["gh", "run", "list", "--workflow=Build Flutter App", "--json",
                  "databaseId,conclusion,headBranch,headSha,displayTitle,createdAt",
                  "--limit", "10"],
                 capture_output=True,
@@ -284,8 +286,9 @@ class BuildFinder:
     def _get_run_artifacts(self, run_id: str) -> List[dict]:
         """Get artifacts for a specific run"""
         try:
+            # Use GitHub API to get artifacts
             result = subprocess.run(
-                ["gh", "run", "view", run_id, "--json", "artifacts"],
+                ["gh", "api", f"repos/:owner/:repo/actions/runs/{run_id}/artifacts"],
                 capture_output=True,
                 text=True,
                 check=True
