@@ -49,6 +49,13 @@ dependencies:
   path_provider: ^2.1.5
   path: any
 
+  # Audio playback
+  just_audio: ^0.9.42
+
+  # File management
+  file_picker: ^8.1.4
+  receive_sharing_intent: ^1.8.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
