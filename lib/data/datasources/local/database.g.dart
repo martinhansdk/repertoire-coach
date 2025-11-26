@@ -1164,18 +1164,415 @@ class ConcertsCompanion extends UpdateCompanion<Concert> {
   }
 }
 
+class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SongsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _concertIdMeta =
+      const VerificationMeta('concertId');
+  @override
+  late final GeneratedColumn<String> concertId = GeneratedColumn<String>(
+      'concert_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedMeta =
+      const VerificationMeta('deleted');
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+      'deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
+  @override
+  late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
+      'synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, concertId, title, createdAt, updatedAt, deleted, synced];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'songs';
+  @override
+  VerificationContext validateIntegrity(Insertable<Song> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('concert_id')) {
+      context.handle(_concertIdMeta,
+          concertId.isAcceptableOrUnknown(data['concert_id']!, _concertIdMeta));
+    } else if (isInserting) {
+      context.missing(_concertIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(_deletedMeta,
+          deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
+    }
+    if (data.containsKey('synced')) {
+      context.handle(_syncedMeta,
+          synced.isAcceptableOrUnknown(data['synced']!, _syncedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Song map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Song(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      concertId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}concert_id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
+      synced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}synced'])!,
+    );
+  }
+
+  @override
+  $SongsTable createAlias(String alias) {
+    return $SongsTable(attachedDatabase, alias);
+  }
+}
+
+class Song extends DataClass implements Insertable<Song> {
+  /// Unique identifier (UUID)
+  final String id;
+
+  /// ID of the concert this song belongs to
+  final String concertId;
+
+  /// Song title
+  final String title;
+
+  /// When this record was created
+  final DateTime createdAt;
+
+  /// When this record was last updated (for sync)
+  final DateTime updatedAt;
+
+  /// Soft delete flag (true = deleted, false = active)
+  final bool deleted;
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  final bool synced;
+  const Song(
+      {required this.id,
+      required this.concertId,
+      required this.title,
+      required this.createdAt,
+      required this.updatedAt,
+      required this.deleted,
+      required this.synced});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['concert_id'] = Variable<String>(concertId);
+    map['title'] = Variable<String>(title);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    map['synced'] = Variable<bool>(synced);
+    return map;
+  }
+
+  SongsCompanion toCompanion(bool nullToAbsent) {
+    return SongsCompanion(
+      id: Value(id),
+      concertId: Value(concertId),
+      title: Value(title),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+      synced: Value(synced),
+    );
+  }
+
+  factory Song.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Song(
+      id: serializer.fromJson<String>(json['id']),
+      concertId: serializer.fromJson<String>(json['concertId']),
+      title: serializer.fromJson<String>(json['title']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      synced: serializer.fromJson<bool>(json['synced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'concertId': serializer.toJson<String>(concertId),
+      'title': serializer.toJson<String>(title),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+      'synced': serializer.toJson<bool>(synced),
+    };
+  }
+
+  Song copyWith(
+          {String? id,
+          String? concertId,
+          String? title,
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          bool? deleted,
+          bool? synced}) =>
+      Song(
+        id: id ?? this.id,
+        concertId: concertId ?? this.concertId,
+        title: title ?? this.title,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deleted: deleted ?? this.deleted,
+        synced: synced ?? this.synced,
+      );
+  Song copyWithCompanion(SongsCompanion data) {
+    return Song(
+      id: data.id.present ? data.id.value : this.id,
+      concertId: data.concertId.present ? data.concertId.value : this.concertId,
+      title: data.title.present ? data.title.value : this.title,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      synced: data.synced.present ? data.synced.value : this.synced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Song(')
+          ..write('id: $id, ')
+          ..write('concertId: $concertId, ')
+          ..write('title: $title, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('synced: $synced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, concertId, title, createdAt, updatedAt, deleted, synced);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Song &&
+          other.id == this.id &&
+          other.concertId == this.concertId &&
+          other.title == this.title &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted &&
+          other.synced == this.synced);
+}
+
+class SongsCompanion extends UpdateCompanion<Song> {
+  final Value<String> id;
+  final Value<String> concertId;
+  final Value<String> title;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<bool> synced;
+  final Value<int> rowid;
+  const SongsCompanion({
+    this.id = const Value.absent(),
+    this.concertId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.synced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SongsCompanion.insert({
+    required String id,
+    required String concertId,
+    required String title,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.synced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        concertId = Value(concertId),
+        title = Value(title),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<Song> custom({
+    Expression<String>? id,
+    Expression<String>? concertId,
+    Expression<String>? title,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<bool>? synced,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (concertId != null) 'concert_id': concertId,
+      if (title != null) 'title': title,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (synced != null) 'synced': synced,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SongsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? concertId,
+      Value<String>? title,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<bool>? deleted,
+      Value<bool>? synced,
+      Value<int>? rowid}) {
+    return SongsCompanion(
+      id: id ?? this.id,
+      concertId: concertId ?? this.concertId,
+      title: title ?? this.title,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      synced: synced ?? this.synced,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (concertId.present) {
+      map['concert_id'] = Variable<String>(concertId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (synced.present) {
+      map['synced'] = Variable<bool>(synced.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SongsCompanion(')
+          ..write('id: $id, ')
+          ..write('concertId: $concertId, ')
+          ..write('title: $title, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('synced: $synced, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ChoirsTable choirs = $ChoirsTable(this);
   late final $ChoirMembersTable choirMembers = $ChoirMembersTable(this);
   late final $ConcertsTable concerts = $ConcertsTable(this);
+  late final $SongsTable songs = $SongsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [choirs, choirMembers, concerts];
+      [choirs, choirMembers, concerts, songs];
 }
 
 typedef $$ChoirsTableCreateCompanionBuilder = ChoirsCompanion Function({
@@ -1756,6 +2153,200 @@ typedef $$ConcertsTableProcessedTableManager = ProcessedTableManager<
     (Concert, BaseReferences<_$AppDatabase, $ConcertsTable, Concert>),
     Concert,
     PrefetchHooks Function()>;
+typedef $$SongsTableCreateCompanionBuilder = SongsCompanion Function({
+  required String id,
+  required String concertId,
+  required String title,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<bool> deleted,
+  Value<bool> synced,
+  Value<int> rowid,
+});
+typedef $$SongsTableUpdateCompanionBuilder = SongsCompanion Function({
+  Value<String> id,
+  Value<String> concertId,
+  Value<String> title,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<bool> deleted,
+  Value<bool> synced,
+  Value<int> rowid,
+});
+
+class $$SongsTableFilterComposer extends Composer<_$AppDatabase, $SongsTable> {
+  $$SongsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get concertId => $composableBuilder(
+      column: $table.concertId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnFilters(column));
+}
+
+class $$SongsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SongsTable> {
+  $$SongsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get concertId => $composableBuilder(
+      column: $table.concertId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnOrderings(column));
+}
+
+class $$SongsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SongsTable> {
+  $$SongsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get concertId =>
+      $composableBuilder(column: $table.concertId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get synced =>
+      $composableBuilder(column: $table.synced, builder: (column) => column);
+}
+
+class $$SongsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SongsTable,
+    Song,
+    $$SongsTableFilterComposer,
+    $$SongsTableOrderingComposer,
+    $$SongsTableAnnotationComposer,
+    $$SongsTableCreateCompanionBuilder,
+    $$SongsTableUpdateCompanionBuilder,
+    (Song, BaseReferences<_$AppDatabase, $SongsTable, Song>),
+    Song,
+    PrefetchHooks Function()> {
+  $$SongsTableTableManager(_$AppDatabase db, $SongsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SongsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SongsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SongsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> concertId = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<bool> deleted = const Value.absent(),
+            Value<bool> synced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SongsCompanion(
+            id: id,
+            concertId: concertId,
+            title: title,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deleted: deleted,
+            synced: synced,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String concertId,
+            required String title,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<bool> deleted = const Value.absent(),
+            Value<bool> synced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SongsCompanion.insert(
+            id: id,
+            concertId: concertId,
+            title: title,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deleted: deleted,
+            synced: synced,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SongsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SongsTable,
+    Song,
+    $$SongsTableFilterComposer,
+    $$SongsTableOrderingComposer,
+    $$SongsTableAnnotationComposer,
+    $$SongsTableCreateCompanionBuilder,
+    $$SongsTableUpdateCompanionBuilder,
+    (Song, BaseReferences<_$AppDatabase, $SongsTable, Song>),
+    Song,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1766,4 +2357,6 @@ class $AppDatabaseManager {
       $$ChoirMembersTableTableManager(_db, _db.choirMembers);
   $$ConcertsTableTableManager get concerts =>
       $$ConcertsTableTableManager(_db, _db.concerts);
+  $$SongsTableTableManager get songs =>
+      $$SongsTableTableManager(_db, _db.songs);
 }

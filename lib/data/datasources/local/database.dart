@@ -81,8 +81,35 @@ class Concerts extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Table definition for songs
+class Songs extends Table {
+  /// Unique identifier (UUID)
+  TextColumn get id => text()();
+
+  /// ID of the concert this song belongs to
+  TextColumn get concertId => text()();
+
+  /// Song title
+  TextColumn get title => text()();
+
+  /// When this record was created
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// When this record was last updated (for sync)
+  DateTimeColumn get updatedAt => dateTime()();
+
+  /// Soft delete flag (true = deleted, false = active)
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Main application database
-@DriftDatabase(tables: [Choirs, ChoirMembers, Concerts])
+@DriftDatabase(tables: [Choirs, ChoirMembers, Concerts, Songs])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -90,7 +117,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   /// Migration strategy for database upgrades
   @override
@@ -110,6 +137,35 @@ class AppDatabase extends _$AppDatabase {
             );
             await customStatement(
               'CREATE INDEX idx_choir_members_choir ON choir_members(choir_id)',
+            );
+          }
+          if (from == 2 && to == 3) {
+            // Add Songs table
+            await m.createTable(songs);
+
+            // Create index for concert_id lookup
+            await customStatement(
+              'CREATE INDEX idx_songs_concert ON songs(concert_id)',
+            );
+          }
+          // Handle multi-version upgrade (e.g., 1 -> 3)
+          if (from == 1 && to == 3) {
+            // Add Choirs and ChoirMembers tables
+            await m.createTable(choirs);
+            await m.createTable(choirMembers);
+
+            // Add Songs table
+            await m.createTable(songs);
+
+            // Create indexes for performance
+            await customStatement(
+              'CREATE INDEX idx_choir_members_user ON choir_members(user_id)',
+            );
+            await customStatement(
+              'CREATE INDEX idx_choir_members_choir ON choir_members(choir_id)',
+            );
+            await customStatement(
+              'CREATE INDEX idx_songs_concert ON songs(concert_id)',
             );
           }
         },
@@ -182,6 +238,56 @@ class AppDatabase extends _$AppDatabase {
   Future<void> softDeleteConcert(String id) {
     return (update(concerts)..where((c) => c.id.equals(id))).write(
       ConcertsCompanion(
+        deleted: const Value(true),
+        updatedAt: Value(DateTime.now().toUtc()),
+        synced: const Value(false), // Mark for sync
+      ),
+    );
+  }
+
+  /// Get all active (non-deleted) songs for a specific concert
+  ///
+  /// Songs are returned in chronological order (oldest first).
+  Future<List<Song>> getSongsByConcert(String concertId) {
+    return (select(songs)
+          ..where((s) => s.concertId.equals(concertId))
+          ..where((s) => s.deleted.equals(false))
+          ..orderBy([(s) => OrderingTerm.asc(s.createdAt)]))
+        .get();
+  }
+
+  /// Watch songs for a specific concert (reactive stream)
+  Stream<List<Song>> watchSongsByConcert(String concertId) {
+    return (select(songs)
+          ..where((s) => s.concertId.equals(concertId))
+          ..where((s) => s.deleted.equals(false))
+          ..orderBy([(s) => OrderingTerm.asc(s.createdAt)]))
+        .watch();
+  }
+
+  /// Get song by ID
+  Future<Song?> getSongById(String id) {
+    return (select(songs)
+          ..where((s) => s.id.equals(id))
+          ..where((s) => s.deleted.equals(false)))
+        .getSingleOrNull();
+  }
+
+  /// Get all unsynced songs (for cloud sync)
+  Future<List<Song>> getUnsyncedSongs() {
+    return (select(songs)..where((s) => s.synced.equals(false))).get();
+  }
+
+  /// Mark song as synced
+  Future<void> markSongAsSynced(String id) {
+    return (update(songs)..where((s) => s.id.equals(id)))
+        .write(const SongsCompanion(synced: Value(true)));
+  }
+
+  /// Soft delete song
+  Future<void> softDeleteSong(String id) {
+    return (update(songs)..where((s) => s.id.equals(id))).write(
+      SongsCompanion(
         deleted: const Value(true),
         updatedAt: Value(DateTime.now().toUtc()),
         synced: const Value(false), // Mark for sync
