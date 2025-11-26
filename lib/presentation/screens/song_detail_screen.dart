@@ -1,75 +1,88 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
-import '../providers/song_provider.dart';
-import '../widgets/create_song_dialog.dart';
-import '../widgets/song_card.dart';
-import 'song_detail_screen.dart';
+import '../providers/track_provider.dart';
+import '../widgets/add_track_dialog.dart';
+import '../widgets/track_card.dart';
 
-/// Song List Screen
+/// Song Detail Screen
 ///
-/// Displays all songs for a specific concert.
-/// Songs are sorted chronologically (oldest first).
-class SongListScreen extends ConsumerWidget {
-  final String concertId;
+/// Displays song information and all tracks for a specific song.
+/// Tracks are sorted chronologically (oldest first).
+class SongDetailScreen extends ConsumerWidget {
+  final String songId;
+  final String songTitle;
   final String concertName;
 
-  const SongListScreen({
+  const SongDetailScreen({
     super.key,
-    required this.concertId,
+    required this.songId,
+    required this.songTitle,
     required this.concertName,
   });
 
-  Future<void> _showCreateSongDialog(BuildContext context) async {
+  Future<void> _showAddTrackDialog(BuildContext context) async {
     await showDialog(
       context: context,
-      builder: (context) => CreateSongDialog(
-        concertId: concertId,
-        concertName: concertName,
+      builder: (context) => AddTrackDialog(
+        songId: songId,
+        songTitle: songTitle,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final songsAsync = ref.watch(songsByConcertProvider(concertId));
+    final tracksAsync = ref.watch(tracksBySongProvider(songId));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(concertName),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              songTitle,
+              style: const TextStyle(fontSize: 18),
+            ),
+            Text(
+              concertName,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
-      body: songsAsync.when(
-        data: (songs) {
-          if (songs.isEmpty) {
+      body: tracksAsync.when(
+        data: (tracks) {
+          if (tracks.isEmpty) {
             return _EmptyState(
-              concertName: concertName,
-              onAddSong: () => _showCreateSongDialog(context),
+              songTitle: songTitle,
+              onAddTrack: () => _showAddTrackDialog(context),
             );
           }
 
           return RefreshIndicator(
             onRefresh: () async {
-              // Refresh the songs list
-              ref.invalidate(songsByConcertProvider(concertId));
+              // Refresh the tracks list
+              ref.invalidate(tracksBySongProvider(songId));
             },
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(
                 vertical: AppConstants.paddingSmall,
               ),
-              itemCount: songs.length,
+              itemCount: tracks.length,
               itemBuilder: (context, index) {
-                final song = songs[index];
-                return SongCard(
-                  song: song,
+                final track = tracks[index];
+                return TrackCard(
+                  track: track,
                   onTap: () {
-                    // Navigate to song detail screen (with tracks)
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => SongDetailScreen(
-                          songId: song.id,
-                          songTitle: song.title,
-                          concertName: concertName,
-                        ),
+                    // TODO: Navigate to track playback screen or handle tap
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Tapped: ${track.name}'),
+                        duration: const Duration(seconds: 1),
                       ),
                     );
                   },
@@ -84,27 +97,27 @@ class SongListScreen extends ConsumerWidget {
         error: (error, stack) => _ErrorState(
           error: error.toString(),
           onRetry: () {
-            ref.invalidate(songsByConcertProvider(concertId));
+            ref.invalidate(tracksBySongProvider(songId));
           },
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateSongDialog(context),
+        onPressed: () => _showAddTrackDialog(context),
         icon: const Icon(Icons.add),
-        label: const Text('Add Song'),
+        label: const Text('Add Track'),
       ),
     );
   }
 }
 
-/// Empty state when no songs are available
+/// Empty state when no tracks are available
 class _EmptyState extends StatelessWidget {
-  final String concertName;
-  final VoidCallback onAddSong;
+  final String songTitle;
+  final VoidCallback onAddTrack;
 
   const _EmptyState({
-    required this.concertName,
-    required this.onAddSong,
+    required this.songTitle,
+    required this.onAddTrack,
   });
 
   @override
@@ -118,20 +131,20 @@ class _EmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.music_note_outlined,
+              Icons.audiotrack_outlined,
               size: 80,
               color: theme.colorScheme.onSurfaceVariant.withAlpha(128),
             ),
             const SizedBox(height: AppConstants.paddingMedium),
             Text(
-              'No Songs Yet',
+              'No Tracks Yet',
               style: theme.textTheme.headlineSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: AppConstants.paddingSmall),
             Text(
-              'Add your first song to this concert',
+              'Add your first track to this song',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -139,9 +152,9 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppConstants.paddingLarge),
             FilledButton.icon(
-              onPressed: onAddSong,
+              onPressed: onAddTrack,
               icon: const Icon(Icons.add),
-              label: const Text('Add Song'),
+              label: const Text('Add Track'),
             ),
           ],
         ),
@@ -150,7 +163,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// Error state when song loading fails
+/// Error state when track loading fails
 class _ErrorState extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
@@ -177,7 +190,7 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: AppConstants.paddingMedium),
             Text(
-              'Error Loading Songs',
+              'Error Loading Tracks',
               style: theme.textTheme.headlineSmall?.copyWith(
                 color: theme.colorScheme.error,
               ),

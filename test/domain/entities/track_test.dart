@@ -3,141 +3,132 @@ import 'package:repertoire_coach/domain/entities/track.dart';
 
 void main() {
   group('Track Entity', () {
-    test('should create a valid Track instance', () {
-      // Arrange
-      final now = DateTime.now();
-      final track = Track(
-        id: '1',
-        songId: 'song1',
-        name: 'Soprano',
-        audioUrl: 'https://example.com/track.mp3',
-        localPath: '/local/track.mp3',
-        duration: 180000,
-        createdAt: now,
-      );
+    final now = DateTime(2025, 1, 15, 10, 30);
+    final track = Track(
+      id: 'track-1',
+      songId: 'song-1',
+      name: 'Soprano Part',
+      voicePart: 'Soprano',
+      filePath: '/path/to/audio.mp3',
+      createdAt: now,
+      updatedAt: now,
+    );
 
-      // Assert
-      expect(track.id, '1');
-      expect(track.songId, 'song1');
-      expect(track.name, 'Soprano');
-      expect(track.audioUrl, 'https://example.com/track.mp3');
-      expect(track.localPath, '/local/track.mp3');
-      expect(track.duration, 180000);
+    test('should create Track with all required fields', () {
+      expect(track.id, 'track-1');
+      expect(track.songId, 'song-1');
+      expect(track.name, 'Soprano Part');
+      expect(track.voicePart, 'Soprano');
+      expect(track.filePath, '/path/to/audio.mp3');
       expect(track.createdAt, now);
+      expect(track.updatedAt, now);
     });
 
-    test('should support null localPath', () {
-      // Arrange
-      final track = Track(
-        id: '1',
-        songId: 'song1',
-        name: 'Soprano',
-        audioUrl: 'https://example.com/track.mp3',
-        duration: 180000,
-        createdAt: DateTime.now(),
+    test('should create Track without filePath', () {
+      final trackWithoutFilePath = Track(
+        id: 'track-2',
+        songId: 'song-1',
+        name: 'Alto Part',
+        voicePart: 'Alto',
+        filePath: null,
+        createdAt: now,
+        updatedAt: now,
       );
 
-      // Assert
-      expect(track.localPath, isNull);
-    });
-
-    test('should support different track names', () {
-      // Arrange
-      final tracks = [
-        Track(
-          id: '1',
-          songId: 'song1',
-          name: 'Soprano',
-          audioUrl: 'url',
-          duration: 1000,
-          createdAt: DateTime.now(),
-        ),
-        Track(
-          id: '2',
-          songId: 'song1',
-          name: 'Full Choir',
-          audioUrl: 'url',
-          duration: 1000,
-          createdAt: DateTime.now(),
-        ),
-        Track(
-          id: '3',
-          songId: 'song1',
-          name: 'Instrumental',
-          audioUrl: 'url',
-          duration: 1000,
-          createdAt: DateTime.now(),
-        ),
-        Track(
-          id: '4',
-          songId: 'song1',
-          name: 'Monday Runthrough',
-          audioUrl: 'url',
-          duration: 1000,
-          createdAt: DateTime.now(),
-        ),
-      ];
-
-      // Assert - all different track types are valid
-      expect(tracks[0].name, 'Soprano');
-      expect(tracks[1].name, 'Full Choir');
-      expect(tracks[2].name, 'Instrumental');
-      expect(tracks[3].name, 'Monday Runthrough');
+      expect(trackWithoutFilePath.filePath, isNull);
     });
 
     test('should support equality comparison', () {
-      // Arrange
-      final now = DateTime.now();
       final track1 = Track(
-        id: '1',
-        songId: 'song1',
-        name: 'Soprano',
-        audioUrl: 'https://example.com/track.mp3',
-        duration: 180000,
+        id: 'track-1',
+        songId: 'song-1',
+        name: 'Soprano Part',
+        voicePart: 'Soprano',
+        filePath: '/path/to/audio.mp3',
         createdAt: now,
-      );
-      final track2 = Track(
-        id: '1',
-        songId: 'song1',
-        name: 'Soprano',
-        audioUrl: 'https://example.com/track.mp3',
-        duration: 180000,
-        createdAt: now,
-      );
-      final track3 = Track(
-        id: '2',
-        songId: 'song1',
-        name: 'Soprano',
-        audioUrl: 'https://example.com/track.mp3',
-        duration: 180000,
-        createdAt: now,
+        updatedAt: now,
       );
 
-      // Assert
+      final track2 = Track(
+        id: 'track-1',
+        songId: 'song-1',
+        name: 'Soprano Part',
+        voicePart: 'Soprano',
+        filePath: '/path/to/audio.mp3',
+        createdAt: now,
+        updatedAt: now,
+      );
+
       expect(track1, equals(track2));
-      expect(track1, isNot(equals(track3)));
     });
 
-    test('should have correct toString implementation', () {
-      // Arrange
-      final track = Track(
-        id: '1',
-        songId: 'song1',
-        name: 'Soprano',
-        audioUrl: 'https://example.com/track.mp3',
-        duration: 180000,
-        createdAt: DateTime.now(),
+    test('should not be equal if any field differs', () {
+      final track1 = Track(
+        id: 'track-1',
+        songId: 'song-1',
+        name: 'Soprano Part',
+        voicePart: 'Soprano',
+        filePath: '/path/to/audio.mp3',
+        createdAt: now,
+        updatedAt: now,
       );
 
-      // Act
-      final result = track.toString();
+      final track2 = Track(
+        id: 'track-2', // Different ID
+        songId: 'song-1',
+        name: 'Soprano Part',
+        voicePart: 'Soprano',
+        filePath: '/path/to/audio.mp3',
+        createdAt: now,
+        updatedAt: now,
+      );
 
-      // Assert
-      expect(result, contains('Track'));
-      expect(result, contains('id: 1'));
-      expect(result, contains('songId: song1'));
-      expect(result, contains('name: Soprano'));
-      expect(result, contains('duration: 180000ms'));
+      expect(track1, isNot(equals(track2)));
+    });
+
+    test('should have correct toString representation', () {
+      final trackString = track.toString();
+      expect(trackString, contains('track-1'));
+      expect(trackString, contains('song-1'));
+      expect(trackString, contains('Soprano Part'));
+      expect(trackString, contains('Soprano'));
+    });
+
+    test('should support different voice parts', () {
+      final voiceParts = ['Soprano', 'Alto', 'Tenor', 'Bass', 'Choir', 'Instrumental'];
+
+      for (final voicePart in voiceParts) {
+        final track = Track(
+          id: 'track-$voicePart',
+          songId: 'song-1',
+          name: '$voicePart Part',
+          voicePart: voicePart,
+          filePath: null,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        expect(track.voicePart, voicePart);
+      }
+    });
+
+    test('should handle updatedAt being different from createdAt', () {
+      final createdAt = DateTime(2025, 1, 15, 10, 0);
+      final updatedAt = DateTime(2025, 1, 15, 11, 0);
+
+      final track = Track(
+        id: 'track-1',
+        songId: 'song-1',
+        name: 'Soprano Part',
+        voicePart: 'Soprano',
+        filePath: null,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
+      expect(track.createdAt, createdAt);
+      expect(track.updatedAt, updatedAt);
+      expect(track.updatedAt.isAfter(track.createdAt), isTrue);
     });
   });
 }

@@ -6,19 +6,19 @@ class Track extends Equatable {
   final String id;
   final String songId;
   final String name;
-  final String audioUrl;
-  final String? localPath;
-  final int duration; // Duration in milliseconds
+  final String voicePart;
+  final String? filePath;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   const Track({
     required this.id,
     required this.songId,
     required this.name,
-    required this.audioUrl,
-    this.localPath,
-    required this.duration,
+    required this.voicePart,
+    this.filePath,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   @override
@@ -26,14 +26,14 @@ class Track extends Equatable {
         id,
         songId,
         name,
-        audioUrl,
-        localPath,
-        duration,
+        voicePart,
+        filePath,
         createdAt,
+        updatedAt,
       ];
 
   @override
   String toString() {
-    return 'Track(id: $id, songId: $songId, name: $name, duration: ${duration}ms)';
+    return 'Track(id: $id, songId: $songId, name: $name, voicePart: $voicePart)';
   }
 }
