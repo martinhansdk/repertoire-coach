@@ -2,6 +2,46 @@
 
 This document provides context and guidelines for working with Claude Code (or any AI assistant) on this project.
 
+## ⚠️ CRITICAL: Flutter Must Run in Docker
+
+**NEVER run Flutter commands directly on the host machine. Flutter is NOT installed on the host.**
+
+All Flutter commands MUST be executed inside Docker containers. Use the provided scripts:
+
+```bash
+# WRONG - This will fail:
+flutter pub get
+flutter test
+flutter analyze
+flutter build
+
+# CORRECT - Use Docker:
+docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter pub get
+docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter test
+docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter analyze
+
+# BEST - Use the provided scripts:
+scripts/validate.sh    # Runs analyze + test in Docker
+scripts/test.sh        # Runs tests in Docker
+scripts/analyze.sh     # Runs analyze in Docker
+scripts/build.sh       # Builds app in Docker
+```
+
+**For build_runner (code generation):**
+```bash
+docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+This applies to:
+- Claude Code (you)
+- All specialized agents (flutter-master-coder, flutter-test-architect, etc.)
+- Any script or automation
+
+If you need to run Flutter commands, either:
+1. Use the provided scripts (`scripts/validate.sh`, `scripts/test.sh`, etc.)
+2. Run the command in a Docker container explicitly
+3. Ask the user to run the command if you're unsure
+
 ## Project Context Summary
 
 ### What This App Does
