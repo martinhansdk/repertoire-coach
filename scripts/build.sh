@@ -50,7 +50,14 @@ case $PLATFORM in
 esac
 
 # Run inside docker and capture all output to log file
-docker run --rm \
+# Use root user in CI to avoid permission issues with mounted volumes
+if [ -n "$CI" ]; then
+  DOCKER_USER="--user root"
+else
+  DOCKER_USER=""
+fi
+
+docker run --rm $DOCKER_USER \
   -v "${PROJECT_ROOT}:/app" \
   repertoire-coach-builder \
   sh -c "
