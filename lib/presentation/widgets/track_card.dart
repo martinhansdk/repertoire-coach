@@ -7,7 +7,7 @@ import 'edit_track_dialog.dart';
 
 /// Widget that displays a single track as a card
 ///
-/// Shows the track name, voice part, and provides edit and delete actions via popup menu.
+/// Shows the track name and provides edit and delete actions via popup menu.
 class TrackCard extends ConsumerWidget {
   final Track track;
   final VoidCallback? onTap;
@@ -24,7 +24,7 @@ class TrackCard extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('Delete Track'),
         content: Text(
-            'Are you sure you want to delete "${track.name}" (${track.voicePart})?'),
+            'Are you sure you want to delete "${track.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -113,35 +113,13 @@ class TrackCard extends ConsumerWidget {
 
               // Track info
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      track.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.person_outline,
-                          size: 16,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          track.voicePart,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                child: Text(
+                  track.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
 

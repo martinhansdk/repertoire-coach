@@ -7,7 +7,7 @@ import '../providers/track_provider.dart';
 
 /// Dialog for creating a new track
 ///
-/// Prompts the user to enter track name, voice part, and optional file path.
+/// Prompts the user to enter track name and optional file path.
 /// The track is automatically associated with the provided song.
 class AddTrackDialog extends ConsumerStatefulWidget {
   final String songId;
@@ -27,33 +27,13 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _filePathController = TextEditingController();
-
-  // Voice part options
-  static const voicePartOptions = [
-    'Soprano',
-    'Alto',
-    'Tenor',
-    'Bass',
-    'Custom',
-  ];
-
-  String _selectedVoicePart = 'Soprano';
-  final _customVoicePartController = TextEditingController();
   bool _isCreating = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _filePathController.dispose();
-    _customVoicePartController.dispose();
     super.dispose();
-  }
-
-  String _getVoicePart() {
-    if (_selectedVoicePart == 'Custom') {
-      return _customVoicePartController.text.trim();
-    }
-    return _selectedVoicePart;
   }
 
   Future<void> _createTrack() async {
@@ -75,7 +55,6 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
         id: const Uuid().v4(),
         songId: widget.songId,
         name: _nameController.text.trim(),
-        voicePart: _getVoicePart(),
         filePath: filePath.isEmpty ? null : filePath,
         createdAt: now,
         updatedAt: now,
@@ -117,7 +96,6 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isCustomVoicePart = _selectedVoicePart == 'Custom';
 
     return AlertDialog(
       title: const Text('Add New Track'),
@@ -141,7 +119,7 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Track Name',
-                  hintText: 'Enter the track name',
+                  hintText: 'e.g., Soprano Part, Full Choir, etc.',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.audiotrack),
                 ),
@@ -158,51 +136,6 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-
-              // Voice part dropdown
-              DropdownButtonFormField<String>(
-                initialValue: _selectedVoicePart,
-                decoration: const InputDecoration(
-                  labelText: 'Voice Part',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
-                items: voicePartOptions.map((part) {
-                  return DropdownMenuItem(
-                    value: part,
-                    child: Text(part),
-                  );
-                }).toList(),
-                onChanged: _isCreating ? null : (value) {
-                  setState(() {
-                    _selectedVoicePart = value!;
-                  });
-                },
-              ),
-
-              // Custom voice part field (shown when Custom is selected)
-              if (isCustomVoicePart) ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _customVoicePartController,
-                  decoration: const InputDecoration(
-                    labelText: 'Custom Voice Part',
-                    hintText: 'Enter custom voice part',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.edit),
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                  enabled: !_isCreating,
-                  validator: (value) {
-                    if (isCustomVoicePart && (value == null || value.trim().isEmpty)) {
-                      return 'Please enter a custom voice part';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-
               const SizedBox(height: 16),
 
               // File path field (optional)

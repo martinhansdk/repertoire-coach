@@ -1,12 +1,11 @@
 import 'package:equatable/equatable.dart';
 
 /// Represents an audio track for a song
-/// Examples: "Soprano", "Tenor", "Full Choir", "Instrumental", "Practice Recording"
+/// Examples: "Soprano Part", "Full Choir", "Instrumental", "Practice Recording"
 class Track extends Equatable {
   final String id;
   final String songId;
   final String name;
-  final String voicePart;
   final String? filePath;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -15,7 +14,6 @@ class Track extends Equatable {
     required this.id,
     required this.songId,
     required this.name,
-    required this.voicePart,
     this.filePath,
     required this.createdAt,
     required this.updatedAt,
@@ -26,7 +24,6 @@ class Track extends Equatable {
         id,
         songId,
         name,
-        voicePart,
         filePath,
         createdAt,
         updatedAt,
@@ -34,6 +31,6 @@ class Track extends Equatable {
 
   @override
   String toString() {
-    return 'Track(id: $id, songId: $songId, name: $name, voicePart: $voicePart)';
+    return 'Track(id: $id, songId: $songId, name: $name)';
   }
 }

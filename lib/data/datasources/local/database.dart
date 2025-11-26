@@ -119,9 +119,6 @@ class Tracks extends Table {
   /// Track name
   TextColumn get name => text()();
 
-  /// Voice part (e.g., Soprano, Alto, Tenor, Bass)
-  TextColumn get voicePart => text()();
-
   /// Local file path to audio file
   TextColumn get filePath => text().nullable()();
 
@@ -150,7 +147,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   /// Migration strategy for database upgrades
   @override
@@ -190,8 +187,43 @@ class AppDatabase extends _$AppDatabase {
               'CREATE INDEX idx_tracks_song ON tracks(song_id)',
             );
           }
-          // Handle multi-version upgrade (e.g., 1 -> 4)
-          if (from == 1 && to == 4) {
+          if (from == 4 && to == 5) {
+            // Remove voice_part column from tracks table
+            // SQLite doesn't support DROP COLUMN directly in older versions,
+            // so we need to recreate the table
+            await customStatement('''
+              CREATE TABLE tracks_new (
+                id TEXT NOT NULL PRIMARY KEY,
+                song_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                file_path TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                deleted INTEGER NOT NULL DEFAULT 0,
+                synced INTEGER NOT NULL DEFAULT 0
+              )
+            ''');
+
+            // Copy data from old table to new (excluding voice_part)
+            await customStatement('''
+              INSERT INTO tracks_new (id, song_id, name, file_path, created_at, updated_at, deleted, synced)
+              SELECT id, song_id, name, file_path, created_at, updated_at, deleted, synced
+              FROM tracks
+            ''');
+
+            // Drop old table
+            await customStatement('DROP TABLE tracks');
+
+            // Rename new table to original name
+            await customStatement('ALTER TABLE tracks_new RENAME TO tracks');
+
+            // Recreate index
+            await customStatement(
+              'CREATE INDEX idx_tracks_song ON tracks(song_id)',
+            );
+          }
+          // Handle multi-version upgrade (e.g., 1 -> 5)
+          if (from == 1 && to == 5) {
             // Add Choirs and ChoirMembers tables
             await m.createTable(choirs);
             await m.createTable(choirMembers);
@@ -216,8 +248,8 @@ class AppDatabase extends _$AppDatabase {
               'CREATE INDEX idx_tracks_song ON tracks(song_id)',
             );
           }
-          // Handle 2 -> 4 upgrade
-          if (from == 2 && to == 4) {
+          // Handle 2 -> 5 upgrade
+          if (from == 2 && to == 5) {
             // Add Songs table
             await m.createTable(songs);
 
@@ -228,6 +260,16 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
               'CREATE INDEX idx_songs_concert ON songs(concert_id)',
             );
+            await customStatement(
+              'CREATE INDEX idx_tracks_song ON tracks(song_id)',
+            );
+          }
+          // Handle 3 -> 5 upgrade
+          if (from == 3 && to == 5) {
+            // Add Tracks table
+            await m.createTable(tracks);
+
+            // Create index
             await customStatement(
               'CREATE INDEX idx_tracks_song ON tracks(song_id)',
             );

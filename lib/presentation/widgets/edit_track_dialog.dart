@@ -6,7 +6,7 @@ import '../providers/track_provider.dart';
 
 /// Dialog for editing an existing track
 ///
-/// Allows the user to update the track name, voice part, and file path.
+/// Allows the user to update the track name and file path.
 class EditTrackDialog extends ConsumerStatefulWidget {
   final Track track;
 
@@ -23,18 +23,7 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _filePathController;
-  late final TextEditingController _customVoicePartController;
 
-  // Voice part options
-  static const voicePartOptions = [
-    'Soprano',
-    'Alto',
-    'Tenor',
-    'Bass',
-    'Custom',
-  ];
-
-  late String _selectedVoicePart;
   bool _isUpdating = false;
 
   @override
@@ -42,30 +31,13 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
     super.initState();
     _nameController = TextEditingController(text: widget.track.name);
     _filePathController = TextEditingController(text: widget.track.filePath ?? '');
-
-    // Determine if voice part is a standard one or custom
-    if (voicePartOptions.contains(widget.track.voicePart)) {
-      _selectedVoicePart = widget.track.voicePart;
-      _customVoicePartController = TextEditingController();
-    } else {
-      _selectedVoicePart = 'Custom';
-      _customVoicePartController = TextEditingController(text: widget.track.voicePart);
-    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _filePathController.dispose();
-    _customVoicePartController.dispose();
     super.dispose();
-  }
-
-  String _getVoicePart() {
-    if (_selectedVoicePart == 'Custom') {
-      return _customVoicePartController.text.trim();
-    }
-    return _selectedVoicePart;
   }
 
   Future<void> _updateTrack() async {
@@ -75,11 +47,9 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
 
     // Check if anything changed
     final newName = _nameController.text.trim();
-    final newVoicePart = _getVoicePart();
     final newFilePath = _filePathController.text.trim();
 
     if (newName == widget.track.name &&
-        newVoicePart == widget.track.voicePart &&
         (newFilePath.isEmpty ? null : newFilePath) == widget.track.filePath) {
       Navigator.of(context).pop(false);
       return;
@@ -96,7 +66,6 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
         id: widget.track.id,
         songId: widget.track.songId,
         name: newName,
-        voicePart: newVoicePart,
         filePath: newFilePath.isEmpty ? null : newFilePath,
         createdAt: widget.track.createdAt,
         updatedAt: DateTime.now().toUtc(),
@@ -150,8 +119,6 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isCustomVoicePart = _selectedVoicePart == 'Custom';
-
     return AlertDialog(
       title: const Text('Edit Track'),
       content: Form(
@@ -183,51 +150,6 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-
-              // Voice part dropdown
-              DropdownButtonFormField<String>(
-                initialValue: _selectedVoicePart,
-                decoration: const InputDecoration(
-                  labelText: 'Voice Part',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
-                items: voicePartOptions.map((part) {
-                  return DropdownMenuItem(
-                    value: part,
-                    child: Text(part),
-                  );
-                }).toList(),
-                onChanged: _isUpdating ? null : (value) {
-                  setState(() {
-                    _selectedVoicePart = value!;
-                  });
-                },
-              ),
-
-              // Custom voice part field (shown when Custom is selected)
-              if (isCustomVoicePart) ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _customVoicePartController,
-                  decoration: const InputDecoration(
-                    labelText: 'Custom Voice Part',
-                    hintText: 'Enter custom voice part',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.edit),
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                  enabled: !_isUpdating,
-                  validator: (value) {
-                    if (isCustomVoicePart && (value == null || value.trim().isEmpty)) {
-                      return 'Please enter a custom voice part';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-
               const SizedBox(height: 16),
 
               // File path field (optional)

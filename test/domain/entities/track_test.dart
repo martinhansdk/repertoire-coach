@@ -8,7 +8,6 @@ void main() {
       id: 'track-1',
       songId: 'song-1',
       name: 'Soprano Part',
-      voicePart: 'Soprano',
       filePath: '/path/to/audio.mp3',
       createdAt: now,
       updatedAt: now,
@@ -18,7 +17,6 @@ void main() {
       expect(track.id, 'track-1');
       expect(track.songId, 'song-1');
       expect(track.name, 'Soprano Part');
-      expect(track.voicePart, 'Soprano');
       expect(track.filePath, '/path/to/audio.mp3');
       expect(track.createdAt, now);
       expect(track.updatedAt, now);
@@ -29,7 +27,6 @@ void main() {
         id: 'track-2',
         songId: 'song-1',
         name: 'Alto Part',
-        voicePart: 'Alto',
         filePath: null,
         createdAt: now,
         updatedAt: now,
@@ -43,7 +40,6 @@ void main() {
         id: 'track-1',
         songId: 'song-1',
         name: 'Soprano Part',
-        voicePart: 'Soprano',
         filePath: '/path/to/audio.mp3',
         createdAt: now,
         updatedAt: now,
@@ -53,7 +49,6 @@ void main() {
         id: 'track-1',
         songId: 'song-1',
         name: 'Soprano Part',
-        voicePart: 'Soprano',
         filePath: '/path/to/audio.mp3',
         createdAt: now,
         updatedAt: now,
@@ -67,7 +62,6 @@ void main() {
         id: 'track-1',
         songId: 'song-1',
         name: 'Soprano Part',
-        voicePart: 'Soprano',
         filePath: '/path/to/audio.mp3',
         createdAt: now,
         updatedAt: now,
@@ -77,7 +71,6 @@ void main() {
         id: 'track-2', // Different ID
         songId: 'song-1',
         name: 'Soprano Part',
-        voicePart: 'Soprano',
         filePath: '/path/to/audio.mp3',
         createdAt: now,
         updatedAt: now,
@@ -91,24 +84,22 @@ void main() {
       expect(trackString, contains('track-1'));
       expect(trackString, contains('song-1'));
       expect(trackString, contains('Soprano Part'));
-      expect(trackString, contains('Soprano'));
     });
 
-    test('should support different voice parts', () {
-      final voiceParts = ['Soprano', 'Alto', 'Tenor', 'Bass', 'Choir', 'Instrumental'];
+    test('should support different track names', () {
+      final trackNames = ['Soprano Part', 'Alto Part', 'Tenor Part', 'Bass Part', 'Full Choir', 'Instrumental'];
 
-      for (final voicePart in voiceParts) {
+      for (final name in trackNames) {
         final track = Track(
-          id: 'track-$voicePart',
+          id: 'track-$name',
           songId: 'song-1',
-          name: '$voicePart Part',
-          voicePart: voicePart,
+          name: name,
           filePath: null,
           createdAt: now,
           updatedAt: now,
         );
 
-        expect(track.voicePart, voicePart);
+        expect(track.name, name);
       }
     });
 
@@ -120,7 +111,6 @@ void main() {
         id: 'track-1',
         songId: 'song-1',
         name: 'Soprano Part',
-        voicePart: 'Soprano',
         filePath: null,
         createdAt: createdAt,
         updatedAt: updatedAt,

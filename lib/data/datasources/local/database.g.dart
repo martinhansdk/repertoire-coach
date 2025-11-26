@@ -1580,12 +1580,6 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, Track> {
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
       'name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _voicePartMeta =
-      const VerificationMeta('voicePart');
-  @override
-  late final GeneratedColumn<String> voicePart = GeneratedColumn<String>(
-      'voice_part', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _filePathMeta =
       const VerificationMeta('filePath');
   @override
@@ -1624,17 +1618,8 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, Track> {
           GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
       defaultValue: const Constant(false));
   @override
-  List<GeneratedColumn> get $columns => [
-        id,
-        songId,
-        name,
-        voicePart,
-        filePath,
-        createdAt,
-        updatedAt,
-        deleted,
-        synced
-      ];
+  List<GeneratedColumn> get $columns =>
+      [id, songId, name, filePath, createdAt, updatedAt, deleted, synced];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1661,12 +1646,6 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, Track> {
           _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
     } else if (isInserting) {
       context.missing(_nameMeta);
-    }
-    if (data.containsKey('voice_part')) {
-      context.handle(_voicePartMeta,
-          voicePart.isAcceptableOrUnknown(data['voice_part']!, _voicePartMeta));
-    } else if (isInserting) {
-      context.missing(_voicePartMeta);
     }
     if (data.containsKey('file_path')) {
       context.handle(_filePathMeta,
@@ -1707,8 +1686,6 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, Track> {
           .read(DriftSqlType.string, data['${effectivePrefix}song_id'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
-      voicePart: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}voice_part'])!,
       filePath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}file_path']),
       createdAt: attachedDatabase.typeMapping
@@ -1738,9 +1715,6 @@ class Track extends DataClass implements Insertable<Track> {
   /// Track name
   final String name;
 
-  /// Voice part (e.g., Soprano, Alto, Tenor, Bass)
-  final String voicePart;
-
   /// Local file path to audio file
   final String? filePath;
 
@@ -1759,7 +1733,6 @@ class Track extends DataClass implements Insertable<Track> {
       {required this.id,
       required this.songId,
       required this.name,
-      required this.voicePart,
       this.filePath,
       required this.createdAt,
       required this.updatedAt,
@@ -1771,7 +1744,6 @@ class Track extends DataClass implements Insertable<Track> {
     map['id'] = Variable<String>(id);
     map['song_id'] = Variable<String>(songId);
     map['name'] = Variable<String>(name);
-    map['voice_part'] = Variable<String>(voicePart);
     if (!nullToAbsent || filePath != null) {
       map['file_path'] = Variable<String>(filePath);
     }
@@ -1787,7 +1759,6 @@ class Track extends DataClass implements Insertable<Track> {
       id: Value(id),
       songId: Value(songId),
       name: Value(name),
-      voicePart: Value(voicePart),
       filePath: filePath == null && nullToAbsent
           ? const Value.absent()
           : Value(filePath),
@@ -1805,7 +1776,6 @@ class Track extends DataClass implements Insertable<Track> {
       id: serializer.fromJson<String>(json['id']),
       songId: serializer.fromJson<String>(json['songId']),
       name: serializer.fromJson<String>(json['name']),
-      voicePart: serializer.fromJson<String>(json['voicePart']),
       filePath: serializer.fromJson<String?>(json['filePath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1820,7 +1790,6 @@ class Track extends DataClass implements Insertable<Track> {
       'id': serializer.toJson<String>(id),
       'songId': serializer.toJson<String>(songId),
       'name': serializer.toJson<String>(name),
-      'voicePart': serializer.toJson<String>(voicePart),
       'filePath': serializer.toJson<String?>(filePath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1833,7 +1802,6 @@ class Track extends DataClass implements Insertable<Track> {
           {String? id,
           String? songId,
           String? name,
-          String? voicePart,
           Value<String?> filePath = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt,
@@ -1843,7 +1811,6 @@ class Track extends DataClass implements Insertable<Track> {
         id: id ?? this.id,
         songId: songId ?? this.songId,
         name: name ?? this.name,
-        voicePart: voicePart ?? this.voicePart,
         filePath: filePath.present ? filePath.value : this.filePath,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -1855,7 +1822,6 @@ class Track extends DataClass implements Insertable<Track> {
       id: data.id.present ? data.id.value : this.id,
       songId: data.songId.present ? data.songId.value : this.songId,
       name: data.name.present ? data.name.value : this.name,
-      voicePart: data.voicePart.present ? data.voicePart.value : this.voicePart,
       filePath: data.filePath.present ? data.filePath.value : this.filePath,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1870,7 +1836,6 @@ class Track extends DataClass implements Insertable<Track> {
           ..write('id: $id, ')
           ..write('songId: $songId, ')
           ..write('name: $name, ')
-          ..write('voicePart: $voicePart, ')
           ..write('filePath: $filePath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1881,8 +1846,8 @@ class Track extends DataClass implements Insertable<Track> {
   }
 
   @override
-  int get hashCode => Object.hash(id, songId, name, voicePart, filePath,
-      createdAt, updatedAt, deleted, synced);
+  int get hashCode => Object.hash(
+      id, songId, name, filePath, createdAt, updatedAt, deleted, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1890,7 +1855,6 @@ class Track extends DataClass implements Insertable<Track> {
           other.id == this.id &&
           other.songId == this.songId &&
           other.name == this.name &&
-          other.voicePart == this.voicePart &&
           other.filePath == this.filePath &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1902,7 +1866,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
   final Value<String> id;
   final Value<String> songId;
   final Value<String> name;
-  final Value<String> voicePart;
   final Value<String?> filePath;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1913,7 +1876,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
     this.id = const Value.absent(),
     this.songId = const Value.absent(),
     this.name = const Value.absent(),
-    this.voicePart = const Value.absent(),
     this.filePath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1925,7 +1887,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
     required String id,
     required String songId,
     required String name,
-    required String voicePart,
     this.filePath = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1935,14 +1896,12 @@ class TracksCompanion extends UpdateCompanion<Track> {
   })  : id = Value(id),
         songId = Value(songId),
         name = Value(name),
-        voicePart = Value(voicePart),
         createdAt = Value(createdAt),
         updatedAt = Value(updatedAt);
   static Insertable<Track> custom({
     Expression<String>? id,
     Expression<String>? songId,
     Expression<String>? name,
-    Expression<String>? voicePart,
     Expression<String>? filePath,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1954,7 +1913,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
       if (id != null) 'id': id,
       if (songId != null) 'song_id': songId,
       if (name != null) 'name': name,
-      if (voicePart != null) 'voice_part': voicePart,
       if (filePath != null) 'file_path': filePath,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1968,7 +1926,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
       {Value<String>? id,
       Value<String>? songId,
       Value<String>? name,
-      Value<String>? voicePart,
       Value<String?>? filePath,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
@@ -1979,7 +1936,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
       id: id ?? this.id,
       songId: songId ?? this.songId,
       name: name ?? this.name,
-      voicePart: voicePart ?? this.voicePart,
       filePath: filePath ?? this.filePath,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -2000,9 +1956,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
-    }
-    if (voicePart.present) {
-      map['voice_part'] = Variable<String>(voicePart.value);
     }
     if (filePath.present) {
       map['file_path'] = Variable<String>(filePath.value);
@@ -2031,7 +1984,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
           ..write('id: $id, ')
           ..write('songId: $songId, ')
           ..write('name: $name, ')
-          ..write('voicePart: $voicePart, ')
           ..write('filePath: $filePath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2835,7 +2787,6 @@ typedef $$TracksTableCreateCompanionBuilder = TracksCompanion Function({
   required String id,
   required String songId,
   required String name,
-  required String voicePart,
   Value<String?> filePath,
   required DateTime createdAt,
   required DateTime updatedAt,
@@ -2847,7 +2798,6 @@ typedef $$TracksTableUpdateCompanionBuilder = TracksCompanion Function({
   Value<String> id,
   Value<String> songId,
   Value<String> name,
-  Value<String> voicePart,
   Value<String?> filePath,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -2873,9 +2823,6 @@ class $$TracksTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
       column: $table.name, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get voicePart => $composableBuilder(
-      column: $table.voicePart, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get filePath => $composableBuilder(
       column: $table.filePath, builder: (column) => ColumnFilters(column));
@@ -2911,9 +2858,6 @@ class $$TracksTableOrderingComposer
   ColumnOrderings<String> get name => $composableBuilder(
       column: $table.name, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get voicePart => $composableBuilder(
-      column: $table.voicePart, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<String> get filePath => $composableBuilder(
       column: $table.filePath, builder: (column) => ColumnOrderings(column));
 
@@ -2947,9 +2891,6 @@ class $$TracksTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get voicePart =>
-      $composableBuilder(column: $table.voicePart, builder: (column) => column);
 
   GeneratedColumn<String> get filePath =>
       $composableBuilder(column: $table.filePath, builder: (column) => column);
@@ -2993,7 +2934,6 @@ class $$TracksTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String> songId = const Value.absent(),
             Value<String> name = const Value.absent(),
-            Value<String> voicePart = const Value.absent(),
             Value<String?> filePath = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -3005,7 +2945,6 @@ class $$TracksTableTableManager extends RootTableManager<
             id: id,
             songId: songId,
             name: name,
-            voicePart: voicePart,
             filePath: filePath,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -3017,7 +2956,6 @@ class $$TracksTableTableManager extends RootTableManager<
             required String id,
             required String songId,
             required String name,
-            required String voicePart,
             Value<String?> filePath = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
@@ -3029,7 +2967,6 @@ class $$TracksTableTableManager extends RootTableManager<
             id: id,
             songId: songId,
             name: name,
-            voicePart: voicePart,
             filePath: filePath,
             createdAt: createdAt,
             updatedAt: updatedAt,

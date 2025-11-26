@@ -5,6 +5,7 @@ import '../providers/choir_provider.dart';
 import '../providers/concert_provider.dart';
 import '../widgets/concert_card.dart';
 import '../widgets/create_concert_dialog.dart';
+import 'song_list_screen.dart';
 
 /// Choir Detail Screen
 ///
@@ -126,7 +127,17 @@ class ChoirDetailScreen extends ConsumerWidget {
                       children: concerts
                           .map((concert) => ConcertCard(
                                 concert: concert,
-                                onTap: () {},
+                                onTap: () {
+                                  // Navigate to song list screen for this concert
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => SongListScreen(
+                                        concertId: concert.id,
+                                        concertName: concert.name,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ))
                           .toList(),
                     );
