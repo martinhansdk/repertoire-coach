@@ -20,14 +20,19 @@ echo "Running flutter test..."
 # Use root user in CI to avoid permission issues with mounted volumes
 if [ -n "$CI" ]; then
   DOCKER_USER="--user root"
+  DOCKER_ENV="-e CI=true"
 else
   DOCKER_USER=""
+  DOCKER_ENV=""
 fi
 
-docker run --rm $DOCKER_USER \
+docker run --rm $DOCKER_USER $DOCKER_ENV \
   -v "${PROJECT_ROOT}:/app" \
   repertoire-coach-builder \
   sh -c '
+    if [ -n "$CI" ]; then
+      git config --global --add safe.directory /opt/flutter
+    fi
     flutter pub get
     flutter test
   ' > "$LOGFILE" 2>&1
