@@ -4,6 +4,7 @@ import '../../core/constants.dart';
 import '../providers/choir_provider.dart';
 import '../widgets/choir_card.dart';
 import '../widgets/create_choir_dialog.dart';
+import 'choir_detail_screen.dart';
 
 /// Choir List Screen
 ///
@@ -40,11 +41,11 @@ class ChoirListScreen extends ConsumerWidget {
                 return ChoirCard(
                   choir: choir,
                   onTap: () {
-                    // TODO: Navigate to choir detail screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Tapped: ${choir.name}'),
-                        duration: const Duration(seconds: 1),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => ChoirDetailScreen(
+                          choirId: choir.id,
+                        ),
                       ),
                     );
                   },
