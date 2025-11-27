@@ -183,7 +183,23 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                 },
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(width: 8),
+
+              // Rewind 10 seconds
+              IconButton(
+                icon: const Icon(Icons.replay_10),
+                iconSize: 36,
+                onPressed: () {
+                  final currentPosition = playbackInfo.position;
+                  final newPosition = currentPosition - const Duration(seconds: 10);
+                  final seekPosition = newPosition < Duration.zero
+                      ? Duration.zero
+                      : newPosition;
+                  ref.read(audioPlayerControlsProvider).seek(seekPosition);
+                },
+              ),
+
+              const SizedBox(width: 8),
 
               // Play/Pause button
               IconButton(

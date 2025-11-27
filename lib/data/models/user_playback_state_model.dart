@@ -1,4 +1,6 @@
+import 'package:drift/drift.dart';
 import '../../domain/entities/user_playback_state.dart';
+import '../datasources/local/database.dart' as db;
 
 /// UserPlaybackState data model
 ///
@@ -36,6 +38,30 @@ class UserPlaybackStateModel extends UserPlaybackState {
       trackId: trackId,
       position: position,
       updatedAt: updatedAt,
+    );
+  }
+
+  /// Create a UserPlaybackStateModel from a Drift database record
+  factory UserPlaybackStateModel.fromDrift(db.UserPlaybackState driftState) {
+    return UserPlaybackStateModel(
+      id: driftState.id,
+      userId: driftState.userId,
+      songId: driftState.songId,
+      trackId: driftState.trackId,
+      position: driftState.position,
+      updatedAt: driftState.updatedAt,
+    );
+  }
+
+  /// Convert to Drift companion for database writes
+  db.UserPlaybackStatesCompanion toDriftCompanion() {
+    return db.UserPlaybackStatesCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      songId: Value(songId),
+      trackId: Value(trackId),
+      position: Value(position),
+      updatedAt: Value(updatedAt),
     );
   }
 

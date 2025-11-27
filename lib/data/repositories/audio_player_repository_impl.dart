@@ -5,16 +5,24 @@ import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
+import '../datasources/local/local_user_playback_state_data_source.dart';
+import '../models/user_playback_state_model.dart';
+
+/// Hardcoded user ID for local-first mode (before authentication)
+const String _currentUserId = 'local-user-1';
 
 /// Implementation of AudioPlayerRepository using just_audio
 class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   final ja.AudioPlayer _player;
   final StreamController<PlaybackInfo> _playbackController;
+  final LocalUserPlaybackStateDataSource _playbackStateDataSource;
 
   Track? _currentTrack;
+  String? _currentSongId;
   PlaybackInfo _currentPlaybackInfo;
+  Timer? _autoSaveTimer;
 
-  AudioPlayerRepositoryImpl()
+  AudioPlayerRepositoryImpl(this._playbackStateDataSource)
       : _player = ja.AudioPlayer(),
         _playbackController = StreamController<PlaybackInfo>.broadcast(),
         _currentPlaybackInfo = const PlaybackInfo.idle() {
@@ -100,17 +108,27 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       }
 
       _currentTrack = track;
+      _currentSongId = track.songId;
 
       // Set audio source to file
       await _player.setFilePath(track.filePath!);
 
-      // Seek to start position if specified
-      if (startPosition > Duration.zero) {
-        await _player.seek(startPosition);
+      // Load saved position if no start position specified
+      Duration seekPosition = startPosition;
+      if (startPosition == Duration.zero) {
+        seekPosition = await loadPlaybackPosition(track.id);
+      }
+
+      // Seek to position if needed
+      if (seekPosition > Duration.zero) {
+        await _player.seek(seekPosition);
       }
 
       // Start playback
       await _player.play();
+
+      // Start auto-save timer (save position every 5 seconds while playing)
+      _startAutoSaveTimer();
 
       _updatePlaybackInfo();
     } catch (e) {
@@ -124,19 +142,25 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   @override
   Future<void> resume() async {
     await _player.play();
+    _startAutoSaveTimer();
     _updatePlaybackInfo();
   }
 
   @override
   Future<void> pause() async {
     await _player.pause();
+    _stopAutoSaveTimer();
+    await savePlaybackPosition(); // Save position on pause
     _updatePlaybackInfo();
   }
 
   @override
   Future<void> stop() async {
     await _player.stop();
+    _stopAutoSaveTimer();
+    await savePlaybackPosition(); // Save position on stop
     _currentTrack = null;
+    _currentSongId = null;
     _updatePlaybackInfo();
   }
 
@@ -149,19 +173,63 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> savePlaybackPosition() async {
-    // TODO: Implement playback position saving to Drift database
-    // This will be implemented when we create the playback state data source
+    if (_currentTrack == null || _currentSongId == null) {
+      return; // Nothing to save
+    }
+
+    final position = _player.position;
+    if (position == Duration.zero) {
+      return; // Don't save if at the beginning
+    }
+
+    final state = UserPlaybackStateModel(
+      id: '${_currentUserId}_${_currentTrack!.id}',
+      userId: _currentUserId,
+      songId: _currentSongId!,
+      trackId: _currentTrack!.id,
+      position: position.inMilliseconds,
+      updatedAt: DateTime.now(),
+    );
+
+    await _playbackStateDataSource.savePlaybackState(state);
   }
 
   @override
   Future<Duration> loadPlaybackPosition(String trackId) async {
-    // TODO: Implement playback position loading from Drift database
-    // This will be implemented when we create the playback state data source
+    try {
+      final state = await _playbackStateDataSource.getPlaybackState(
+        _currentUserId,
+        trackId,
+      );
+
+      if (state != null) {
+        return Duration(milliseconds: state.position);
+      }
+    } catch (e) {
+      // Ignore errors loading position - just start from beginning
+    }
+
     return Duration.zero;
+  }
+
+  /// Start periodic auto-save timer
+  void _startAutoSaveTimer() {
+    _stopAutoSaveTimer(); // Cancel any existing timer
+    _autoSaveTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      savePlaybackPosition();
+    });
+  }
+
+  /// Stop auto-save timer
+  void _stopAutoSaveTimer() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = null;
   }
 
   @override
   Future<void> dispose() async {
+    _stopAutoSaveTimer();
+    await savePlaybackPosition(); // Save one last time before disposing
     await _player.dispose();
     await _playbackController.close();
   }

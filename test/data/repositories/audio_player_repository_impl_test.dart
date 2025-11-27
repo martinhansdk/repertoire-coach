@@ -1,15 +1,54 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:repertoire_coach/data/datasources/local/local_user_playback_state_data_source.dart';
 import 'package:repertoire_coach/data/repositories/audio_player_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
+import 'package:repertoire_coach/data/models/user_playback_state_model.dart';
+
+/// Mock implementation of LocalUserPlaybackStateDataSource for testing
+class MockPlaybackStateDataSource implements LocalUserPlaybackStateDataSource {
+  final Map<String, UserPlaybackStateModel> _states = {};
+
+  @override
+  Future<UserPlaybackStateModel?> getPlaybackState(
+    String userId,
+    String trackId,
+  ) async {
+    final compositeId = '${userId}_$trackId';
+    return _states[compositeId];
+  }
+
+  @override
+  Future<void> savePlaybackState(UserPlaybackStateModel state) async {
+    _states[state.id] = state;
+  }
+
+  @override
+  Future<void> deletePlaybackState(String userId, String trackId) async {
+    final compositeId = '${userId}_$trackId';
+    _states.remove(compositeId);
+  }
+
+  @override
+  Future<void> clearAllForUser(String userId) async {
+    _states.removeWhere((key, value) => value.userId == userId);
+  }
+
+  @override
+  Future<void> clearAll() async {
+    _states.clear();
+  }
+}
 
 void main() {
   group('AudioPlayerRepositoryImpl', () {
     late AudioPlayerRepositoryImpl repository;
+    late MockPlaybackStateDataSource mockDataSource;
 
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      repository = AudioPlayerRepositoryImpl();
+      mockDataSource = MockPlaybackStateDataSource();
+      repository = AudioPlayerRepositoryImpl(mockDataSource);
     });
 
     tearDown(() async {
@@ -187,10 +226,12 @@ void main() {
 
   group('AudioPlayerRepositoryImpl - Error Handling', () {
     late AudioPlayerRepositoryImpl repository;
+    late MockPlaybackStateDataSource mockDataSource;
 
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      repository = AudioPlayerRepositoryImpl();
+      mockDataSource = MockPlaybackStateDataSource();
+      repository = AudioPlayerRepositoryImpl(mockDataSource);
     });
 
     tearDown(() async {

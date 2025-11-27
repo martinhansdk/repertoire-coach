@@ -1995,6 +1995,363 @@ class TracksCompanion extends UpdateCompanion<Track> {
   }
 }
 
+class $UserPlaybackStatesTable extends UserPlaybackStates
+    with TableInfo<$UserPlaybackStatesTable, UserPlaybackState> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserPlaybackStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _songIdMeta = const VerificationMeta('songId');
+  @override
+  late final GeneratedColumn<String> songId = GeneratedColumn<String>(
+      'song_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _trackIdMeta =
+      const VerificationMeta('trackId');
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+      'track_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+      'position', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, userId, songId, trackId, position, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_playback_states';
+  @override
+  VerificationContext validateIntegrity(Insertable<UserPlaybackState> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('song_id')) {
+      context.handle(_songIdMeta,
+          songId.isAcceptableOrUnknown(data['song_id']!, _songIdMeta));
+    } else if (isInserting) {
+      context.missing(_songIdMeta);
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(_trackIdMeta,
+          trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta));
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UserPlaybackState map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserPlaybackState(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      songId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}song_id'])!,
+      trackId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}position'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $UserPlaybackStatesTable createAlias(String alias) {
+    return $UserPlaybackStatesTable(attachedDatabase, alias);
+  }
+}
+
+class UserPlaybackState extends DataClass
+    implements Insertable<UserPlaybackState> {
+  /// Composite ID: userId_trackId
+  final String id;
+
+  /// ID of the user
+  final String userId;
+
+  /// ID of the song this playback state belongs to
+  final String songId;
+
+  /// ID of the track
+  final String trackId;
+
+  /// Last playback position in milliseconds
+  final int position;
+
+  /// When this playback state was last updated
+  final DateTime updatedAt;
+  const UserPlaybackState(
+      {required this.id,
+      required this.userId,
+      required this.songId,
+      required this.trackId,
+      required this.position,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['song_id'] = Variable<String>(songId);
+    map['track_id'] = Variable<String>(trackId);
+    map['position'] = Variable<int>(position);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  UserPlaybackStatesCompanion toCompanion(bool nullToAbsent) {
+    return UserPlaybackStatesCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      songId: Value(songId),
+      trackId: Value(trackId),
+      position: Value(position),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory UserPlaybackState.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserPlaybackState(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      songId: serializer.fromJson<String>(json['songId']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      position: serializer.fromJson<int>(json['position']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'songId': serializer.toJson<String>(songId),
+      'trackId': serializer.toJson<String>(trackId),
+      'position': serializer.toJson<int>(position),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  UserPlaybackState copyWith(
+          {String? id,
+          String? userId,
+          String? songId,
+          String? trackId,
+          int? position,
+          DateTime? updatedAt}) =>
+      UserPlaybackState(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        songId: songId ?? this.songId,
+        trackId: trackId ?? this.trackId,
+        position: position ?? this.position,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  UserPlaybackState copyWithCompanion(UserPlaybackStatesCompanion data) {
+    return UserPlaybackState(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      songId: data.songId.present ? data.songId.value : this.songId,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      position: data.position.present ? data.position.value : this.position,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserPlaybackState(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('songId: $songId, ')
+          ..write('trackId: $trackId, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, userId, songId, trackId, position, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserPlaybackState &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.songId == this.songId &&
+          other.trackId == this.trackId &&
+          other.position == this.position &&
+          other.updatedAt == this.updatedAt);
+}
+
+class UserPlaybackStatesCompanion extends UpdateCompanion<UserPlaybackState> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> songId;
+  final Value<String> trackId;
+  final Value<int> position;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const UserPlaybackStatesCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.songId = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserPlaybackStatesCompanion.insert({
+    required String id,
+    required String userId,
+    required String songId,
+    required String trackId,
+    required int position,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        userId = Value(userId),
+        songId = Value(songId),
+        trackId = Value(trackId),
+        position = Value(position),
+        updatedAt = Value(updatedAt);
+  static Insertable<UserPlaybackState> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? songId,
+    Expression<String>? trackId,
+    Expression<int>? position,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (songId != null) 'song_id': songId,
+      if (trackId != null) 'track_id': trackId,
+      if (position != null) 'position': position,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserPlaybackStatesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? userId,
+      Value<String>? songId,
+      Value<String>? trackId,
+      Value<int>? position,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return UserPlaybackStatesCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      songId: songId ?? this.songId,
+      trackId: trackId ?? this.trackId,
+      position: position ?? this.position,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (songId.present) {
+      map['song_id'] = Variable<String>(songId.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserPlaybackStatesCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('songId: $songId, ')
+          ..write('trackId: $trackId, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2003,12 +2360,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ConcertsTable concerts = $ConcertsTable(this);
   late final $SongsTable songs = $SongsTable(this);
   late final $TracksTable tracks = $TracksTable(this);
+  late final $UserPlaybackStatesTable userPlaybackStates =
+      $UserPlaybackStatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [choirs, choirMembers, concerts, songs, tracks];
+      [choirs, choirMembers, concerts, songs, tracks, userPlaybackStates];
 }
 
 typedef $$ChoirsTableCreateCompanionBuilder = ChoirsCompanion Function({
@@ -2993,6 +3352,196 @@ typedef $$TracksTableProcessedTableManager = ProcessedTableManager<
     (Track, BaseReferences<_$AppDatabase, $TracksTable, Track>),
     Track,
     PrefetchHooks Function()>;
+typedef $$UserPlaybackStatesTableCreateCompanionBuilder
+    = UserPlaybackStatesCompanion Function({
+  required String id,
+  required String userId,
+  required String songId,
+  required String trackId,
+  required int position,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$UserPlaybackStatesTableUpdateCompanionBuilder
+    = UserPlaybackStatesCompanion Function({
+  Value<String> id,
+  Value<String> userId,
+  Value<String> songId,
+  Value<String> trackId,
+  Value<int> position,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$UserPlaybackStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $UserPlaybackStatesTable> {
+  $$UserPlaybackStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get songId => $composableBuilder(
+      column: $table.songId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$UserPlaybackStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserPlaybackStatesTable> {
+  $$UserPlaybackStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get songId => $composableBuilder(
+      column: $table.songId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$UserPlaybackStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserPlaybackStatesTable> {
+  $$UserPlaybackStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get songId =>
+      $composableBuilder(column: $table.songId, builder: (column) => column);
+
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$UserPlaybackStatesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $UserPlaybackStatesTable,
+    UserPlaybackState,
+    $$UserPlaybackStatesTableFilterComposer,
+    $$UserPlaybackStatesTableOrderingComposer,
+    $$UserPlaybackStatesTableAnnotationComposer,
+    $$UserPlaybackStatesTableCreateCompanionBuilder,
+    $$UserPlaybackStatesTableUpdateCompanionBuilder,
+    (
+      UserPlaybackState,
+      BaseReferences<_$AppDatabase, $UserPlaybackStatesTable, UserPlaybackState>
+    ),
+    UserPlaybackState,
+    PrefetchHooks Function()> {
+  $$UserPlaybackStatesTableTableManager(
+      _$AppDatabase db, $UserPlaybackStatesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserPlaybackStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserPlaybackStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserPlaybackStatesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> userId = const Value.absent(),
+            Value<String> songId = const Value.absent(),
+            Value<String> trackId = const Value.absent(),
+            Value<int> position = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              UserPlaybackStatesCompanion(
+            id: id,
+            userId: userId,
+            songId: songId,
+            trackId: trackId,
+            position: position,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String userId,
+            required String songId,
+            required String trackId,
+            required int position,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              UserPlaybackStatesCompanion.insert(
+            id: id,
+            userId: userId,
+            songId: songId,
+            trackId: trackId,
+            position: position,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$UserPlaybackStatesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $UserPlaybackStatesTable,
+    UserPlaybackState,
+    $$UserPlaybackStatesTableFilterComposer,
+    $$UserPlaybackStatesTableOrderingComposer,
+    $$UserPlaybackStatesTableAnnotationComposer,
+    $$UserPlaybackStatesTableCreateCompanionBuilder,
+    $$UserPlaybackStatesTableUpdateCompanionBuilder,
+    (
+      UserPlaybackState,
+      BaseReferences<_$AppDatabase, $UserPlaybackStatesTable, UserPlaybackState>
+    ),
+    UserPlaybackState,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3007,4 +3556,6 @@ class $AppDatabaseManager {
       $$SongsTableTableManager(_db, _db.songs);
   $$TracksTableTableManager get tracks =>
       $$TracksTableTableManager(_db, _db.tracks);
+  $$UserPlaybackStatesTableTableManager get userPlaybackStates =>
+      $$UserPlaybackStatesTableTableManager(_db, _db.userPlaybackStates);
 }
