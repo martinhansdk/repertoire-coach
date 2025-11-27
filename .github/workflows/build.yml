@@ -71,8 +71,34 @@ jobs:
         docker pull ${{ needs.build-docker.outputs.image-tag }}
         docker tag ${{ needs.build-docker.outputs.image-tag }} repertoire-coach-builder
 
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Cache Flutter pub
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.pub-cache
+        key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pub-
+
     - name: Build Android APK (Debug)
-      run: ./scripts/build.sh android --debug
+      run: |
+        docker run --rm \
+          -v $(pwd):/workspace \
+          -v $HOME/.gradle:/root/.gradle \
+          -v $HOME/.pub-cache:/root/.pub-cache \
+          -w /workspace \
+          repertoire-coach-builder \
+          flutter build apk --debug
 
     - name: Upload Debug APK artifact
       uses: actions/upload-artifact@v4
@@ -102,8 +128,34 @@ jobs:
         docker pull ${{ needs.build-docker.outputs.image-tag }}
         docker tag ${{ needs.build-docker.outputs.image-tag }} repertoire-coach-builder
 
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Cache Flutter pub
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.pub-cache
+        key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pub-
+
     - name: Build Android APK (Release)
-      run: ./scripts/build.sh android --release
+      run: |
+        docker run --rm \
+          -v $(pwd):/workspace \
+          -v $HOME/.gradle:/root/.gradle \
+          -v $HOME/.pub-cache:/root/.pub-cache \
+          -w /workspace \
+          repertoire-coach-builder \
+          flutter build apk --release
 
     - name: Upload Release APK artifact
       uses: actions/upload-artifact@v4
