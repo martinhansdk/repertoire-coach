@@ -6,19 +6,40 @@ import '../providers/audio_player_provider.dart';
 import '../providers/track_provider.dart';
 
 /// Audio player screen for playing tracks from a song
-class AudioPlayerScreen extends ConsumerWidget {
+class AudioPlayerScreen extends ConsumerStatefulWidget {
   final Song song;
 
   const AudioPlayerScreen({super.key, required this.song});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tracksAsync = ref.watch(tracksBySongProvider(song.id));
+  ConsumerState<AudioPlayerScreen> createState() => _AudioPlayerScreenState();
+}
+
+class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Stop playback when switching to a different song
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final playbackInfo = ref.read(audioPlayerRepositoryProvider).currentPlayback;
+      final currentTrack = playbackInfo.currentTrack;
+
+      if (currentTrack != null && currentTrack.songId != widget.song.id) {
+        // Currently playing track is from a different song, stop it
+        ref.read(audioPlayerControlsProvider).stop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tracksAsync = ref.watch(tracksBySongProvider(widget.song.id));
     final playbackInfoAsync = ref.watch(playbackInfoProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(song.title),
+        title: Text(widget.song.title),
       ),
       body: tracksAsync.when(
         data: (tracks) {
@@ -30,6 +51,10 @@ class AudioPlayerScreen extends ConsumerWidget {
 
           return playbackInfoAsync.when(
             data: (playbackInfo) {
+              // Check if the currently playing track belongs to this song
+              final isPlayingTrackFromThisSong =
+                  playbackInfo.currentTrack?.songId == widget.song.id;
+
               return Column(
                 children: [
                   // Track selector
@@ -38,7 +63,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                       itemCount: tracks.length,
                       itemBuilder: (context, index) {
                         final track = tracks[index];
-                        final isCurrentTrack =
+                        final isCurrentTrack = isPlayingTrackFromThisSong &&
                             playbackInfo.currentTrack?.id == track.id;
 
                         return ListTile(
@@ -75,10 +100,10 @@ class AudioPlayerScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  // Playback controls section
-                  if (playbackInfo.hasTrack) ...[
+                  // Playback controls section (only show if playing a track from this song)
+                  if (playbackInfo.hasTrack && isPlayingTrackFromThisSong) ...[
                     const Divider(),
-                    _buildPlaybackControls(context, ref, playbackInfo, tracks),
+                    _buildPlaybackControls(playbackInfo, tracks),
                   ],
                 ],
               );
@@ -98,8 +123,6 @@ class AudioPlayerScreen extends ConsumerWidget {
   }
 
   Widget _buildPlaybackControls(
-    BuildContext context,
-    WidgetRef ref,
     playbackInfo,
     List<Track> tracks,
   ) {
