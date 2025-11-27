@@ -37,7 +37,7 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [x] App smoke test (1 test)
 - [x] Docker build infrastructure with SQLite support
 
-**Test Results:** ✅ 85 tests passing, 3 skipped
+**Test Results:** ✅ 190 tests passing, 22 skipped
 
 **What Works:**
 - ✅ Data persists across app restarts (SQLite)
@@ -112,14 +112,16 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [ ] Default to most recently accessed concert on app launch
 
 ### Audio Playback (Local Files)
-- [ ] Setup audio player service
-- [ ] Implement basic playback controls (play, pause, stop)
-- [ ] Seek functionality
-- [ ] Progress tracking
-- [ ] Playback UI (now playing screen)
+- [x] Setup audio player service (AudioPlayerRepositoryImpl with just_audio)
+- [x] Implement basic playback controls (play, pause, stop)
+- [x] Seek functionality
+- [x] Progress tracking (via PlaybackInfo streams)
+- [x] Playback UI (AudioPlayerScreen with controls)
+- [x] File import functionality (FileStorageService + file_picker)
+- [x] Android sharing integration (receive_sharing_intent)
 - [ ] Quick rewind button (10 seconds)
-- [ ] Save playback position automatically
-- [ ] Resume from saved position on track load
+- [ ] Save playback position automatically (TODO in repository)
+- [ ] Resume from saved position on track load (TODO in repository)
 
 ## Phase 2: Cloud Integration
 
