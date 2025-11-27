@@ -394,19 +394,27 @@ class Deployer:
             return False
 
     @staticmethod
-    def deploy_android(apk_path: Path, force: bool = False) -> bool:
-        """Deploy APK to Android device"""
+    def deploy_android(apk_path: Path, clean_install: bool = False) -> bool:
+        """Deploy APK to Android device
+
+        Args:
+            apk_path: Path to the APK file
+            clean_install: If True, uninstall existing app first (removes all data).
+                          If False (default), upgrade existing app (preserves data).
+        """
         print(f"\n{Color.CYAN}Deploying {apk_path.name}...{Color.RESET}")
 
         try:
-            # Uninstall first if force flag is set
-            if force:
+            # Uninstall first if clean_install flag is set
+            if clean_install:
+                print(f"{Color.YELLOW}⚠ Clean install requested - all app data will be removed{Color.RESET}")
                 # Extract package name from APK
                 package_name = Deployer._get_android_package_name(apk_path)
                 if package_name:
                     Deployer.uninstall_android(package_name)
 
-            # Install APK (replace if exists)
+            # Install APK with -r flag to upgrade/replace if exists (preserves data)
+            print(f"{Color.CYAN}Installing APK (will upgrade if already installed)...{Color.RESET}")
             result = subprocess.run(
                 ["adb", "install", "-r", str(apk_path)],
                 capture_output=True,
@@ -452,18 +460,41 @@ class Deployer:
         return "com.repertoirecoach.repertoire_coach"
 
     @staticmethod
-    def deploy_ios(ipa_path: Path) -> bool:
-        """Deploy IPA to iOS device"""
+    def deploy_ios(ipa_path: Path, clean_install: bool = False) -> bool:
+        """Deploy IPA to iOS device
+
+        Args:
+            ipa_path: Path to the IPA file
+            clean_install: If True, uninstall existing app first (removes all data).
+                          If False (default), upgrade existing app if possible.
+
+        Note: iOS upgrade behavior depends on the tool:
+        - ideviceinstaller -i: Upgrades if same bundle ID, preserves some data
+        - ios-deploy --bundle: Similar upgrade behavior
+        """
         print(f"\n{Color.CYAN}Deploying {ipa_path.name}...{Color.RESET}")
+
+        if clean_install:
+            print(f"{Color.YELLOW}⚠ Clean install requested - app data may be removed{Color.RESET}")
 
         # Try ideviceinstaller first
         if shutil.which("ideviceinstaller"):
             try:
-                result = subprocess.run(
-                    ["ideviceinstaller", "-i", str(ipa_path)],
-                    capture_output=True,
-                    text=True
-                )
+                # Note: ideviceinstaller -i will upgrade if the bundle ID matches
+                # Use -U flag only if clean_install is requested (uninstall then install)
+                if clean_install:
+                    result = subprocess.run(
+                        ["ideviceinstaller", "-U", "-i", str(ipa_path)],
+                        capture_output=True,
+                        text=True
+                    )
+                else:
+                    print(f"{Color.CYAN}Installing IPA (will upgrade if already installed)...{Color.RESET}")
+                    result = subprocess.run(
+                        ["ideviceinstaller", "-i", str(ipa_path)],
+                        capture_output=True,
+                        text=True
+                    )
 
                 if result.returncode == 0:
                     print(f"{Color.GREEN}✓ Successfully installed{Color.RESET}")
@@ -480,6 +511,8 @@ class Deployer:
         # Try ios-deploy as fallback
         if shutil.which("ios-deploy"):
             try:
+                # ios-deploy doesn't have a clean uninstall option in the same command
+                print(f"{Color.CYAN}Installing IPA (will upgrade if already installed)...{Color.RESET}")
                 result = subprocess.run(
                     ["ios-deploy", "--bundle", str(ipa_path)],
                     capture_output=True,
@@ -620,8 +653,13 @@ Examples:
   %(prog)s --local                            # Use local build (interactive)
   %(prog)s --github                           # Use GitHub build (interactive)
   %(prog)s --platform ios --local             # Deploy local iOS build
+<<<<<<< HEAD
   %(prog)s --run 42 --build-type debug        # Deploy specific GitHub run by number
   %(prog)s --run-id 12345678 --force          # Uninstall first, then deploy (using run ID)
+=======
+  %(prog)s --run-id 12345 --build-type debug  # Deploy specific GitHub run
+  %(prog)s --run-id 12345 --clean-install     # Clean install (removes app data)
+>>>>>>> 80f668d (fix: Change deploy.py to upgrade by default instead of uninstalling)
         """
     )
 
@@ -659,9 +697,9 @@ Examples:
     )
 
     parser.add_argument(
-        "--force",
+        "--clean-install",
         action="store_true",
-        help="Uninstall existing app before installing (useful for switching between debug/release)"
+        help="Uninstall existing app before installing (removes all app data). Default is to upgrade, which preserves data."
     )
 
     args = parser.parse_args()
@@ -764,9 +802,9 @@ Examples:
     if selected_build.source == BuildSource.LOCAL:
         # Deploy local build
         if selected_build.platform == Platform.ANDROID:
-            success = Deployer.deploy_android(selected_build.path, force=args.force)
+            success = Deployer.deploy_android(selected_build.path, clean_install=args.clean_install)
         else:
-            success = Deployer.deploy_ios(selected_build.path)
+            success = Deployer.deploy_ios(selected_build.path, clean_install=args.clean_install)
     else:
         # Download and deploy GitHub build
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -777,9 +815,9 @@ Examples:
                 return 1
 
             if selected_build.platform == Platform.ANDROID:
-                success = Deployer.deploy_android(build_file, force=args.force)
+                success = Deployer.deploy_android(build_file, clean_install=args.clean_install)
             else:
-                success = Deployer.deploy_ios(build_file)
+                success = Deployer.deploy_ios(build_file, clean_install=args.clean_install)
 
     return 0 if success else 1
 
