@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../domain/entities/track.dart';
 import '../providers/track_provider.dart';
@@ -34,6 +35,30 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
     _nameController.dispose();
     _filePathController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAudioFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.audio,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _filePathController.text = result.files.single.path!;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking file: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _createTrack() async {
@@ -138,16 +163,23 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
               ),
               const SizedBox(height: 16),
 
-              // File path field (optional)
+              // File path field with picker button
               TextFormField(
                 controller: _filePathController,
-                decoration: const InputDecoration(
-                  labelText: 'File Path (Optional)',
-                  hintText: 'Enter file path to audio file',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.file_present),
+                decoration: InputDecoration(
+                  labelText: 'Audio File (Optional)',
+                  hintText: 'Select an audio file',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.audiotrack),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.folder_open),
+                    onPressed: _isCreating ? null : _pickAudioFile,
+                    tooltip: 'Browse for audio file',
+                  ),
                 ),
                 enabled: !_isCreating,
+                readOnly: true,
+                onTap: _isCreating ? null : _pickAudioFile,
               ),
             ],
           ),
