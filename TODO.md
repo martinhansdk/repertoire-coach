@@ -53,62 +53,122 @@ Implemented a complete offline-first feature demonstrating the full stack:
 
 ## Phase 1: Core Functionality (Local-First)
 
+**Status:** 🟡 Mostly Complete - Core features done, missing playback position persistence
+
+**What Works:**
+- ✅ Full choir management (create, view, add/remove members)
+- ✅ Concert management (create, edit, delete, sorted by date)
+- ✅ Song library (create, edit, delete songs within concerts)
+- ✅ Track management (add tracks, edit metadata)
+- ✅ Audio playback (play, pause, stop, seek, progress tracking)
+- ✅ File import (file picker + Android sharing)
+- ✅ Navigation between choirs, concerts, songs
+- ✅ All data persists locally in SQLite
+
+**What's Missing:**
+- ❌ Playback position auto-save/resume
+- ❌ Quick rewind button (10 seconds)
+- ❌ Filter concerts by choir
+- ❌ Default to last accessed concert on launch
+- ❌ Section markers (data layer not implemented)
+- ❌ User playback state persistence
+
+**Next Steps:**
+1. Implement playback position persistence (most important UX feature)
+2. Add quick rewind button
+3. Add concert filtering
+4. Implement last accessed concert tracking
+
 ### Data Layer
-- [x] Create data models for Concert (Choir, Song, Track, Section, User, UserPlaybackState - pending)
+- [x] Create data models for Concert
+- [x] Create data models for Choir
+- [x] Create data models for Song
+- [x] Create data models for Track
+- [x] Create data models for User
+- [x] Create data models for UserPlaybackState
+- [x] Create data models for Marker/MarkerSet (sections)
 - [x] Setup local database (SQLite/drift)
-- [x] Implement local repository interface for Concert
+- [x] Add Drift tables for Choir, Concert, Song, Track
 - [x] Implement local data source for Concert
-- [ ] Add data models for remaining entities (Choir, Song, Track, Section, User, UserPlaybackState)
-- [ ] Add Drift tables for remaining entities
-- [ ] Implement local data sources for remaining entities
-- [ ] Implement repositories for remaining entities
+- [x] Implement local data source for Choir
+- [x] Implement local data source for Song
+- [x] Implement local data source for Track
+- [x] Implement repository for Concert
+- [x] Implement repository for Choir
+- [x] Implement repository for Song
+- [x] Implement repository for Track
+- [x] Implement repository for AudioPlayer
+- [ ] Implement local data source for User (if needed for local-first)
+- [ ] Implement local data source for UserPlaybackState
+- [ ] Implement local data source for Markers/Sections
 
 ### Domain Layer
-- [x] Define domain entities (Concert, Choir, Song, Track, Section, User, UserPlaybackState)
+- [x] Define domain entities (Concert, Choir, Song, Track, Marker, User, UserPlaybackState)
 - [x] Create repository interface for Concert
-- [ ] Create repository interfaces for remaining entities
+- [x] Create repository interface for Choir
+- [x] Create repository interface for Song
+- [x] Create repository interface for Track
+- [x] Create repository interface for AudioPlayer
 - [x] Implement use cases for Concert (implicit in repository):
   - [x] Get concerts for choir (sorted by date)
   - [x] Get all concerts for user (across all choirs, sorted by date)
   - [x] Get concert by ID
-- [ ] Implement use cases for Choir:
-  - [ ] Create choir
-  - [ ] Get user's choirs
-  - [ ] Add member to choir (owner only)
-  - [ ] Remove member from choir (owner only)
-  - [ ] Update choir name
-- [ ] Implement use cases for Concert management:
-  - [ ] Create concert (within choir)
-  - [ ] Update concert (rename, change date)
-  - [ ] Delete concert
-  - [ ] Update user's last accessed concert
-- [ ] Implement use cases for Song:
-  - [ ] Add song (to concert)
-  - [ ] Delete song
-  - [ ] Update song
-  - [ ] Add track to song
-  - [ ] Delete track
-  - [ ] Get all songs in concert
-  - [ ] Get song by ID
-- [ ] Implement use cases for Playback:
-  - [ ] Save playback position
-  - [ ] Get playback position
+  - [x] Create concert (within choir)
+  - [x] Update concert (rename, change date)
+  - [x] Delete concert
+- [x] Implement use cases for Choir:
+  - [x] Create choir
+  - [x] Get user's choirs
+  - [x] Add member to choir (owner only)
+  - [x] Remove member from choir (owner only)
+  - [x] Update choir name
+- [x] Implement use cases for Song:
+  - [x] Add song (to concert)
+  - [x] Delete song
+  - [x] Update song
+  - [x] Get all songs in concert
+  - [x] Get song by ID
+- [x] Implement use cases for Track:
+  - [x] Add track to song
+  - [x] Delete track
+  - [x] Update track
+- [x] Implement use cases for Audio Playback:
+  - [x] Play/pause/stop
+  - [x] Seek to position
+  - [x] Track progress
+  - [x] Switch tracks/songs
+- [ ] Implement use cases for Playback Position:
+  - [ ] Save playback position automatically
+  - [ ] Get saved playback position
+  - [ ] Resume from saved position
+- [ ] Implement use case: Update user's last accessed concert
 
 ### Presentation Layer - Choir, Concert & Song Management
-- [x] Create app shell (navigation, theme)
+- [x] Create app shell (navigation, theme, bottom nav)
 - [x] Concert list screen (shows all user's concerts sorted by date: upcoming, then past)
 - [x] Concert card widget
 - [x] Concert provider with Riverpod
-- [ ] Choir list screen
-- [ ] Create choir dialog
-- [ ] Choir detail screen (view members, concerts)
-- [ ] Manage choir members screen (owner only)
-- [ ] Create/edit concert dialog (with date picker)
+- [x] Choir list screen
+- [x] Choir card widget
+- [x] Create choir dialog
+- [x] Choir detail screen (view members, concerts)
+- [x] Manage choir members screen (owner only)
+- [x] Add member dialog
+- [x] Choir provider with Riverpod
+- [x] Create concert dialog (with date picker)
+- [x] Edit concert dialog (with date picker)
+- [x] Song list screen (list view within concert)
+- [x] Song detail screen
+- [x] Create song dialog
+- [x] Edit song dialog
+- [x] Song provider with Riverpod
+- [x] Add track dialog (file picker integration)
+- [x] Edit track dialog
+- [x] Track provider with Riverpod
+- [x] Audio player screen with playback controls
+- [x] File storage service and provider
+- [x] Android sharing integration (receive_sharing_intent)
 - [ ] Filter concerts by choir
-- [ ] Song library screen (list view within concert)
-- [ ] Add song dialog/screen
-- [ ] Song detail screen
-- [ ] Add track functionality (file picker integration)
 - [ ] Default to most recently accessed concert on app launch
 
 ### Audio Playback (Local Files)
