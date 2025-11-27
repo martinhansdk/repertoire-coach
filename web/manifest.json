@@ -1,6 +1,6 @@
 {
-    "name": "repertoire_coach",
-    "short_name": "repertoire_coach",
+    "name": "Repertoire Coach",
+    "short_name": "Repertoire Coach",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
