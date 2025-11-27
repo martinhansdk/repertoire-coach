@@ -263,6 +263,8 @@ All tables use Row Level Security. Users can only access:
 **⚠️ Tests Are NOT Optional**
 Every implementation MUST include tests. Do not consider a feature "complete" without comprehensive test coverage.
 
+**For complete testing standards and guidelines, see [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md).**
+
 **Test Types to Include:**
 
 **Unit Tests:**
@@ -534,6 +536,7 @@ For these, you'll need to follow the instructions Claude provides.
 - **Requirements**: See REQUIREMENTS.md
 - **Architecture**: See ARCHITECTURE.md
 - **Tasks**: See TODO.md
+- **Testing Guidelines**: See TESTING_GUIDELINES.md
 - **Docker & Deployment**: See DOCKER.md
 - **Deploy to Device**: `./scripts/deploy.py` (see DOCKER.md)
 - **Database Schema**: ARCHITECTURE.md → Database Schema section
