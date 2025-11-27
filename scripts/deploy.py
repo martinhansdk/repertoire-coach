@@ -61,7 +61,8 @@ class Build:
     platform: Platform
     source: BuildSource
     path: Optional[Path] = None
-    run_id: Optional[str] = None
+    run_id: Optional[str] = None  # Long database ID for API calls
+    run_number: Optional[int] = None  # Short sequential run number for display
     commit: Optional[str] = None
     commit_msg: Optional[str] = None
     date: Optional[datetime] = None
@@ -78,8 +79,9 @@ class Build:
         else:
             age = self._format_age() if self.date else "unknown date"
             commit_short = self.commit[:7] if self.commit else "unknown"
+            run_display = f"#{self.run_number}" if self.run_number else f"ID {self.run_id}"
             return (f"GitHub - {self.platform.value.capitalize()} {self.build_type or 'build'} "
-                   f"(run #{self.run_id}, {age})\n"
+                   f"(run {run_display}, {age})\n"
                    f"    Commit: {commit_short} \"{self.commit_msg or 'No message'}\"")
 
     def _format_age(self) -> str:
@@ -225,7 +227,7 @@ class BuildFinder:
             # Get recent workflow runs
             result = subprocess.run(
                 ["gh", "run", "list", "--workflow=Build Flutter App", "--json",
-                 "databaseId,conclusion,headBranch,headSha,displayTitle,createdAt",
+                 "databaseId,number,conclusion,headBranch,headSha,displayTitle,createdAt",
                  "--limit", "10"],
                 capture_output=True,
                 text=True,
@@ -240,6 +242,7 @@ class BuildFinder:
                     continue
 
                 run_id = str(run["databaseId"])
+                run_number = run.get("number")
                 commit = run.get("headSha", "")
                 commit_msg = run.get("displayTitle", "")
                 date_str = run.get("createdAt", "")
@@ -269,6 +272,7 @@ class BuildFinder:
                         platform=plt,
                         source=BuildSource.GITHUB,
                         run_id=run_id,
+                        run_number=run_number,
                         commit=commit,
                         commit_msg=commit_msg,
                         date=date,
@@ -501,7 +505,8 @@ class Deployer:
     def download_github_artifact(build: Build, temp_dir: Path) -> Optional[Path]:
         """Download artifact from GitHub Actions"""
         print(f"\n{Color.CYAN}Downloading build from GitHub Actions...{Color.RESET}")
-        print(f"  Run: #{build.run_id}")
+        run_display = f"#{build.run_number}" if build.run_number else f"ID {build.run_id}"
+        print(f"  Run: {run_display}")
         print(f"  Artifact: {build.artifact_name}")
 
         try:
@@ -615,8 +620,8 @@ Examples:
   %(prog)s --local                            # Use local build (interactive)
   %(prog)s --github                           # Use GitHub build (interactive)
   %(prog)s --platform ios --local             # Deploy local iOS build
-  %(prog)s --run-id 12345 --build-type debug  # Deploy specific GitHub run
-  %(prog)s --run-id 12345 --force             # Uninstall first, then deploy
+  %(prog)s --run 42 --build-type debug        # Deploy specific GitHub run by number
+  %(prog)s --run-id 12345678 --force          # Uninstall first, then deploy (using run ID)
         """
     )
 
@@ -641,8 +646,10 @@ Examples:
 
     parser.add_argument(
         "--run-id",
+        "--run",
         type=str,
-        help="Specific GitHub Actions run ID"
+        dest="run_id",
+        help="Specific GitHub Actions run number (e.g., 42) or run ID"
     )
 
     parser.add_argument(
@@ -697,9 +704,12 @@ Examples:
         # Only GitHub builds
         builds = finder.find_github_builds(platform_choice)
 
-        # Filter by run ID if specified
+        # Filter by run ID or run number if specified
         if args.run_id:
-            builds = [b for b in builds if b.run_id == args.run_id]
+            # Try to match as run number first (shorter), then fall back to run ID
+            builds = [b for b in builds if
+                     (b.run_number and str(b.run_number) == args.run_id) or
+                     b.run_id == args.run_id]
 
         # Filter by build type if specified
         if args.build_type:
