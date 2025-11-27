@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
+import '../../domain/entities/song.dart';
 import '../providers/track_provider.dart';
 import '../widgets/add_track_dialog.dart';
 import '../widgets/track_card.dart';
+import 'audio_player_screen.dart';
 
 /// Song Detail Screen
 ///
@@ -78,11 +80,18 @@ class SongDetailScreen extends ConsumerWidget {
                 return TrackCard(
                   track: track,
                   onTap: () {
-                    // TODO: Navigate to track playback screen or handle tap
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Tapped: ${track.name}'),
-                        duration: const Duration(seconds: 1),
+                    // Navigate to audio player screen
+                    final song = Song(
+                      id: songId,
+                      title: songTitle,
+                      concertId: track.songId, // Using track's songId which should match
+                      createdAt: DateTime.now(), // Placeholder
+                      updatedAt: DateTime.now(), // Placeholder
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AudioPlayerScreen(song: song),
                       ),
                     );
                   },
