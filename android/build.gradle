@@ -8,9 +8,6 @@ allprojects {
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
 
     // Force all subprojects (including plugins) to use Java 17
     afterEvaluate {
@@ -30,6 +27,9 @@ subprojects {
             }
         }
     }
+}
+subprojects {
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register("clean", Delete) {
