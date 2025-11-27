@@ -94,9 +94,10 @@ jobs:
       run: |
         mkdir -p $HOME/.gradle $HOME/.pub-cache
         docker run --rm \
+          -u $(id -u):$(id -g) \
           -v $(pwd):/workspace \
-          -v $HOME/.gradle:/root/.gradle \
-          -v $HOME/.pub-cache:/root/.pub-cache \
+          -v $HOME/.gradle:/home/flutter/.gradle \
+          -v $HOME/.pub-cache:/home/flutter/.pub-cache \
           -w /workspace \
           repertoire-coach-builder \
           flutter build apk --debug
@@ -152,9 +153,10 @@ jobs:
       run: |
         mkdir -p $HOME/.gradle $HOME/.pub-cache
         docker run --rm \
+          -u $(id -u):$(id -g) \
           -v $(pwd):/workspace \
-          -v $HOME/.gradle:/root/.gradle \
-          -v $HOME/.pub-cache:/root/.pub-cache \
+          -v $HOME/.gradle:/home/flutter/.gradle \
+          -v $HOME/.pub-cache:/home/flutter/.pub-cache \
           -w /workspace \
           repertoire-coach-builder \
           flutter build apk --release
