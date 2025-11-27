@@ -66,16 +66,15 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - ✅ All data persists locally in SQLite
 
 **What's Missing:**
-- ❌ Playback position auto-save/resume
-- ❌ Quick rewind button (10 seconds)
+- ✅ ~~Playback position auto-save/resume~~ (DONE - 2025-11-27)
+- ✅ ~~Quick rewind button (10 seconds)~~ (DONE - 2025-11-27)
 - ❌ Filter concerts by choir
 - ❌ Default to last accessed concert on launch
 - ❌ Section markers (data layer not implemented)
-- ❌ User playback state persistence
 
 **Next Steps:**
-1. Implement playback position persistence (most important UX feature)
-2. Add quick rewind button
+1. ~~Implement playback position persistence~~ ✅ DONE (2025-11-27)
+2. ~~Add quick rewind button~~ ✅ DONE (2025-11-27)
 3. Add concert filtering
 4. Implement last accessed concert tracking
 
@@ -99,7 +98,7 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [x] Implement repository for Track
 - [x] Implement repository for AudioPlayer
 - [ ] Implement local data source for User (if needed for local-first)
-- [ ] Implement local data source for UserPlaybackState
+- [x] Implement local data source for UserPlaybackState
 - [ ] Implement local data source for Markers/Sections
 
 ### Domain Layer
@@ -137,10 +136,11 @@ Implemented a complete offline-first feature demonstrating the full stack:
   - [x] Seek to position
   - [x] Track progress
   - [x] Switch tracks/songs
-- [ ] Implement use cases for Playback Position:
-  - [ ] Save playback position automatically
-  - [ ] Get saved playback position
-  - [ ] Resume from saved position
+  - [x] Quick rewind (10 seconds)
+- [x] Implement use cases for Playback Position:
+  - [x] Save playback position automatically (every 5 seconds)
+  - [x] Get saved playback position
+  - [x] Resume from saved position on track load
 - [ ] Implement use case: Update user's last accessed concert
 
 ### Presentation Layer - Choir, Concert & Song Management
@@ -179,9 +179,9 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [x] Playback UI (AudioPlayerScreen with controls)
 - [x] File import functionality (FileStorageService + file_picker)
 - [x] Android sharing integration (receive_sharing_intent)
-- [ ] Quick rewind button (10 seconds)
-- [ ] Save playback position automatically (TODO in repository)
-- [ ] Resume from saved position on track load (TODO in repository)
+- [x] Quick rewind button (10 seconds) - Added 2025-11-27
+- [x] Save playback position automatically (every 5 seconds while playing) - Added 2025-11-27
+- [x] Resume from saved position on track load - Added 2025-11-27
 
 ## Phase 2: Cloud Integration
 
