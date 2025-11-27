@@ -92,6 +92,7 @@ jobs:
 
     - name: Build Android APK (Debug)
       run: |
+        mkdir -p $HOME/.gradle $HOME/.pub-cache
         docker run --rm \
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/root/.gradle \
@@ -149,6 +150,7 @@ jobs:
 
     - name: Build Android APK (Release)
       run: |
+        mkdir -p $HOME/.gradle $HOME/.pub-cache
         docker run --rm \
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/root/.gradle \
