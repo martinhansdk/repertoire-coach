@@ -224,10 +224,79 @@ Implemented a complete offline-first feature demonstrating the full stack:
 
 ## Polish & Release Preparation
 
-### Testing
-- [ ] Write unit tests for core business logic
-- [ ] Write widget tests for UI components
-- [ ] Integration tests for critical flows
+## Testing (Ongoing Priority)
+
+**Current Status (as of 2025-11-27):**
+- Overall: 42% file coverage (28/67 files)
+- Domain: 91% (excellent) ✅
+- Data: 50% (moderate gaps) ⚠️
+- Presentation: 27% (critical gaps) ❌
+- 22 tests skipped (13.8% of suite) ⚠️
+
+**See [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md) for complete testing standards.**
+
+### Critical Test Gaps to Address
+
+**Priority 1: Data Source Layer (CRITICAL)**
+- [ ] Test `local_song_data_source.dart` (CRUD, soft delete, sync state)
+- [ ] Test `local_concert_data_source.dart` (CRUD, soft delete)
+- [ ] Test `local_choir_data_source.dart` (CRUD, soft delete)
+- [ ] Test `local_track_data_source.dart` (CRUD, soft delete)
+- [ ] Test `local_section_data_source.dart` (CRUD, soft delete)
+- [ ] Test `local_user_data_source.dart` (CRUD)
+- [ ] Test `local_user_playback_state_data_source.dart` (CRUD)
+
+**Priority 2: Provider Layer (CRITICAL)**
+- [ ] Test `concert_provider.dart` (initialization, dependencies, async loading)
+- [ ] Test `song_provider.dart`
+- [ ] Test `choir_provider.dart`
+- [ ] Test `audio_player_provider.dart`
+- [ ] Test `file_storage_provider.dart`
+- [ ] Test `sync_provider.dart` (when implemented)
+
+**Priority 3: AudioPlayerScreen (CRITICAL)**
+- [ ] Extract `AudioPlaybackNotifier` StateNotifier (improves testability)
+- [ ] Extract `TrackNavigationUseCase` (improves testability)
+- [ ] Write widget tests for AudioPlayerScreen (play/pause/seek/navigation)
+
+**Priority 4: Fix Skipped Tests**
+- [ ] Fix timer infrastructure issues in widget tests
+- [ ] Enable 22 currently skipped tests
+- [ ] Document platform-specific test limitations
+
+**Priority 5: Complete Model Tests**
+- [ ] Test `choir_model.dart` (serialization, entity conversion)
+- [ ] Test `song_model.dart`
+- [ ] Test `track_model.dart`
+- [ ] Test `section_model.dart`
+- [ ] Test `user_playback_state_model.dart`
+
+**Priority 6: Screen Tests**
+- [ ] Test `choir_list_screen.dart` (loading/error/empty states, navigation)
+- [ ] Test `choir_detail_screen.dart`
+- [ ] Test `song_detail_screen.dart`
+- [ ] Test `choir_members_screen.dart`
+
+### Test Infrastructure Improvements
+
+**Create Test Utilities (Reduces Duplication)**
+- [ ] Create `test/helpers/test_fixtures.dart` - shared test data
+- [ ] Create `test/helpers/test_database_helper.dart` - database setup
+- [ ] Create `test/helpers/test_widget_wrapper.dart` - provider overrides
+
+**Improve Code Testability**
+- [ ] Extract `AudioPlayerService` interface (enables mocking)
+- [ ] Remove `AudioPlayerControls` helper class anti-pattern
+- [ ] Remove `FileImportControls` helper class anti-pattern
+- [ ] Create `FileStorageService` interface (enables mocking)
+- [ ] Separate initialization from construction in `AudioPlayerRepositoryImpl`
+
+### Integration Tests
+- [ ] Test complete user workflow: create choir → concert → song → play
+- [ ] Test error recovery flows
+- [ ] Test concurrent operations
+
+### General Testing Tasks
 - [ ] Test error scenarios
 - [ ] Performance testing with large libraries
 
