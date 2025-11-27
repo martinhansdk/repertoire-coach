@@ -405,16 +405,16 @@ class Deployer:
         print(f"\n{Color.CYAN}Deploying {apk_path.name}...{Color.RESET}")
 
         try:
-            # Uninstall first if clean_install flag is set
-            if clean_install:
-                print(f"{Color.YELLOW}⚠ Clean install requested - all app data will be removed{Color.RESET}")
+            # Uninstall first if force flag is set
+            if force:
+                print(f"{Color.YELLOW}Clean install requested (will remove app data){Color.RESET}")
                 # Extract package name from APK
                 package_name = Deployer._get_android_package_name(apk_path)
                 if package_name:
                     Deployer.uninstall_android(package_name)
 
-            # Install APK with -r flag to upgrade/replace if exists (preserves data)
-            print(f"{Color.CYAN}Installing APK (will upgrade if already installed)...{Color.RESET}")
+            # Try to upgrade first (preserves data)
+            print(f"{Color.CYAN}Attempting upgrade (preserves app data)...{Color.RESET}")
             result = subprocess.run(
                 ["adb", "install", "-r", str(apk_path)],
                 capture_output=True,
@@ -424,7 +424,41 @@ class Deployer:
             if result.returncode == 0:
                 print(f"{Color.GREEN}✓ Successfully installed{Color.RESET}")
                 return True
+
+            # Check if failure is due to signature mismatch
+            stderr_lower = result.stderr.lower()
+            is_signature_error = any(keyword in stderr_lower for keyword in [
+                "install_failed_update_incompatible",
+                "signatures do not match",
+                "signature",
+                "inconsistent certificates"
+            ])
+
+            if is_signature_error:
+                print(f"{Color.YELLOW}⚠ Signature mismatch detected (different signing key){Color.RESET}")
+                print(f"{Color.YELLOW}Falling back to clean install (will remove app data)...{Color.RESET}")
+
+                # Extract package name and uninstall
+                package_name = Deployer._get_android_package_name(apk_path)
+                if package_name:
+                    Deployer.uninstall_android(package_name)
+
+                # Try installing again
+                result = subprocess.run(
+                    ["adb", "install", str(apk_path)],
+                    capture_output=True,
+                    text=True
+                )
+
+                if result.returncode == 0:
+                    print(f"{Color.GREEN}✓ Successfully installed (clean install){Color.RESET}")
+                    return True
+                else:
+                    print(f"{Color.RED}✗ Installation failed after uninstall{Color.RESET}")
+                    print(result.stderr)
+                    return False
             else:
+                # Different error, show it
                 print(f"{Color.RED}✗ Installation failed{Color.RESET}")
                 print(result.stderr)
                 return False
@@ -653,14 +687,9 @@ Examples:
   %(prog)s --local                            # Use local build (interactive)
   %(prog)s --github                           # Use GitHub build (interactive)
   %(prog)s --platform ios --local             # Deploy local iOS build
-<<<<<<< HEAD
   %(prog)s --run 42 --build-type debug        # Deploy specific GitHub run by number
-  %(prog)s --run-id 12345678 --force          # Uninstall first, then deploy (using run ID)
-=======
-  %(prog)s --run-id 12345 --build-type debug  # Deploy specific GitHub run
   %(prog)s --run-id 12345 --clean-install     # Clean install (removes app data)
->>>>>>> 80f668d (fix: Change deploy.py to upgrade by default instead of uninstalling)
-        """
+"""
     )
 
     parser.add_argument(
@@ -699,7 +728,7 @@ Examples:
     parser.add_argument(
         "--clean-install",
         action="store_true",
-        help="Uninstall existing app before installing (removes all app data). Default is to upgrade, which preserves data."
+        help="Force clean install (uninstall first). Normally not needed - the script auto-detects signature mismatches."
     )
 
     args = parser.parse_args()
