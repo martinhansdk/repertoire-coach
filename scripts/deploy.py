@@ -406,7 +406,7 @@ class Deployer:
 
         try:
             # Uninstall first if force flag is set
-            if force:
+            if clean_install:
                 print(f"{Color.YELLOW}Clean install requested (will remove app data){Color.RESET}")
                 # Extract package name from APK
                 package_name = Deployer._get_android_package_name(apk_path)
