@@ -92,7 +92,7 @@ jobs:
 
     - name: Build Android APK (Debug)
       run: |
-        mkdir -p $HOME/.gradle $HOME/.pub-cache .cache
+        mkdir -p $HOME/.gradle $HOME/.pub-cache .cache/.android
         docker run --rm \
           -u $(id -u):$(id -g) \
           -e HOME=/workspace/.cache \
@@ -152,7 +152,7 @@ jobs:
 
     - name: Build Android APK (Release)
       run: |
-        mkdir -p $HOME/.gradle $HOME/.pub-cache .cache
+        mkdir -p $HOME/.gradle $HOME/.pub-cache .cache/.android
         docker run --rm \
           -u $(id -u):$(id -g) \
           -e HOME=/workspace/.cache \
