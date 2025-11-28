@@ -160,9 +160,9 @@ jobs:
         storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
         keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-        storeFile=upload-keystore.jks
+        storeFile=../upload-keystore.jks
         EOF
-
+        
     - name: Build Android APK (Release)
       run: |
         mkdir -p $HOME/.gradle $HOME/.pub-cache .cache/.android
