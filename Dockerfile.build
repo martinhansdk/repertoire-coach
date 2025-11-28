@@ -50,11 +50,11 @@ RUN git clone --depth 1 --branch ${FLUTTER_VERSION} https://github.com/flutter/f
     flutter doctor
 
 # Create flutter user with matching host UID/GID to avoid permission issues
-# Make Flutter directory world-writable to allow any UID to run Flutter commands
+# Make Flutter and Android SDK directories world-writable to allow any UID to run builds
 RUN groupadd -g ${GROUP_ID} flutter && \
     useradd -m -u ${USER_ID} -g flutter flutter && \
     chown -R flutter:flutter ${FLUTTER_HOME} ${ANDROID_SDK_ROOT} && \
-    chmod -R a+w ${FLUTTER_HOME}
+    chmod -R a+w ${FLUTTER_HOME} ${ANDROID_SDK_ROOT}
 
 # Set up working directory
 WORKDIR /app
