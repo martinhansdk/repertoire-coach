@@ -151,6 +151,21 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pub-
 
+    - name: Decode keystore
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/upload-keystore.jks
+
+    - name: Create key.properties
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        cat > android/key.properties <<EOF
+        storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+        keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+        storeFile=upload-keystore.jks
+        EOF
+
     - name: Build Android APK (Release)
       run: |
         mkdir -p $HOME/.gradle $HOME/.pub-cache .cache/.android
