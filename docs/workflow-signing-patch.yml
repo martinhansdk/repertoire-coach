@@ -1,0 +1,80 @@
+# This file shows the changes needed for .github/workflows/build.yml
+# Since workflow files require special permissions, apply these changes manually
+
+# Add these steps to the build-android job, BEFORE the "Build Android APK (Release)" step:
+
+    - name: Decode keystore
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/upload-keystore.jks
+
+    - name: Create key.properties
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        cat > android/key.properties <<EOF
+        storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+        keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+        storeFile=upload-keystore.jks
+        EOF
+
+# The complete build-android job should look like this:
+
+  build-android:
+    needs: build-docker
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pull pre-built Docker image
+      run: |
+        docker pull ${{ needs.build-docker.outputs.image-tag }}
+        docker tag ${{ needs.build-docker.outputs.image-tag }} repertoire-coach-builder
+
+    - name: Build Android APK (Debug)
+      run: ./scripts/build.sh android --debug
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-debug-apk
+        path: build/app/outputs/flutter-apk/app-debug.apk
+        retention-days: 7
+
+    # NEW: Decode keystore for release builds
+    - name: Decode keystore
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/upload-keystore.jks
+
+    # NEW: Create key.properties for release builds
+    - name: Create key.properties
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        cat > android/key.properties <<EOF
+        storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+        keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+        storeFile=upload-keystore.jks
+        EOF
+
+    - name: Build Android APK (Release)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: ./scripts/build.sh android --release
+
+    - name: Upload Release APK artifact
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-release-apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 30

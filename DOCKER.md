@@ -234,6 +234,21 @@ docker exec choir-app-db pg_dump -U postgres postgres > backup.sql
 cat backup.sql | docker exec -i choir-app-db psql -U postgres postgres
 ```
 
+## Android Release Signing
+
+To ensure consistent signing across all builds (local and CI):
+
+1. Run the setup script: `./scripts/setup-signing.sh`
+2. Add secrets to GitHub repository
+3. Update CI workflow (see `docs/SIGNING_SETUP.md`)
+
+**Why this matters:**
+- Without consistent signing, each build has a different signature
+- Users must uninstall and reinstall (losing all data) between builds
+- With consistent signing, apps can be upgraded preserving data
+
+See **[docs/SIGNING_SETUP.md](docs/SIGNING_SETUP.md)** for complete setup instructions.
+
 ## Production Deployment
 
 ### Flutter App
@@ -241,9 +256,10 @@ cat backup.sql | docker exec -i choir-app-db psql -U postgres postgres
 For production builds:
 
 1. **Android:**
-   - Build signed app bundle
+   - Set up release signing (see above)
+   - Build signed app bundle: `./scripts/build.sh android --release`
    - Upload to Google Play Console
-   - Configure signing in `android/app/build.gradle`
+   - Signing configuration is in `android/app/build.gradle`
 
 2. **Web:**
    - Build: `docker run --rm -v $(pwd):/app repertoire-coach-builder flutter build web --release`

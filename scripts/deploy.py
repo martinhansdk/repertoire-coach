@@ -394,19 +394,27 @@ class Deployer:
             return False
 
     @staticmethod
-    def deploy_android(apk_path: Path, force: bool = False) -> bool:
-        """Deploy APK to Android device"""
+    def deploy_android(apk_path: Path, clean_install: bool = False) -> bool:
+        """Deploy APK to Android device
+
+        Args:
+            apk_path: Path to the APK file
+            clean_install: If True, uninstall existing app first (removes all data).
+                          If False (default), upgrade existing app (preserves data).
+        """
         print(f"\n{Color.CYAN}Deploying {apk_path.name}...{Color.RESET}")
 
         try:
             # Uninstall first if force flag is set
-            if force:
+            if clean_install:
+                print(f"{Color.YELLOW}Clean install requested (will remove app data){Color.RESET}")
                 # Extract package name from APK
                 package_name = Deployer._get_android_package_name(apk_path)
                 if package_name:
                     Deployer.uninstall_android(package_name)
 
-            # Install APK (replace if exists)
+            # Try to upgrade first (preserves data)
+            print(f"{Color.CYAN}Attempting upgrade (preserves app data)...{Color.RESET}")
             result = subprocess.run(
                 ["adb", "install", "-r", str(apk_path)],
                 capture_output=True,
@@ -416,7 +424,41 @@ class Deployer:
             if result.returncode == 0:
                 print(f"{Color.GREEN}✓ Successfully installed{Color.RESET}")
                 return True
+
+            # Check if failure is due to signature mismatch
+            stderr_lower = result.stderr.lower()
+            is_signature_error = any(keyword in stderr_lower for keyword in [
+                "install_failed_update_incompatible",
+                "signatures do not match",
+                "signature",
+                "inconsistent certificates"
+            ])
+
+            if is_signature_error:
+                print(f"{Color.YELLOW}⚠ Signature mismatch detected (different signing key){Color.RESET}")
+                print(f"{Color.YELLOW}Falling back to clean install (will remove app data)...{Color.RESET}")
+
+                # Extract package name and uninstall
+                package_name = Deployer._get_android_package_name(apk_path)
+                if package_name:
+                    Deployer.uninstall_android(package_name)
+
+                # Try installing again
+                result = subprocess.run(
+                    ["adb", "install", str(apk_path)],
+                    capture_output=True,
+                    text=True
+                )
+
+                if result.returncode == 0:
+                    print(f"{Color.GREEN}✓ Successfully installed (clean install){Color.RESET}")
+                    return True
+                else:
+                    print(f"{Color.RED}✗ Installation failed after uninstall{Color.RESET}")
+                    print(result.stderr)
+                    return False
             else:
+                # Different error, show it
                 print(f"{Color.RED}✗ Installation failed{Color.RESET}")
                 print(result.stderr)
                 return False
@@ -452,18 +494,41 @@ class Deployer:
         return "com.repertoirecoach.repertoire_coach"
 
     @staticmethod
-    def deploy_ios(ipa_path: Path) -> bool:
-        """Deploy IPA to iOS device"""
+    def deploy_ios(ipa_path: Path, clean_install: bool = False) -> bool:
+        """Deploy IPA to iOS device
+
+        Args:
+            ipa_path: Path to the IPA file
+            clean_install: If True, uninstall existing app first (removes all data).
+                          If False (default), upgrade existing app if possible.
+
+        Note: iOS upgrade behavior depends on the tool:
+        - ideviceinstaller -i: Upgrades if same bundle ID, preserves some data
+        - ios-deploy --bundle: Similar upgrade behavior
+        """
         print(f"\n{Color.CYAN}Deploying {ipa_path.name}...{Color.RESET}")
+
+        if clean_install:
+            print(f"{Color.YELLOW}⚠ Clean install requested - app data may be removed{Color.RESET}")
 
         # Try ideviceinstaller first
         if shutil.which("ideviceinstaller"):
             try:
-                result = subprocess.run(
-                    ["ideviceinstaller", "-i", str(ipa_path)],
-                    capture_output=True,
-                    text=True
-                )
+                # Note: ideviceinstaller -i will upgrade if the bundle ID matches
+                # Use -U flag only if clean_install is requested (uninstall then install)
+                if clean_install:
+                    result = subprocess.run(
+                        ["ideviceinstaller", "-U", "-i", str(ipa_path)],
+                        capture_output=True,
+                        text=True
+                    )
+                else:
+                    print(f"{Color.CYAN}Installing IPA (will upgrade if already installed)...{Color.RESET}")
+                    result = subprocess.run(
+                        ["ideviceinstaller", "-i", str(ipa_path)],
+                        capture_output=True,
+                        text=True
+                    )
 
                 if result.returncode == 0:
                     print(f"{Color.GREEN}✓ Successfully installed{Color.RESET}")
@@ -480,6 +545,8 @@ class Deployer:
         # Try ios-deploy as fallback
         if shutil.which("ios-deploy"):
             try:
+                # ios-deploy doesn't have a clean uninstall option in the same command
+                print(f"{Color.CYAN}Installing IPA (will upgrade if already installed)...{Color.RESET}")
                 result = subprocess.run(
                     ["ios-deploy", "--bundle", str(ipa_path)],
                     capture_output=True,
@@ -621,8 +688,8 @@ Examples:
   %(prog)s --github                           # Use GitHub build (interactive)
   %(prog)s --platform ios --local             # Deploy local iOS build
   %(prog)s --run 42 --build-type debug        # Deploy specific GitHub run by number
-  %(prog)s --run-id 12345678 --force          # Uninstall first, then deploy (using run ID)
-        """
+  %(prog)s --run-id 12345 --clean-install     # Clean install (removes app data)
+"""
     )
 
     parser.add_argument(
@@ -659,9 +726,9 @@ Examples:
     )
 
     parser.add_argument(
-        "--force",
+        "--clean-install",
         action="store_true",
-        help="Uninstall existing app before installing (useful for switching between debug/release)"
+        help="Force clean install (uninstall first). Normally not needed - the script auto-detects signature mismatches."
     )
 
     args = parser.parse_args()
@@ -764,9 +831,9 @@ Examples:
     if selected_build.source == BuildSource.LOCAL:
         # Deploy local build
         if selected_build.platform == Platform.ANDROID:
-            success = Deployer.deploy_android(selected_build.path, force=args.force)
+            success = Deployer.deploy_android(selected_build.path, clean_install=args.clean_install)
         else:
-            success = Deployer.deploy_ios(selected_build.path)
+            success = Deployer.deploy_ios(selected_build.path, clean_install=args.clean_install)
     else:
         # Download and deploy GitHub build
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -777,9 +844,9 @@ Examples:
                 return 1
 
             if selected_build.platform == Platform.ANDROID:
-                success = Deployer.deploy_android(build_file, force=args.force)
+                success = Deployer.deploy_android(build_file, clean_install=args.clean_install)
             else:
-                success = Deployer.deploy_ios(build_file)
+                success = Deployer.deploy_ios(build_file, clean_install=args.clean_install)
 
     return 0 if success else 1
 
