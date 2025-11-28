@@ -102,7 +102,7 @@ jobs:
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/workspace/.cache/.gradle \
           -v $HOME/.pub-cache:/workspace/.cache/.pub-cache \
-          -v $HOME/.android:/workspace/.cache/.android \ 
+          -v $HOME/.android:/workspace/.cache/.android \
           -w /workspace \
           repertoire-coach-builder \
           sh -c "git config --global --add safe.directory /opt/flutter && flutter build apk --debug"
@@ -197,7 +197,7 @@ jobs:
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/workspace/.cache/.gradle \
           -v $HOME/.pub-cache:/workspace/.cache/.pub-cache \
-          -v $HOME/.android:/workspace/.cache/.android \ 
+          -v $HOME/.android:/workspace/.cache/.android \
           -w /workspace \
           repertoire-coach-builder \
           sh -c "git config --global --add safe.directory /opt/flutter && flutter build apk --release"
