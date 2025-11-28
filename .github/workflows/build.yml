@@ -96,6 +96,7 @@ jobs:
         docker run --rm \
           -u $(id -u):$(id -g) \
           -e HOME=/workspace/.cache \
+          -e ANDROID_USER_HOME=/workspace/.cache \
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/workspace/.cache/.gradle \
           -v $HOME/.pub-cache:/workspace/.cache/.pub-cache \
@@ -156,6 +157,7 @@ jobs:
         docker run --rm \
           -u $(id -u):$(id -g) \
           -e HOME=/workspace/.cache \
+          -e ANDROID_USER_HOME=/workspace/.cache \
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/workspace/.cache/.gradle \
           -v $HOME/.pub-cache:/workspace/.cache/.pub-cache \
