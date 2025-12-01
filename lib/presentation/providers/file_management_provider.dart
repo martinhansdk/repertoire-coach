@@ -2,6 +2,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/file_storage_service.dart';
 
+/// Provider for FilePicker.platform, allowing it to be overridden in tests.
+final filePickerPlatformProvider = Provider<FilePicker>((ref) => FilePicker.platform);
+
 /// Provider for the file storage service
 final fileStorageServiceProvider = Provider<FileStorageService>((ref) {
   return FileStorageService();
@@ -24,7 +27,7 @@ class FileImportControls {
   Future<String?> pickAndImportAudioFile() async {
     try {
       // Use file_picker to select an audio file
-      final result = await FilePicker.platform.pickFiles(
+      final result = await _ref.read(filePickerPlatformProvider).pickFiles(
         type: FileType.audio,
         allowMultiple: false,
       );

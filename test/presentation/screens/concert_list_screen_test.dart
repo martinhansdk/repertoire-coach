@@ -10,6 +10,10 @@ import 'package:repertoire_coach/data/repositories/concert_repository_impl.dart'
 import 'package:repertoire_coach/domain/repositories/concert_repository.dart';
 import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/screens/concert_list_screen.dart';
+import 'package:repertoire_coach/presentation/screens/song_list_screen.dart';
+import 'package:repertoire_coach/presentation/providers/song_provider.dart';
+import '../providers/song_provider_test.mocks.dart';
+import 'package:mockito/mockito.dart';
 
 void main() {
   group('ConcertListScreen Widget', () {
@@ -151,11 +155,15 @@ void main() {
 
     testWidgets('should navigate to song list when concert is tapped',
         (tester) async {
+      final mockSongRepository = MockSongRepository();
+      when(mockSongRepository.getSongsByConcert(any)).thenAnswer((_) async => []);
+
       // Act
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             concertRepositoryProvider.overrideWithValue(repository),
+            songRepositoryProvider.overrideWithValue(mockSongRepository),
           ],
           child: const MaterialApp(
             home: ConcertListScreen(),
@@ -168,12 +176,12 @@ void main() {
 
       // Tap on first concert card
       await tester.tap(find.text('Spring Concert 2025'));
-      await tester.pump(); // Trigger navigation
+      await tester.pumpAndSettle(); // pumpAndSettle to wait for navigation
 
-      // Assert - check that SongListScreen is being pushed
-      // Note: Full navigation test would require mocking song provider
-      expect(find.text('Spring Concert 2025'), findsAtLeastNWidgets(1));
-    }, skip: true); // TODO: Fix navigation test with proper provider mocking
+      // Assert
+      expect(find.byType(SongListScreen), findsOneWidget);
+      expect(find.text('Spring Concert 2025'), findsOneWidget);
+    });
   });
 }
 

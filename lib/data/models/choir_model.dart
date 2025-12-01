@@ -60,4 +60,22 @@ class ChoirModel extends Choir {
   }
 
   // Future: Add fromJson and toJson methods for Supabase
+
+  factory ChoirModel.fromJson(Map<String, dynamic> json) {
+    return ChoirModel(
+      id: json['id'],
+      name: json['name'],
+      ownerId: json['owner_id'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'owner_id': ownerId,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
 }

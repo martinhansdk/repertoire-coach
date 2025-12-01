@@ -2,7 +2,7 @@
 set -o pipefail
 
 # Flutter test script with concise output and detailed logging
-# Usage: ./scripts/test.sh
+# Usage: ./scripts/test.sh [flutter_test_args]
 
 # Get absolute path to project root
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -34,8 +34,8 @@ docker run --rm $DOCKER_USER $DOCKER_ENV \
       git config --global --add safe.directory /opt/flutter
     fi
     flutter pub get
-    flutter test
-  ' > "$LOGFILE" 2>&1
+    flutter test "$@"
+  ' sh "$@" > "$LOGFILE" 2>&1
 
 EXIT_CODE=$?
 

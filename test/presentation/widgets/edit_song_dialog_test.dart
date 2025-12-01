@@ -68,7 +68,7 @@ void main() {
 
       // Assert
       expect(find.text('Please enter a song title'), findsOneWidget);
-    }, skip: true); // TODO: Fix timer infrastructure issue
+    });
 
     testWidgets('should show validation error for short title', (tester) async {
       // Arrange
@@ -90,7 +90,7 @@ void main() {
       // Assert
       expect(
           find.text('Song title must be at least 2 characters'), findsOneWidget);
-    }, skip: true); // TODO: Fix timer infrastructure issue
+    });
 
     testWidgets('should accept valid song title', (tester) async {
       // Arrange
@@ -182,6 +182,6 @@ void main() {
 
       // Assert
       expect(find.byType(EditSongDialog), findsNothing);
-    }, skip: true); // TODO: Fix timer infrastructure issue
+    });
   });
 }

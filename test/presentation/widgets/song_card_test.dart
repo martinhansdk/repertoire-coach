@@ -57,7 +57,7 @@ void main() {
 
       // Assert
       expect(tapped, isTrue);
-    }, skip: true); // TODO: Fix timer infrastructure issue
+    });
 
     testWidgets('should display popup menu button', (tester) async {
       // Arrange
@@ -109,7 +109,7 @@ void main() {
       // Assert
       expect(find.text('Edit'), findsOneWidget);
       expect(find.text('Delete'), findsOneWidget);
-    }, skip: true); // TODO: Fix timer infrastructure issue
+    });
 
     testWidgets('should format recent creation dates correctly',
         (tester) async {

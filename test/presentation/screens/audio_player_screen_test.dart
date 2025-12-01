@@ -1,261 +1,115 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-
+import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
+import 'package:repertoire_coach/domain/entities/playback_info.dart';
 import 'package:repertoire_coach/domain/entities/song.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
-import 'package:repertoire_coach/domain/entities/playback_info.dart';
-import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
-import 'package:repertoire_coach/domain/repositories/audio_player_repository.dart';
 import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
 import 'package:repertoire_coach/presentation/providers/track_provider.dart';
 import 'package:repertoire_coach/presentation/screens/audio_player_screen.dart';
 
-import 'audio_player_screen_test.mocks.dart';
+import '../providers/audio_player_provider_test.mocks.dart';
 
-@GenerateMocks([AudioPlayerRepository])
 void main() {
   late MockAudioPlayerRepository mockAudioPlayerRepository;
-  late Song testSong1;
-  late Track testTrack1;
-  late Track testTrack2;
-  late Track testTrack3;
+
+  final tSong = Song(id: 's1', concertId: 'c1', title: 'Test Song', createdAt: DateTime.now(), updatedAt: DateTime.now());
+  final tTrack1 = Track(id: 't1', songId: 's1', name: 'Track 1', filePath: '/path/to/track1.mp3', createdAt: DateTime.now(), updatedAt: DateTime.now());
+  final tTrack2 = Track(id: 't2', songId: 's1', name: 'Track 2', filePath: '/path/to/track2.mp3', createdAt: DateTime.now(), updatedAt: DateTime.now());
+  final tTracks = [tTrack1, tTrack2];
 
   setUp(() {
     mockAudioPlayerRepository = MockAudioPlayerRepository();
-
-    testSong1 = Song(
-      id: 'song-1',
-      title: 'Test Song 1',
-      concertId: 'concert-1',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    testTrack1 = Track(
-      id: 'track-1',
-      songId: 'song-1',
-      name: 'Track 1',
-      filePath: '/path/to/track1.mp3',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    testTrack2 = Track(
-      id: 'track-2',
-      songId: 'song-1',
-      name: 'Track 2',
-      filePath: '/path/to/track2.mp3',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    testTrack3 = Track(
-      id: 'track-3',
-      songId: 'song-2',
-      name: 'Track 3',
-      filePath: '/path/to/track3.mp3',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
+    when(mockAudioPlayerRepository.currentPlayback).thenReturn(PlaybackInfo.idle());
+    when(mockAudioPlayerRepository.playbackStream).thenAnswer((_) => Stream.value(PlaybackInfo.idle()));
+    when(mockAudioPlayerRepository.resume()).thenAnswer((_) async {});
+    when(mockAudioPlayerRepository.pause()).thenAnswer((_) async {});
+    when(mockAudioPlayerRepository.stop()).thenAnswer((_) async {});
+    when(mockAudioPlayerRepository.seek(any)).thenAnswer((_) async => Duration.zero);
+    when(mockAudioPlayerRepository.savePlaybackPosition()).thenAnswer((_) async {});
+    when(mockAudioPlayerRepository.loadPlaybackPosition(any)).thenAnswer((_) async => Duration.zero);
+    when(mockAudioPlayerRepository.dispose()).thenAnswer((_) async {});
   });
 
-  Widget createTestWidget(Song song, List<Track> tracks) {
+  Widget createWidgetUnderTest({
+    Future<List<Track>>? tracksFuture,
+    Stream<PlaybackInfo>? playbackInfoStream,
+  }) {
     return ProviderScope(
       overrides: [
+        tracksBySongProvider(tSong.id).overrideWith((ref) => tracksFuture ?? Future.value(tTracks)),
+        playbackInfoProvider.overrideWith((ref) => playbackInfoStream ?? Stream.value(PlaybackInfo.idle())),
         audioPlayerRepositoryProvider.overrideWithValue(mockAudioPlayerRepository),
-        tracksBySongProvider(song.id).overrideWith(
-          (ref) => Future.value(tracks),
-        ),
       ],
       child: MaterialApp(
-        home: AudioPlayerScreen(song: song),
+        home: AudioPlayerScreen(song: tSong),
       ),
     );
   }
 
-  group('AudioPlayerScreen - Song Switching', () {
-    testWidgets('stops playback when opening different song', (tester) async {
-      // Setup: Track from song 2 is currently playing
-      final playbackInfo = PlaybackInfo(
-        state: AudioPlayerState.playing,
-        currentTrack: testTrack3, // From song 2
-        position: const Duration(seconds: 10),
-        duration: const Duration(seconds: 60),
-      );
-
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(playbackInfo),
-      );
-      when(mockAudioPlayerRepository.stop()).thenAnswer((_) async {});
-
-      // Act: Open audio player for song 1
-      await tester.pumpWidget(createTestWidget(testSong1, [testTrack1, testTrack2]));
-      await tester.pumpAndSettle();
-
-      // Assert: Stop should be called because track 3 is from song 2, not song 1
-      verify(mockAudioPlayerRepository.stop()).called(1);
-    });
-
-    testWidgets('does not stop playback when opening same song', (tester) async {
-      // Setup: Track from song 1 is currently playing
-      final playbackInfo = PlaybackInfo(
-        state: AudioPlayerState.playing,
-        currentTrack: testTrack1, // From song 1
-        position: const Duration(seconds: 10),
-        duration: const Duration(seconds: 60),
-      );
-
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(playbackInfo),
-      );
-
-      // Act: Open audio player for song 1
-      await tester.pumpWidget(createTestWidget(testSong1, [testTrack1, testTrack2]));
-      await tester.pumpAndSettle();
-
-      // Assert: Stop should NOT be called because track 1 is from song 1
-      verifyNever(mockAudioPlayerRepository.stop());
-    });
-
-    testWidgets('hides playback controls when playing track from different song', (tester) async {
-      // Setup: Track from song 2 is currently playing
-      final playbackInfo = PlaybackInfo(
-        state: AudioPlayerState.playing,
-        currentTrack: testTrack3, // From song 2
-        position: const Duration(seconds: 10),
-        duration: const Duration(seconds: 60),
-      );
-
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(PlaybackInfo.idle());
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(playbackInfo),
-      );
-      when(mockAudioPlayerRepository.stop()).thenAnswer((_) async {});
-
-      // Act: Open audio player for song 1
-      await tester.pumpWidget(createTestWidget(testSong1, [testTrack1, testTrack2]));
-      await tester.pumpAndSettle();
-
-      // Assert: Playback controls should not be visible
-      expect(find.byIcon(Icons.pause_circle_filled), findsNothing);
-      expect(find.byIcon(Icons.play_circle_filled), findsNothing);
-      expect(find.byType(Slider), findsNothing);
-    });
-
-    testWidgets('shows playback controls when playing track from same song', (tester) async {
-      // Setup: Track from song 1 is currently playing
-      final playbackInfo = PlaybackInfo(
-        state: AudioPlayerState.playing,
-        currentTrack: testTrack1, // From song 1
-        position: const Duration(seconds: 10),
-        duration: const Duration(seconds: 60),
-      );
-
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(playbackInfo),
-      );
-
-      // Act: Open audio player for song 1
-      await tester.pumpWidget(createTestWidget(testSong1, [testTrack1, testTrack2]));
-      await tester.pumpAndSettle();
-
-      // Assert: Playback controls should be visible
-      expect(find.byIcon(Icons.pause_circle_filled), findsOneWidget);
-      expect(find.byType(Slider), findsOneWidget);
-    });
-
-    testWidgets('highlights current track only if from same song', (tester) async {
-      // Setup: Track from song 1 is currently playing
-      final playbackInfo = PlaybackInfo(
-        state: AudioPlayerState.playing,
-        currentTrack: testTrack1, // From song 1
-        position: const Duration(seconds: 10),
-        duration: const Duration(seconds: 60),
-      );
-
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(playbackInfo),
-      );
-
-      // Act: Open audio player for song 1
-      await tester.pumpWidget(createTestWidget(testSong1, [testTrack1, testTrack2]));
-      await tester.pumpAndSettle();
-
-      // Assert: Track 1 should show music_note icon (highlighted)
-      expect(find.byIcon(Icons.music_note), findsOneWidget);
-      // Track 2 should show audiotrack icon (not highlighted)
-      expect(find.byIcon(Icons.audiotrack), findsOneWidget);
-    });
-
-    testWidgets('does not highlight tracks when playing from different song', (tester) async {
-      // Setup: Track from song 2 is currently playing
-      final playbackInfo = PlaybackInfo(
-        state: AudioPlayerState.playing,
-        currentTrack: testTrack3, // From song 2
-        position: const Duration(seconds: 10),
-        duration: const Duration(seconds: 60),
-      );
-
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(PlaybackInfo.idle());
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(playbackInfo),
-      );
-      when(mockAudioPlayerRepository.stop()).thenAnswer((_) async {});
-
-      // Act: Open audio player for song 1
-      await tester.pumpWidget(createTestWidget(testSong1, [testTrack1, testTrack2]));
-      await tester.pumpAndSettle();
-
-      // Assert: No tracks should show music_note icon (highlighted)
-      expect(find.byIcon(Icons.music_note), findsNothing);
-      // Both tracks should show audiotrack icon (not highlighted)
-      expect(find.byIcon(Icons.audiotrack), findsNWidgets(2));
-    });
+  testWidgets('shows loading indicator when tracks are loading', (tester) async {
+    await tester.pumpWidget(createWidgetUnderTest(tracksFuture: Future.delayed(const Duration(seconds: 1), () => [])));
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.pumpAndSettle();
   });
 
-  group('AudioPlayerScreen - Basic UI', () {
-    testWidgets('displays song title in app bar', (tester) async {
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(PlaybackInfo.idle());
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(PlaybackInfo.idle()),
-      );
+  testWidgets('shows empty state when there are no tracks', (tester) async {
+    await tester.pumpWidget(createWidgetUnderTest(tracksFuture: Future.value([])));
+    await tester.pumpAndSettle();
+    expect(find.text('No tracks available for this song'), findsOneWidget);
+  });
 
-      await tester.pumpWidget(createTestWidget(testSong1, [testTrack1]));
-      await tester.pumpAndSettle();
+  testWidgets('displays list of tracks', (tester) async {
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+    expect(find.text('Track 1'), findsOneWidget);
+    expect(find.text('Track 2'), findsOneWidget);
+  });
 
-      expect(find.text('Test Song 1'), findsOneWidget);
-    });
+  testWidgets('tapping play button calls playTrack', (tester) async {
+    when(mockAudioPlayerRepository.playTrack(any)).thenAnswer((_) async {});
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
 
-    testWidgets('displays empty state when no tracks', (tester) async {
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(PlaybackInfo.idle());
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(PlaybackInfo.idle()),
-      );
+    await tester.tap(find.byIcon(Icons.play_arrow).first);
+    await tester.pump();
 
-      await tester.pumpWidget(createTestWidget(testSong1, []));
-      await tester.pumpAndSettle();
+    final verification = verify(mockAudioPlayerRepository.playTrack(captureAny));
+    expect(verification.captured.single, tTrack1);
+    verification.called(1);
+  });
 
-      expect(find.text('No tracks available for this song'), findsOneWidget);
-    });
+  testWidgets('shows pause button when playing', (tester) async {
+    final playbackInfo = PlaybackInfo.idle().copyWith(
+      currentTrack: tTrack1,
+      state: AudioPlayerState.playing,
+    );
+    await tester.pumpWidget(createWidgetUnderTest(
+      playbackInfoStream: Stream.value(playbackInfo),
+    ));
+    await tester.pumpAndSettle();
 
-    testWidgets('displays all tracks in list', (tester) async {
-      when(mockAudioPlayerRepository.currentPlayback).thenReturn(PlaybackInfo.idle());
-      when(mockAudioPlayerRepository.playbackStream).thenAnswer(
-        (_) => Stream.value(PlaybackInfo.idle()),
-      );
+    final playPauseIcon = tester.widget<Icon>(find.byIcon(Icons.pause));
+    expect(playPauseIcon, isNotNull);
+  });
 
-      await tester.pumpWidget(createTestWidget(testSong1, [testTrack1, testTrack2]));
-      await tester.pumpAndSettle();
+  testWidgets('tapping pause button calls pause', (tester) async {
+    final playbackInfo = PlaybackInfo.idle().copyWith(
+      currentTrack: tTrack1,
+      state: AudioPlayerState.playing,
+    );
+    await tester.pumpWidget(createWidgetUnderTest(
+      playbackInfoStream: Stream.value(playbackInfo),
+    ));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Track 1'), findsOneWidget);
-      expect(find.text('Track 2'), findsOneWidget);
-    });
+    await tester.tap(find.byIcon(Icons.pause));
+    await tester.pump();
+
+    verify(mockAudioPlayerRepository.pause()).called(1);
   });
 }

@@ -2,8 +2,8 @@
 
 This document provides comprehensive testing standards and best practices for the Repertoire Coach project.
 
-**Last Updated**: 2025-11-27
-**Current Coverage**: 42% file coverage (28/67 files)
+**Last Updated**: 2025-12-01
+**Current Coverage**: 49.7%
 
 ## Table of Contents
 
@@ -39,10 +39,10 @@ Follow the test pyramid distribution:
 | Layer | Current | Goal | Priority |
 |-------|---------|------|----------|
 | Domain Entities | 91% | 100% | Medium |
-| Data Models | 50% | 100% | High |
+| Data Models | 100% | 100% | **DONE** |
 | Repositories | 80% | 90% | Medium |
-| Data Sources | 0% | 80% | **CRITICAL** |
-| Providers | 0% | 100% | **CRITICAL** |
+| Data Sources | 100% | 100% | **DONE** |
+| Providers | 100% | 100% | **DONE** |
 | Screens | 33% | 80% | High |
 | Widgets | 46% | 70% | Medium |
 
@@ -60,13 +60,13 @@ test/
 ├── data/
 │   ├── models/            # Serialization/conversion tests
 │   ├── repositories/      # Repository implementation tests
-│   └── datasources/       # Data source tests (MISSING - CRITICAL)
+│   └── datasources/       # Data source tests
 ├── presentation/
-│   ├── providers/         # Provider tests (MISSING - CRITICAL)
+│   ├── providers/         # Provider tests
 │   ├── screens/           # Screen widget tests
 │   └── widgets/           # Reusable widget tests
 ├── integration/           # End-to-end workflow tests
-└── helpers/               # Shared test utilities (TO CREATE)
+└── helpers/               # Shared test utilities
     ├── test_fixtures.dart
     ├── test_database_helper.dart
     └── test_widget_wrapper.dart
@@ -194,7 +194,7 @@ group('SongModel', () {
 
 #### 2b. Data Sources
 
-**Coverage Goal**: 80%
+**Coverage Goal**: 100%
 
 **What to Test**:
 - CRUD operations (create, read, update, delete)
@@ -204,24 +204,19 @@ group('SongModel', () {
 - Stream behavior
 - Error handling
 
-**CRITICAL GAP**: Currently 0% coverage - all 7 data sources untested
-
 **Example**:
 ```dart
 group('LocalSongDataSource', () {
-  late Isar isar;
+  late AppDatabase database;
   late LocalSongDataSource dataSource;
 
   setUp(() async {
-    isar = await Isar.open(
-      [SongModelSchema],
-      directory: await Directory.systemTemp.createTemp().then((d) => d.path),
-    );
-    dataSource = LocalSongDataSource(isar);
+    database = TestDatabaseHelper.createTestDatabase();
+    dataSource = LocalSongDataSource(database);
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    await TestDatabaseHelper.closeTestDatabase(database);
   });
 
   test('createSong inserts song into database', () async {
@@ -232,30 +227,6 @@ group('LocalSongDataSource', () {
     final retrieved = await dataSource.getSong('s1');
     expect(retrieved, isNotNull);
     expect(retrieved!.title, 'Test Song');
-  });
-
-  test('softDeleteSong marks song as deleted', () async {
-    final song = SongModel(id: 's1', title: 'Test Song');
-    await dataSource.createSong(song);
-
-    await dataSource.softDeleteSong('s1');
-
-    final retrieved = await dataSource.getSong('s1');
-    expect(retrieved!.isDeleted, isTrue);
-  });
-
-  test('getSongsForConcert filters by concert ID', () async {
-    await dataSource.createSong(
-      SongModel(id: 's1', concertId: 'c1', title: 'Song 1'),
-    );
-    await dataSource.createSong(
-      SongModel(id: 's2', concertId: 'c2', title: 'Song 2'),
-    );
-
-    final songs = await dataSource.getSongsForConcert('c1');
-
-    expect(songs, hasLength(1));
-    expect(songs.first.id, 's1');
   });
 });
 ```
@@ -274,19 +245,16 @@ group('LocalSongDataSource', () {
 **Example**:
 ```dart
 group('SongRepositoryImpl', () {
-  late Isar isar;
+  late AppDatabase database;
   late SongRepositoryImpl repository;
 
   setUp(() async {
-    isar = await Isar.open(
-      [SongModelSchema, TrackModelSchema],
-      directory: await Directory.systemTemp.createTemp().then((d) => d.path),
-    );
-    repository = SongRepositoryImpl(isar);
+    database = TestDatabaseHelper.createTestDatabase();
+    repository = SongRepositoryImpl(LocalSongDataSource(database));
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    await database.close();
   });
 
   test('getSongsForConcert returns songs sorted chronologically', () async {
@@ -321,8 +289,6 @@ group('SongRepositoryImpl', () {
 - State updates
 - Disposal/cleanup
 
-**CRITICAL GAP**: Currently 0% coverage - all 6 providers untested
-
 **Example**:
 ```dart
 group('ConcertProvider', () {
@@ -340,7 +306,7 @@ group('ConcertProvider', () {
       ],
     );
 
-    final asyncConcerts = await container.read(concertListProvider.future);
+    final asyncConcerts = await container.read(concertsProvider.future);
 
     expect(asyncConcerts, hasLength(2));
     expect(asyncConcerts[0].name, 'Concert 1');
@@ -356,7 +322,7 @@ group('ConcertProvider', () {
       ],
     );
 
-    final asyncValue = container.read(concertListProvider);
+    final asyncValue = container.read(concertsProvider);
 
     await expectLater(
       asyncValue.future,
@@ -386,7 +352,7 @@ group('ConcertListScreen', () {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          concertListProvider.overrideWith(
+          concertsProvider.overrideWith(
             (ref) => const AsyncValue.loading(),
           ),
         ],
@@ -406,7 +372,7 @@ group('ConcertListScreen', () {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          concertListProvider.overrideWith(
+          concertsProvider.overrideWith(
             (ref) => AsyncValue.data(concerts),
           ),
         ],
@@ -424,7 +390,7 @@ group('ConcertListScreen', () {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          concertListProvider.overrideWith(
+          concertsProvider.overrideWith(
             (ref) => AsyncValue.data(concerts),
           ),
         ],
@@ -567,16 +533,16 @@ group('Concert', () {
 
 ```dart
 group('SongRepository', () {
-  late Isar isar;
+  late AppDatabase database;
   late SongRepository repository;
 
   setUp(() async {
-    isar = await Isar.open([SongModelSchema]);
-    repository = SongRepositoryImpl(isar);
+    database = TestDatabaseHelper.createTestDatabase();
+    repository = SongRepositoryImpl(LocalSongDataSource(database));
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    await database.close();
   });
 
   test('createSong adds song to database', () async { ... });
@@ -587,17 +553,13 @@ group('SongRepository', () {
 ### 6. Use In-Memory Databases for Data Layer Tests
 
 ```dart
-// ✅ Good: Use temporary directory for Isar
+// ✅ Good: Use in-memory database for Drift
 setUp(() async {
-  final tempDir = await Directory.systemTemp.createTemp();
-  isar = await Isar.open(
-    [SongModelSchema],
-    directory: tempDir.path,
-  );
+  database = TestDatabaseHelper.createTestDatabase();
 });
 
 tearDown(() async {
-  await isar.close(deleteFromDisk: true);
+  await database.close();
 });
 ```
 
@@ -762,20 +724,20 @@ test('concert toString includes name and date', () {
 ```dart
 // ❌ Bad: Not closing database
 test('some test', () async {
-  final isar = await Isar.open([SongModelSchema]);
+  final database = TestDatabaseHelper.createTestDatabase();
   // ... test code ...
   // Database not closed - resource leak!
 });
 
 // ✅ Good: Use tearDown to clean up
-late Isar isar;
+late AppDatabase database;
 
 setUp(() async {
-  isar = await Isar.open([SongModelSchema]);
+  database = TestDatabaseHelper.createTestDatabase();
 });
 
 tearDown(() async {
-  await isar.close(deleteFromDisk: true);
+  await database.close();
 });
 ```
 
@@ -793,7 +755,7 @@ skip: 'Requires platform-specific audio player - tracked in issue #123',
 
 ## Test Utilities
 
-### Recommended Test Helpers (TO CREATE)
+### Recommended Test Helpers
 
 #### 1. test/helpers/test_fixtures.dart
 
@@ -829,29 +791,22 @@ Simplify database setup:
 
 ```dart
 class TestDatabaseHelper {
-  static Future<Isar> createTestDatabase() async {
-    final tempDir = await Directory.systemTemp.createTemp();
-    return await Isar.open(
-      [
-        SongModelSchema,
-        ConcertModelSchema,
-        TrackModelSchema,
-        // Add all schemas
-      ],
-      directory: tempDir.path,
-    );
+  static AppDatabase createTestDatabase() {
+    return AppDatabase.forTesting(NativeDatabase.memory());
   }
 
-  static Future<void> closeTestDatabase(Isar isar) async {
-    await isar.close(deleteFromDisk: true);
+  static Future<void> closeTestDatabase(AppDatabase db) async {
+    await db.close();
   }
 
-  static Future<void> seedConcerts(Isar isar, List<Concert> concerts) async {
-    await isar.writeTxn(() async {
-      for (final concert in concerts) {
-        await isar.concertModels.put(ConcertModel.fromEntity(concert));
-      }
-    });
+  static Future<void> seedConcerts(AppDatabase db, List<Concert> concerts) async {
+    for (final concert in concerts) {
+      await db.into(db.concerts).insert(
+        ConcertsCompanion.insert(
+          // ...
+        ),
+      );
+    }
   }
 }
 ```
@@ -927,6 +882,11 @@ class TestWidgetWrapper {
 scripts/test.sh
 ```
 
+**Run specific tests:**
+```bash
+scripts/test.sh test/path/to/your_test.dart
+```
+
 **Run with verbose output:**
 ```bash
 scripts/test.sh --verbose
@@ -937,33 +897,15 @@ scripts/test.sh --verbose
 scripts/validate.sh
 ```
 
-### Run Specific Tests
-
-**Single test file:**
-```bash
-docker run --rm -v $(pwd):/workspace -w /workspace \
-  ghcr.io/cirruslabs/flutter:stable \
-  flutter test test/domain/entities/song_test.dart
-```
-
-**Test group:**
-```bash
-docker run --rm -v $(pwd):/workspace -w /workspace \
-  ghcr.io/cirruslabs/flutter:stable \
-  flutter test test/domain/
-```
-
 ### Generate Coverage Report
 
 ```bash
-docker run --rm -v $(pwd):/workspace -w /workspace \
-  ghcr.io/cirruslabs/flutter:stable \
-  flutter test --coverage
+scripts/test.sh --coverage
 
-# View coverage
-docker run --rm -v $(pwd):/workspace -w /workspace \
-  ghcr.io/cirruslabs/flutter:stable \
-  genhtml coverage/lcov.info -o coverage/html
+# View coverage in browser (requires lcov)
+# On macOS: open coverage/html/index.html
+# On Linux: xdg-open coverage/html/index.html
+genhtml coverage/lcov.info -o coverage/html
 ```
 
 ### Watch Mode (For Development)
@@ -1035,18 +977,14 @@ When implementing a new feature, ensure:
 
 ### Critical Gaps to Address
 
-1. **Data sources** - 0% coverage (CRITICAL)
-2. **Providers** - 0% coverage (CRITICAL)
-3. **AudioPlayerScreen** - 0% coverage (CRITICAL)
-4. **Skipped tests** - 22 tests (13.8% of suite)
+1.  **Screen Tests**: Coverage is low (33%). Focus on adding widget tests for all screens.
+2.  **Skipped Tests**: 2 tests related to native functionality (`just_audio` and `path_provider`) are still skipped. These should be addressed with a more robust testing strategy for platform-specific code.
 
 ### Next Steps
 
-1. Create test utilities (test/helpers/)
-2. Test all data sources (Priority 1)
-3. Test all providers (Priority 2)
-4. Test AudioPlayerScreen (Priority 3)
-5. Enable skipped tests (Priority 4)
+1.  Increase screen test coverage to 80%.
+2.  Implement a strategy for testing platform-specific code (e.g., using fakes or integration tests on real devices).
+3.  Continue to write tests for all new features.
 
 ---
 

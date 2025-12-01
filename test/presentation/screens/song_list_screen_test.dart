@@ -214,7 +214,7 @@ void main() {
 
       // Assert
       expect(find.text('Add New Song'), findsOneWidget);
-    }, skip: true); // TODO: Fix timer infrastructure issue
+    });
 
     testWidgets('should show create song dialog from empty state button',
         (tester) async {
@@ -242,6 +242,6 @@ void main() {
 
       // Assert
       expect(find.text('Add New Song'), findsOneWidget);
-    }, skip: true); // TODO: Fix timer infrastructure issue
+    });
   });
 }

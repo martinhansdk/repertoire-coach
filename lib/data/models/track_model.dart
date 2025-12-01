@@ -69,4 +69,26 @@ class TrackModel extends Track {
   }
 
   // Future: Add fromJson and toJson methods for Supabase
+
+  factory TrackModel.fromJson(Map<String, dynamic> json) {
+    return TrackModel(
+      id: json['id'],
+      songId: json['song_id'],
+      name: json['name'],
+      filePath: json['file_path'],
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'song_id': songId,
+      'name': name,
+      'file_path': filePath,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 }

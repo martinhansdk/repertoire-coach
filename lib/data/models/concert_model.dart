@@ -70,4 +70,26 @@ class ConcertModel extends Concert {
   }
 
   // Future: Add fromJson and toJson methods for Supabase
+
+  factory ConcertModel.fromJson(Map<String, dynamic> json) {
+    return ConcertModel(
+      id: json['id'],
+      choirId: json['choir_id'],
+      choirName: json['choir_name'],
+      name: json['name'],
+      concertDate: DateTime.parse(json['concert_date']),
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'choir_id': choirId,
+      'choir_name': choirName,
+      'name': name,
+      'concert_date': concertDate.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
 }

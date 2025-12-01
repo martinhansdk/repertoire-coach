@@ -53,4 +53,20 @@ class ChoirMemberModel extends ChoirMember {
   }
 
   // Future: Add fromJson and toJson methods for Supabase
+
+  factory ChoirMemberModel.fromJson(Map<String, dynamic> json) {
+    return ChoirMemberModel(
+      choirId: json['choir_id'],
+      userId: json['user_id'],
+      joinedAt: DateTime.parse(json['joined_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'choir_id': choirId,
+      'user_id': userId,
+      'joined_at': joinedAt.toIso8601String(),
+    };
+  }
 }
