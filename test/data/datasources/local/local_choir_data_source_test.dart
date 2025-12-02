@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_choir_data_source.dart';
 import 'package:repertoire_coach/data/models/choir_model.dart';
-import 'package:repertoire_coach/domain/entities/choir.dart' as domain;
 
 import '../../../helpers/test_database_helper.dart';
 

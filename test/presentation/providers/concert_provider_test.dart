@@ -4,7 +4,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_concert_data_source.dart';
-import 'package:repertoire_coach/data/repositories/concert_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/concert.dart';
 import 'package:repertoire_coach/domain/repositories/concert_repository.dart';
 import 'package:repertoire_coach/presentation/providers/concert_provider.dart';

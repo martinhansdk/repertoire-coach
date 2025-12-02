@@ -6,20 +6,27 @@ import 'package:repertoire_coach/domain/entities/track.dart';
 class TestFixtures {
   static Concert springConcert({String? id}) => Concert(
     id: id ?? 'c1',
+    choirId: 'choir1',
+    choirName: 'Test Choir',
     name: 'Spring Concert 2025',
-    date: DateTime(2025, 4, 15),
+    concertDate: DateTime(2025, 4, 15),
+    createdAt: DateTime.now(),
   );
 
   static Song testSong({String? id, String? concertId}) => Song(
     id: id ?? 's1',
-    title: 'Test Song',
     concertId: concertId ?? 'c1',
+    title: 'Test Song',
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
   );
 
   static Track sopranoTrack({String? id, String? songId}) => Track(
     id: id ?? 't1',
-    name: 'Soprano',
     songId: songId ?? 's1',
-    audioFile: '/test/audio.mp3',
+    name: 'Soprano',
+    filePath: '/test/audio.mp3',
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
   );
 }

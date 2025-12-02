@@ -2,13 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_choir_data_source.dart';
-import 'package:repertoire_coach/data/repositories/choir_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/choir.dart';
 import 'package:repertoire_coach/domain/repositories/choir_repository.dart';
 import 'package:repertoire_coach/presentation/providers/choir_provider.dart';
-import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 
 import 'choir_provider_test.mocks.dart';
 

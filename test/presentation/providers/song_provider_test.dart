@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/data/datasources/local/local_song_data_source.dart';
-import 'package:repertoire_coach/data/repositories/song_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/song.dart';
 import 'package:repertoire_coach/domain/repositories/song_repository.dart';
 import 'package:repertoire_coach/presentation/providers/song_provider.dart';

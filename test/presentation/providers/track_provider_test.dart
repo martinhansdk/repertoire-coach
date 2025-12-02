@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/data/datasources/local/local_track_data_source.dart';
-import 'package:repertoire_coach/data/repositories/track_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/domain/repositories/track_repository.dart';
 import 'package:repertoire_coach/presentation/providers/track_provider.dart';
