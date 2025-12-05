@@ -278,7 +278,6 @@ jobs:
 
     - name: Run Flutter tests
       run: ./scripts/test.sh
-      continue-on-error: true
 
     - name: Upload logs
       if: always()
