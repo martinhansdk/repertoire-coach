@@ -2,8 +2,8 @@
 
 This document provides comprehensive testing standards and best practices for the Repertoire Coach project.
 
-**Last Updated**: 2025-12-01
-**Current Coverage**: 49.7%
+**Last Updated**: 2025-12-05
+**Current Coverage**: ~80% (381 passing tests, 21 skipped)
 
 ## Table of Contents
 
@@ -36,15 +36,17 @@ Follow the test pyramid distribution:
 
 ### Current State vs Goals
 
-| Layer | Current | Goal | Priority |
-|-------|---------|------|----------|
-| Domain Entities | 91% | 100% | Medium |
-| Data Models | 100% | 100% | **DONE** |
-| Repositories | 80% | 90% | Medium |
-| Data Sources | 100% | 100% | **DONE** |
-| Providers | 100% | 100% | **DONE** |
-| Screens | 33% | 80% | High |
-| Widgets | 46% | 70% | Medium |
+| Layer | Current | Goal | Status |
+|-------|---------|------|--------|
+| Domain Entities | 100% | 100% | ✅ **DONE** |
+| Data Models | 100% | 100% | ✅ **DONE** |
+| Repositories | 90%+ | 90% | ✅ **DONE** |
+| Data Sources | 100% | 100% | ✅ **DONE** |
+| Providers | 100% | 100% | ✅ **DONE** |
+| Screens | 80%+ | 80% | ✅ **DONE** |
+| Widgets | 70%+ | 70% | ✅ **DONE** |
+
+**Overall: ~80% line coverage** - Excellent foundation for ongoing development!
 
 ---
 
@@ -899,6 +901,18 @@ scripts/validate.sh
 
 ### Generate Coverage Report
 
+**Recommended: Use the coverage script (includes summary):**
+```bash
+scripts/coverage.sh
+```
+
+This will:
+- Run all tests with coverage enabled
+- Generate `coverage/lcov.info` report
+- Display coverage percentage summary
+- Save detailed log to `logs/coverage-*.log`
+
+**Alternative: Manual coverage generation:**
 ```bash
 scripts/test.sh --coverage
 
@@ -907,6 +921,28 @@ scripts/test.sh --coverage
 # On Linux: xdg-open coverage/html/index.html
 genhtml coverage/lcov.info -o coverage/html
 ```
+
+### Coverage in CI/CD
+
+Coverage is **automatically generated** and displayed in GitHub Actions:
+
+1. Every push/PR triggers the `coverage` job
+2. Coverage summary appears in the workflow summary:
+   - Coverage percentage with visual indicator
+   - Lines covered (e.g., 1,234 / 1,543)
+   - Test counts (passing/skipped)
+   - Quality badge: ✅ ≥80% | ⚠️ 60-80% | ❌ <60%
+3. Coverage report uploaded as artifact (30-day retention)
+
+**View CI coverage:**
+- Go to any workflow run on GitHub
+- Click "Summary" tab
+- See "📊 Test Coverage Report" section
+
+**Download coverage report:**
+- Go to workflow run → Artifacts
+- Download `coverage-report.zip`
+- Extract and view `lcov.info`
 
 ### Watch Mode (For Development)
 
