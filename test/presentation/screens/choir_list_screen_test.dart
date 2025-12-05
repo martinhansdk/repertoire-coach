@@ -47,10 +47,6 @@ void main() {
 
       // Assert - should show loading indicator
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      // Clean up - complete the future to avoid timer warnings
-      completer.complete([]);
-      await tester.pumpAndSettle();
     });
 
     testWidgets('should display empty state when no choirs', (tester) async {

@@ -50,10 +50,6 @@ void main() {
       // Assert - should show loading indicator
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.text('Loading...'), findsOneWidget);
-
-      // Clean up
-      completer.complete(testChoir);
-      await tester.pumpAndSettle();
     });
 
     testWidgets('should display choir name in app bar', (tester) async {
@@ -416,10 +412,6 @@ void main() {
 
       // Assert - should show loading for concerts
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      // Clean up
-      completer.complete([]);
-      await tester.pumpAndSettle();
     });
 
     testWidgets('should display error when concerts fail to load',
@@ -471,10 +463,6 @@ void main() {
 
       // Assert
       expect(find.text('Loading members...'), findsOneWidget);
-
-      // Clean up
-      completer.complete(5);
-      await tester.pumpAndSettle();
     });
   });
 }

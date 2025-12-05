@@ -70,10 +70,6 @@ void main() {
 
       // Assert - should show loading indicator
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      // Clean up
-      completer.complete([]);
-      await tester.pumpAndSettle();
     });
 
     testWidgets('should display empty state when no tracks', (tester) async {
