@@ -3,7 +3,7 @@
 This document provides comprehensive testing standards and best practices for the Repertoire Coach project.
 
 **Last Updated**: 2025-12-05
-**Current Coverage**: ~80% (381 passing tests, 21 skipped)
+**Current Coverage**: 56.3% (381 passing tests, 21 skipped)
 
 ## Table of Contents
 
@@ -39,14 +39,14 @@ Follow the test pyramid distribution:
 | Layer | Current | Goal | Status |
 |-------|---------|------|--------|
 | Domain Entities | 100% | 100% | ✅ **DONE** |
-| Data Models | 100% | 100% | ✅ **DONE** |
-| Repositories | 90%+ | 90% | ✅ **DONE** |
-| Data Sources | 100% | 100% | ✅ **DONE** |
-| Providers | 100% | 100% | ✅ **DONE** |
-| Screens | 80%+ | 80% | ✅ **DONE** |
-| Widgets | 70%+ | 70% | ✅ **DONE** |
+| Data Models | ~80% | 90% | ⚠️ Good progress |
+| Repositories | ~70% | 90% | ⚠️ Needs improvement |
+| Data Sources | ~50% | 100% | ⚠️ Critical gap |
+| Providers | ~80% | 100% | ⚠️ Good progress |
+| Screens | ~50% | 80% | ⚠️ Moderate coverage |
+| Widgets | ~60% | 70% | ⚠️ Close to goal |
 
-**Overall: ~80% line coverage** - Excellent foundation for ongoing development!
+**Overall: 56.3% line coverage** - Solid improvement from 42%, but room to grow!
 
 ---
 
