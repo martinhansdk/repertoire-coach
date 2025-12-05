@@ -286,3 +286,77 @@ jobs:
         name: analyze-test-logs
         path: logs/
         retention-days: 7
+
+  coverage:
+    needs: build-docker
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pull pre-built Docker image
+      run: |
+        docker pull ${{ needs.build-docker.outputs.image-tag }}
+        docker tag ${{ needs.build-docker.outputs.image-tag }} repertoire-coach-builder
+
+    - name: Generate coverage report
+      run: ./scripts/coverage.sh
+
+    - name: Parse coverage and create summary
+      run: |
+        # Extract coverage statistics from lcov.info
+        TOTAL_LINES=$(grep -o "LF:[0-9]*" coverage/lcov.info | cut -d: -f2 | awk '{s+=$1} END {print s}')
+        COVERED_LINES=$(grep -o "LH:[0-9]*" coverage/lcov.info | cut -d: -f2 | awk '{s+=$1} END {print s}')
+        COVERAGE_PCT=$(awk "BEGIN {printf \"%.1f\", ($COVERED_LINES / $TOTAL_LINES) * 100}")
+
+        # Create GitHub Actions summary
+        echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Coverage** | **${COVERAGE_PCT}%** |" >> $GITHUB_STEP_SUMMARY
+        echo "| Lines Covered | ${COVERED_LINES} / ${TOTAL_LINES} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Get test counts from log
+        TEST_LOG=$(ls -t logs/coverage-*.log | head -1)
+        if [ -f "$TEST_LOG" ]; then
+          PASSED=$(grep -oP '\+\K[0-9]+(?= ~)' "$TEST_LOG" | tail -1)
+          SKIPPED=$(grep -oP '~\K[0-9]+' "$TEST_LOG" | tail -1)
+          echo "| Tests Passed | ${PASSED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Skipped | ${SKIPPED} |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Add coverage badge color
+        if [ $(echo "$COVERAGE_PCT >= 80" | bc) -eq 1 ]; then
+          echo "✅ **Excellent coverage** (≥80%)" >> $GITHUB_STEP_SUMMARY
+        elif [ $(echo "$COVERAGE_PCT >= 60" | bc) -eq 1 ]; then
+          echo "⚠️ **Good coverage** (60-80%)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Coverage needs improvement** (<60%)" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 30
+
+    - name: Upload coverage logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-logs
+        path: logs/coverage-*.log
+        retention-days: 7
