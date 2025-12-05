@@ -49,6 +49,14 @@ abstract class AudioPlayerRepository {
   /// Returns the saved position, or Duration.zero if none exists
   Future<Duration> loadPlaybackPosition(String trackId);
 
+  /// Set the loop mode for playback
+  ///
+  /// [enabled] - If true, the current track will repeat when it finishes
+  Future<void> setLoopMode(bool enabled);
+
+  /// Get the current loop mode state
+  bool get isLooping;
+
   /// Dispose of the audio player and release all resources
   Future<void> dispose();
 }

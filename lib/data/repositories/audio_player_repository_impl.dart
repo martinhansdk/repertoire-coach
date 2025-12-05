@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:just_audio/just_audio.dart' as ja;
+import 'package:audio_session/audio_session.dart';
 import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
@@ -21,12 +22,34 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   String? _currentSongId;
   PlaybackInfo _currentPlaybackInfo;
   Timer? _autoSaveTimer;
+  bool _isLooping = false;
 
   AudioPlayerRepositoryImpl(this._playbackStateDataSource)
       : _player = ja.AudioPlayer(),
         _playbackController = StreamController<PlaybackInfo>.broadcast(),
         _currentPlaybackInfo = const PlaybackInfo.idle() {
     _initializePlayerListeners();
+    _configureAudioSession();
+  }
+
+  /// Configure audio session for background playback
+  void _configureAudioSession() async {
+    // Configure the audio session to continue playing in background
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration(
+      avAudioSessionCategory: AVAudioSessionCategory.playback,
+      avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
+      avAudioSessionMode: AVAudioSessionMode.defaultMode,
+      avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
+      avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+      androidAudioAttributes: AndroidAudioAttributes(
+        contentType: AndroidAudioContentType.music,
+        flags: AndroidAudioFlags.none,
+        usage: AndroidAudioUsage.media,
+      ),
+      androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+      androidWillPauseWhenDucked: true,
+    ));
   }
 
   /// Initialize listeners for the just_audio player
@@ -225,6 +248,15 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     _autoSaveTimer?.cancel();
     _autoSaveTimer = null;
   }
+
+  @override
+  Future<void> setLoopMode(bool enabled) async {
+    _isLooping = enabled;
+    await _player.setLoopMode(enabled ? ja.LoopMode.one : ja.LoopMode.off);
+  }
+
+  @override
+  bool get isLooping => _isLooping;
 
   @override
   Future<void> dispose() async {

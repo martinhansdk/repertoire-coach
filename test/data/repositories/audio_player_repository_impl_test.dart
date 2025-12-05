@@ -222,6 +222,44 @@ void main() {
       await repository.dispose();
       await repository.dispose(); // Should not throw
     });
+
+    test('should set loop mode to enabled', () async {
+      // Arrange: Initial loop mode should be false
+      expect(repository.isLooping, isFalse);
+
+      // Act: Enable loop mode
+      await repository.setLoopMode(true);
+
+      // Assert: Loop mode should be enabled
+      expect(repository.isLooping, isTrue);
+    });
+
+    test('should set loop mode to disabled', () async {
+      // Arrange: Enable loop mode first
+      await repository.setLoopMode(true);
+      expect(repository.isLooping, isTrue);
+
+      // Act: Disable loop mode
+      await repository.setLoopMode(false);
+
+      // Assert: Loop mode should be disabled
+      expect(repository.isLooping, isFalse);
+    });
+
+    test('should toggle loop mode multiple times', () async {
+      // Act & Assert: Toggle loop mode several times
+      await repository.setLoopMode(true);
+      expect(repository.isLooping, isTrue);
+
+      await repository.setLoopMode(false);
+      expect(repository.isLooping, isFalse);
+
+      await repository.setLoopMode(true);
+      expect(repository.isLooping, isTrue);
+
+      await repository.setLoopMode(false);
+      expect(repository.isLooping, isFalse);
+    });
   });
 
   group('AudioPlayerRepositoryImpl - Error Handling', () {
