@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,14 +30,13 @@ void main() {
 
     testWidgets('should display loading indicator while loading choir',
         (tester) async {
-      // Arrange
+      // Arrange - Create a never-completing future to keep it in loading state
+      final completer = Completer<Choir>();
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            choirByIdProvider('c1').overrideWith((ref) => Future.delayed(
-                  const Duration(seconds: 1),
-                  () => testChoir,
-                )),
+            choirByIdProvider('c1').overrideWith((ref) => completer.future),
           ],
           child: const MaterialApp(
             home: ChoirDetailScreen(choirId: 'c1'),
@@ -43,9 +44,16 @@ void main() {
         ),
       );
 
+      // Pump once to build the widget
+      await tester.pump();
+
       // Assert - should show loading indicator
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.text('Loading...'), findsOneWidget);
+
+      // Clean up
+      completer.complete(testChoir);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('should display choir name in app bar', (tester) async {
@@ -386,17 +394,16 @@ void main() {
 
     testWidgets('should display loading state while loading concerts',
         (tester) async {
-      // Arrange
+      // Arrange - Create a never-completing future to keep concerts in loading state
+      final completer = Completer<List<Concert>>();
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             choirByIdProvider('c1').overrideWith((ref) => Future.value(testChoir)),
             choirMemberCountProvider('c1').overrideWith((ref) => Future.value(5)),
             isChoirOwnerProvider('c1').overrideWith((ref) => Future.value(false)),
-            concertsByChoirProvider('c1').overrideWith((ref) => Future.delayed(
-                  const Duration(seconds: 1),
-                  () => [],
-                )),
+            concertsByChoirProvider('c1').overrideWith((ref) => completer.future),
           ],
           child: const MaterialApp(
             home: ChoirDetailScreen(choirId: 'c1'),
@@ -405,11 +412,14 @@ void main() {
       );
 
       // Wait for choir to load but not concerts
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
       // Assert - should show loading for concerts
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Clean up
+      completer.complete([]);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('should display error when concerts fail to load',
@@ -439,15 +449,14 @@ void main() {
 
     testWidgets('should display loading state for member count',
         (tester) async {
-      // Arrange
+      // Arrange - Create a never-completing future to keep member count in loading state
+      final completer = Completer<int>();
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             choirByIdProvider('c1').overrideWith((ref) => Future.value(testChoir)),
-            choirMemberCountProvider('c1').overrideWith((ref) => Future.delayed(
-                  const Duration(seconds: 1),
-                  () => 5,
-                )),
+            choirMemberCountProvider('c1').overrideWith((ref) => completer.future),
             isChoirOwnerProvider('c1').overrideWith((ref) => Future.value(false)),
             concertsByChoirProvider('c1').overrideWith((ref) => Future.value([])),
           ],
@@ -458,11 +467,14 @@ void main() {
       );
 
       // Wait for choir to load but not member count
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
       // Assert
       expect(find.text('Loading members...'), findsOneWidget);
+
+      // Clean up
+      completer.complete(5);
+      await tester.pumpAndSettle();
     });
   });
 }

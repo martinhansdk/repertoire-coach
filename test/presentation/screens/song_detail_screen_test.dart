@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,14 +47,13 @@ void main() {
 
     testWidgets('should display loading indicator while loading',
         (tester) async {
-      // Arrange
+      // Arrange - Create a never-completing future to keep it in loading state
+      final completer = Completer<List<Track>>();
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            tracksBySongProvider('s1').overrideWith((ref) => Future.delayed(
-                  const Duration(seconds: 1),
-                  () => [],
-                )),
+            tracksBySongProvider('s1').overrideWith((ref) => completer.future),
           ],
           child: const MaterialApp(
             home: SongDetailScreen(
@@ -64,8 +65,15 @@ void main() {
         ),
       );
 
+      // Pump once to build the widget
+      await tester.pump();
+
       // Assert - should show loading indicator
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Clean up
+      completer.complete([]);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('should display empty state when no tracks', (tester) async {

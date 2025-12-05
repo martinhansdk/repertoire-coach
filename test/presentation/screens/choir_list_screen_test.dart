@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,21 +30,27 @@ void main() {
 
     testWidgets('should display loading indicator while loading',
         (tester) async {
-      // Arrange
+      // Arrange - Create a never-completing future to keep it in loading state
+      final completer = Completer<List<Choir>>();
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            choirsProvider.overrideWith((ref) => Future.delayed(
-                  const Duration(seconds: 1),
-                  () => [],
-                )),
+            choirsProvider.overrideWith((ref) => completer.future),
           ],
           child: const MaterialApp(home: ChoirListScreen()),
         ),
       );
 
+      // Pump once to build the widget
+      await tester.pump();
+
       // Assert - should show loading indicator
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Clean up - complete the future to avoid timer warnings
+      completer.complete([]);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('should display empty state when no choirs', (tester) async {
