@@ -124,7 +124,7 @@ void main() {
       expect(find.text('Failed to load tracks'), findsOneWidget);
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
       expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
-    }, skip: 'Complex async issues - requires investigation');
+    }, skip: true); // Complex async issues - requires investigation
 
     testWidgets('should call onRetry when retry button is tapped',
         (tester) async {
@@ -169,7 +169,7 @@ void main() {
       expect(callCount, 2);
 
       container.dispose();
-    }, skip: 'Complex async issues - requires investigation');
+    }, skip: true); // Complex async issues - requires investigation
 
     testWidgets('should display list of tracks when data is loaded',
         (tester) async {
@@ -232,7 +232,7 @@ void main() {
       expect(find.widgetWithText(FloatingActionButton, 'Add Track'),
           findsOneWidget);
       expect(find.byIcon(Icons.add), findsOneWidget);
-    }, skip: 'Complex async issues - requires investigation');
+    }, skip: true); // Complex async issues - requires investigation
 
     testWidgets('should show add track dialog when FAB is tapped',
         (tester) async {
@@ -288,7 +288,7 @@ void main() {
 
       // Assert
       expect(find.byType(AddTrackDialog), findsOneWidget);
-    }, skip: 'Complex async issues - requires investigation');
+    }, skip: true); // Complex async issues - requires investigation
 
     testWidgets('should support pull-to-refresh', (tester) async {
       // Arrange
