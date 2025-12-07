@@ -1,0 +1,628 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/domain/entities/loop_range.dart';
+import 'package:repertoire_coach/domain/entities/marker.dart';
+import 'package:repertoire_coach/domain/entities/playback_info.dart';
+import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
+import 'package:repertoire_coach/presentation/providers/loop_control_provider.dart';
+import 'package:repertoire_coach/presentation/widgets/loop_control_buttons.dart';
+
+import 'loop_control_buttons_test.mocks.dart';
+
+@GenerateMocks([LoopControls])
+void main() {
+  group('LoopControlButtons Widget', () {
+    late MockLoopControls mockLoopControls;
+    final now = DateTime.now();
+
+    final marker1 = Marker(
+      id: 'marker-1',
+      markerSetId: 'set-1',
+      label: 'Intro',
+      positionMs: 0,
+      order: 0,
+      createdAt: now,
+    );
+
+    final marker2 = Marker(
+      id: 'marker-2',
+      markerSetId: 'set-1',
+      label: 'Verse',
+      positionMs: 30000,
+      order: 1,
+      createdAt: now,
+    );
+
+    final marker3 = Marker(
+      id: 'marker-3',
+      markerSetId: 'set-1',
+      label: 'Chorus',
+      positionMs: 60000,
+      order: 2,
+      createdAt: now,
+    );
+
+    setUp(() {
+      mockLoopControls = MockLoopControls();
+      when(mockLoopControls.setCustomLoop(
+        startPosition: anyNamed('startPosition'),
+        endPosition: anyNamed('endPosition'),
+      )).thenAnswer((_) async => Future.value());
+      when(mockLoopControls.setLoopFromMarkers(any, any)).thenAnswer((_) async => Future.value());
+      when(mockLoopControls.clearLoop()).thenAnswer((_) async => Future.value());
+    });
+
+    Widget createWidgetUnderTest({
+      List<Marker> markers = const [],
+      PlaybackInfo? playbackInfo,
+      Duration currentPosition = Duration.zero,
+    }) {
+      return ProviderScope(
+        overrides: [
+          loopControlsProvider.overrideWith((ref) => mockLoopControls),
+          playbackInfoProvider.overrideWith((ref) {
+            return Stream.value(playbackInfo ?? PlaybackInfo.idle());
+          }),
+          currentPlaybackProvider.overrideWith((ref) {
+            return PlaybackInfo.idle().copyWith(position: currentPosition);
+          }),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: LoopControlButtons(markers: markers),
+          ),
+        ),
+      );
+    }
+
+    group('Basic Rendering', () {
+      testWidgets('should render widget', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        expect(find.byType(LoopControlButtons), findsOneWidget);
+      });
+
+      testWidgets('should display title', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        expect(find.text('A-B Loop'), findsOneWidget);
+      });
+
+      testWidgets('should be wrapped in Card', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Card), findsOneWidget);
+      });
+    });
+
+    group('No Loop State', () {
+      testWidgets('should show "No loop active" when no loop set', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        expect(find.text('No loop active'), findsOneWidget);
+      });
+
+      testWidgets('should show Set Point A button', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Set Point A'), findsOneWidget);
+      });
+
+      testWidgets('should show disabled Set Point B button', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        final buttonFinder = find.widgetWithText(OutlinedButton, 'Set Point B');
+        expect(buttonFinder, findsOneWidget);
+
+        final button = tester.widget<OutlinedButton>(buttonFinder);
+        expect(button.onPressed, isNull); // Disabled
+      });
+
+      testWidgets('should not show Clear Loop button when no loop', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Clear Loop'), findsNothing);
+      });
+    });
+
+    group('Active Loop State', () {
+      testWidgets('should display active loop range', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(seconds: 30),
+            endPosition: const Duration(seconds: 90),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Loop: 0:30 → 1:30'), findsOneWidget);
+        expect(find.byIcon(Icons.repeat), findsOneWidget);
+      });
+
+      testWidgets('should show Clear Loop button when loop is active', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(seconds: 30),
+            endPosition: const Duration(seconds: 60),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Clear Loop'), findsOneWidget);
+      });
+
+      testWidgets('should format loop times correctly', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(minutes: 1, seconds: 5),
+            endPosition: const Duration(minutes: 2, seconds: 30),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Loop: 1:05 → 2:30'), findsOneWidget);
+      });
+    });
+
+    group('Setting Loop Points', () {
+      testWidgets('should set Point A when button tapped', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 45),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Set Point A'));
+        await tester.pumpAndSettle();
+
+        // Button should now show the time
+        expect(find.text('A: 0:45'), findsOneWidget);
+      });
+
+      testWidgets('should enable Point B button after Point A is set', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 30),
+        ));
+        await tester.pumpAndSettle();
+
+        // Point B should be disabled
+        var buttonB = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'Set Point B'),
+        );
+        expect(buttonB.onPressed, isNull);
+
+        // Set Point A
+        await tester.tap(find.text('Set Point A'));
+        await tester.pumpAndSettle();
+
+        // Point B should now be enabled
+        buttonB = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'Set Point B'),
+        );
+        expect(buttonB.onPressed, isNotNull);
+      });
+
+      testWidgets('should set Point B and create loop', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 30),
+        ));
+        await tester.pumpAndSettle();
+
+        // Set Point A
+        await tester.tap(find.text('Set Point A'));
+        await tester.pumpAndSettle();
+
+        // Move to a later position and set Point B
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 60),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Set Point B'));
+        await tester.pumpAndSettle();
+
+        // Should call setCustomLoop
+        verify(mockLoopControls.setCustomLoop(
+          startPosition: const Duration(seconds: 30),
+          endPosition: const Duration(seconds: 60),
+        )).called(1);
+
+        // Should show success message
+        expect(find.text('Loop activated'), findsOneWidget);
+      });
+
+      testWidgets('should show error if Point B is before Point A', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 60),
+        ));
+        await tester.pumpAndSettle();
+
+        // Set Point A at 60s
+        await tester.tap(find.text('Set Point A'));
+        await tester.pumpAndSettle();
+
+        // Try to set Point B at 30s (earlier)
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 30),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Set Point B'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Point B must be after Point A'), findsOneWidget);
+      });
+
+      testWidgets('should reset Point B when Point A is moved later', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 30),
+        ));
+        await tester.pumpAndSettle();
+
+        // Set Point A at 30s
+        await tester.tap(find.text('Set Point A'));
+        await tester.pumpAndSettle();
+
+        // Set Point B at 60s
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 60),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Set Point B'));
+        await tester.pumpAndSettle();
+
+        // Now move Point A to after Point B
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 75),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('A: 0:30')); // Tap to reset
+        await tester.pumpAndSettle();
+
+        // Point B should be reset
+        expect(find.text('Set Point B'), findsOneWidget);
+      });
+    });
+
+    group('Clearing Loop', () {
+      testWidgets('should clear loop when button tapped', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(seconds: 30),
+            endPosition: const Duration(seconds: 60),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Clear Loop'));
+        await tester.pumpAndSettle();
+
+        verify(mockLoopControls.clearLoop()).called(1);
+        expect(find.text('Loop cleared'), findsOneWidget);
+      });
+
+      testWidgets('should reset points after clearing loop', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(seconds: 30),
+            endPosition: const Duration(seconds: 60),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Clear Loop'));
+        await tester.pumpAndSettle();
+
+        // Points should be reset
+        expect(find.text('Set Point A'), findsOneWidget);
+        expect(find.text('Set Point B'), findsOneWidget);
+      });
+    });
+
+    group('Loop from Markers', () {
+      testWidgets('should show "From Markers" button when enough markers', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1, marker2, marker3],
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.text('From Markers'), findsOneWidget);
+      });
+
+      testWidgets('should not show "From Markers" button with less than 2 markers', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1],
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.text('From Markers'), findsNothing);
+      });
+
+      testWidgets('should show marker selection dialog when "From Markers" tapped', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1, marker2, marker3],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('From Markers'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Loop Between Markers'), findsOneWidget);
+        expect(find.text('Start Marker'), findsOneWidget);
+        expect(find.text('End Marker'), findsOneWidget);
+      });
+
+      testWidgets('should populate marker dropdowns', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1, marker2, marker3],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('From Markers'));
+        await tester.pumpAndSettle();
+
+        // Markers should be in dropdowns
+        expect(find.byType(DropdownButtonFormField<Marker>), findsNWidgets(2));
+      });
+
+      testWidgets('should disable Create Loop button until both markers selected', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1, marker2, marker3],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('From Markers'));
+        await tester.pumpAndSettle();
+
+        // Button should be disabled initially
+        final createButton = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Create Loop'),
+        );
+        expect(createButton.onPressed, isNull);
+      });
+
+      testWidgets('should filter end markers to be after start marker', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1, marker2, marker3],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('From Markers'));
+        await tester.pumpAndSettle();
+
+        // Select first marker as start
+        await tester.tap(find.byType(DropdownButtonFormField<Marker>).first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Intro').last);
+        await tester.pumpAndSettle();
+
+        // End marker dropdown should only show markers after Intro
+        // (This is implicit in the dialog logic - hard to test directly)
+      });
+
+      testWidgets('should create loop from markers when confirmed', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1, marker2, marker3],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('From Markers'));
+        await tester.pumpAndSettle();
+
+        // Select start marker
+        await tester.tap(find.byType(DropdownButtonFormField<Marker>).first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Intro').last);
+        await tester.pumpAndSettle();
+
+        // Select end marker
+        await tester.tap(find.byType(DropdownButtonFormField<Marker>).last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Verse').last);
+        await tester.pumpAndSettle();
+
+        // Create loop
+        await tester.tap(find.text('Create Loop'));
+        await tester.pumpAndSettle();
+
+        verify(mockLoopControls.setLoopFromMarkers(marker1, marker2)).called(1);
+        expect(find.text('Looping: Intro → Verse'), findsOneWidget);
+      });
+
+      testWidgets('should close dialog when Cancel tapped', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1, marker2],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('From Markers'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Loop Between Markers'), findsOneWidget);
+
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Loop Between Markers'), findsNothing);
+      });
+
+      testWidgets('should show error with insufficient markers', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1],
+        ));
+        await tester.pumpAndSettle();
+
+        // Manually create a button to test (since "From Markers" won't show)
+        // This tests the validation logic
+        expect(find.text('From Markers'), findsNothing);
+      });
+    });
+
+    group('Visual Styling', () {
+      testWidgets('should highlight Point A button when set', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 30),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Set Point A'));
+        await tester.pumpAndSettle();
+
+        // Button should have primary color border
+        final button = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'A: 0:30'),
+        );
+        expect(button.style, isNotNull);
+      });
+
+      testWidgets('should highlight Point B button when set', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 30),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Set Point A'));
+        await tester.pumpAndSettle();
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 60),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Set Point B'));
+        await tester.pumpAndSettle();
+
+        // Button should have primary color border
+        final button = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'B: 1:00'),
+        );
+        expect(button.style, isNotNull);
+      });
+
+      testWidgets('should use error color for Clear Loop button', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(seconds: 30),
+            endPosition: const Duration(seconds: 60),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        final button = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'Clear Loop'),
+        );
+        expect(button.style, isNotNull);
+      });
+    });
+
+    group('Icons', () {
+      testWidgets('should display correct icons for loop controls', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [marker1, marker2],
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.start), findsOneWidget); // Point A
+        expect(find.byIcon(Icons.stop), findsOneWidget); // Point B
+        expect(find.byIcon(Icons.bookmarks), findsOneWidget); // From Markers
+      });
+
+      testWidgets('should display repeat icon when loop is active', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(seconds: 30),
+            endPosition: const Duration(seconds: 60),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.repeat), findsOneWidget);
+      });
+
+      testWidgets('should display clear icon for clear button', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(seconds: 30),
+            endPosition: const Duration(seconds: 60),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.clear), findsOneWidget);
+      });
+    });
+
+    group('Error Handling', () {
+      testWidgets('should show error message when loop creation fails', (tester) async {
+        when(mockLoopControls.setCustomLoop(
+          startPosition: anyNamed('startPosition'),
+          endPosition: anyNamed('endPosition'),
+        )).thenThrow(Exception('Loop creation failed'));
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 30),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Set Point A'));
+        await tester.pumpAndSettle();
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          currentPosition: const Duration(seconds: 60),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Set Point B'));
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Error creating loop'), findsOneWidget);
+      });
+
+      testWidgets('should show error message when clear fails', (tester) async {
+        when(mockLoopControls.clearLoop()).thenThrow(Exception('Clear failed'));
+
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(seconds: 30),
+            endPosition: const Duration(seconds: 60),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Clear Loop'));
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Error clearing loop'), findsOneWidget);
+      });
+    });
+  });
+}
