@@ -2352,6 +2352,948 @@ class UserPlaybackStatesCompanion extends UpdateCompanion<UserPlaybackState> {
   }
 }
 
+class $MarkerSetsTable extends MarkerSets
+    with TableInfo<$MarkerSetsTable, MarkerSet> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MarkerSetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _trackIdMeta =
+      const VerificationMeta('trackId');
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+      'track_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _isSharedMeta =
+      const VerificationMeta('isShared');
+  @override
+  late final GeneratedColumn<bool> isShared = GeneratedColumn<bool>(
+      'is_shared', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_shared" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _createdByUserIdMeta =
+      const VerificationMeta('createdByUserId');
+  @override
+  late final GeneratedColumn<String> createdByUserId = GeneratedColumn<String>(
+      'created_by_user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedMeta =
+      const VerificationMeta('deleted');
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+      'deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
+  @override
+  late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
+      'synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        trackId,
+        name,
+        isShared,
+        createdByUserId,
+        createdAt,
+        updatedAt,
+        deleted,
+        synced
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'marker_sets';
+  @override
+  VerificationContext validateIntegrity(Insertable<MarkerSet> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(_trackIdMeta,
+          trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta));
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('is_shared')) {
+      context.handle(_isSharedMeta,
+          isShared.isAcceptableOrUnknown(data['is_shared']!, _isSharedMeta));
+    }
+    if (data.containsKey('created_by_user_id')) {
+      context.handle(
+          _createdByUserIdMeta,
+          createdByUserId.isAcceptableOrUnknown(
+              data['created_by_user_id']!, _createdByUserIdMeta));
+    } else if (isInserting) {
+      context.missing(_createdByUserIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(_deletedMeta,
+          deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
+    }
+    if (data.containsKey('synced')) {
+      context.handle(_syncedMeta,
+          synced.isAcceptableOrUnknown(data['synced']!, _syncedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MarkerSet map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MarkerSet(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      trackId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      isShared: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_shared'])!,
+      createdByUserId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}created_by_user_id'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
+      synced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}synced'])!,
+    );
+  }
+
+  @override
+  $MarkerSetsTable createAlias(String alias) {
+    return $MarkerSetsTable(attachedDatabase, alias);
+  }
+}
+
+class MarkerSet extends DataClass implements Insertable<MarkerSet> {
+  /// Unique identifier (UUID)
+  final String id;
+
+  /// ID of the track this marker set belongs to
+  final String trackId;
+
+  /// Name of the marker set (e.g., "Musical Structure", "Bar Numbers")
+  final String name;
+
+  /// Is this marker set shared with choir members?
+  final bool isShared;
+
+  /// ID of the user who created this marker set
+  final String createdByUserId;
+
+  /// When this record was created
+  final DateTime createdAt;
+
+  /// When this record was last updated (for sync)
+  final DateTime updatedAt;
+
+  /// Soft delete flag (true = deleted, false = active)
+  final bool deleted;
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  final bool synced;
+  const MarkerSet(
+      {required this.id,
+      required this.trackId,
+      required this.name,
+      required this.isShared,
+      required this.createdByUserId,
+      required this.createdAt,
+      required this.updatedAt,
+      required this.deleted,
+      required this.synced});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['track_id'] = Variable<String>(trackId);
+    map['name'] = Variable<String>(name);
+    map['is_shared'] = Variable<bool>(isShared);
+    map['created_by_user_id'] = Variable<String>(createdByUserId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    map['synced'] = Variable<bool>(synced);
+    return map;
+  }
+
+  MarkerSetsCompanion toCompanion(bool nullToAbsent) {
+    return MarkerSetsCompanion(
+      id: Value(id),
+      trackId: Value(trackId),
+      name: Value(name),
+      isShared: Value(isShared),
+      createdByUserId: Value(createdByUserId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+      synced: Value(synced),
+    );
+  }
+
+  factory MarkerSet.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MarkerSet(
+      id: serializer.fromJson<String>(json['id']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      name: serializer.fromJson<String>(json['name']),
+      isShared: serializer.fromJson<bool>(json['isShared']),
+      createdByUserId: serializer.fromJson<String>(json['createdByUserId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      synced: serializer.fromJson<bool>(json['synced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'trackId': serializer.toJson<String>(trackId),
+      'name': serializer.toJson<String>(name),
+      'isShared': serializer.toJson<bool>(isShared),
+      'createdByUserId': serializer.toJson<String>(createdByUserId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+      'synced': serializer.toJson<bool>(synced),
+    };
+  }
+
+  MarkerSet copyWith(
+          {String? id,
+          String? trackId,
+          String? name,
+          bool? isShared,
+          String? createdByUserId,
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          bool? deleted,
+          bool? synced}) =>
+      MarkerSet(
+        id: id ?? this.id,
+        trackId: trackId ?? this.trackId,
+        name: name ?? this.name,
+        isShared: isShared ?? this.isShared,
+        createdByUserId: createdByUserId ?? this.createdByUserId,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deleted: deleted ?? this.deleted,
+        synced: synced ?? this.synced,
+      );
+  MarkerSet copyWithCompanion(MarkerSetsCompanion data) {
+    return MarkerSet(
+      id: data.id.present ? data.id.value : this.id,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      name: data.name.present ? data.name.value : this.name,
+      isShared: data.isShared.present ? data.isShared.value : this.isShared,
+      createdByUserId: data.createdByUserId.present
+          ? data.createdByUserId.value
+          : this.createdByUserId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      synced: data.synced.present ? data.synced.value : this.synced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarkerSet(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('name: $name, ')
+          ..write('isShared: $isShared, ')
+          ..write('createdByUserId: $createdByUserId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('synced: $synced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, trackId, name, isShared, createdByUserId,
+      createdAt, updatedAt, deleted, synced);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MarkerSet &&
+          other.id == this.id &&
+          other.trackId == this.trackId &&
+          other.name == this.name &&
+          other.isShared == this.isShared &&
+          other.createdByUserId == this.createdByUserId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted &&
+          other.synced == this.synced);
+}
+
+class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
+  final Value<String> id;
+  final Value<String> trackId;
+  final Value<String> name;
+  final Value<bool> isShared;
+  final Value<String> createdByUserId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<bool> synced;
+  final Value<int> rowid;
+  const MarkerSetsCompanion({
+    this.id = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.isShared = const Value.absent(),
+    this.createdByUserId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.synced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MarkerSetsCompanion.insert({
+    required String id,
+    required String trackId,
+    required String name,
+    this.isShared = const Value.absent(),
+    required String createdByUserId,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.synced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        trackId = Value(trackId),
+        name = Value(name),
+        createdByUserId = Value(createdByUserId),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<MarkerSet> custom({
+    Expression<String>? id,
+    Expression<String>? trackId,
+    Expression<String>? name,
+    Expression<bool>? isShared,
+    Expression<String>? createdByUserId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<bool>? synced,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (trackId != null) 'track_id': trackId,
+      if (name != null) 'name': name,
+      if (isShared != null) 'is_shared': isShared,
+      if (createdByUserId != null) 'created_by_user_id': createdByUserId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (synced != null) 'synced': synced,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MarkerSetsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? trackId,
+      Value<String>? name,
+      Value<bool>? isShared,
+      Value<String>? createdByUserId,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<bool>? deleted,
+      Value<bool>? synced,
+      Value<int>? rowid}) {
+    return MarkerSetsCompanion(
+      id: id ?? this.id,
+      trackId: trackId ?? this.trackId,
+      name: name ?? this.name,
+      isShared: isShared ?? this.isShared,
+      createdByUserId: createdByUserId ?? this.createdByUserId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      synced: synced ?? this.synced,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (isShared.present) {
+      map['is_shared'] = Variable<bool>(isShared.value);
+    }
+    if (createdByUserId.present) {
+      map['created_by_user_id'] = Variable<String>(createdByUserId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (synced.present) {
+      map['synced'] = Variable<bool>(synced.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarkerSetsCompanion(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('name: $name, ')
+          ..write('isShared: $isShared, ')
+          ..write('createdByUserId: $createdByUserId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('synced: $synced, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MarkersTable extends Markers with TableInfo<$MarkersTable, Marker> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MarkersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _markerSetIdMeta =
+      const VerificationMeta('markerSetId');
+  @override
+  late final GeneratedColumn<String> markerSetId = GeneratedColumn<String>(
+      'marker_set_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+      'label', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _positionMsMeta =
+      const VerificationMeta('positionMs');
+  @override
+  late final GeneratedColumn<int> positionMs = GeneratedColumn<int>(
+      'position_ms', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _displayOrderMeta =
+      const VerificationMeta('displayOrder');
+  @override
+  late final GeneratedColumn<int> displayOrder = GeneratedColumn<int>(
+      'display_order', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedMeta =
+      const VerificationMeta('deleted');
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+      'deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
+  @override
+  late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
+      'synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        markerSetId,
+        label,
+        positionMs,
+        displayOrder,
+        createdAt,
+        deleted,
+        synced
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'markers';
+  @override
+  VerificationContext validateIntegrity(Insertable<Marker> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('marker_set_id')) {
+      context.handle(
+          _markerSetIdMeta,
+          markerSetId.isAcceptableOrUnknown(
+              data['marker_set_id']!, _markerSetIdMeta));
+    } else if (isInserting) {
+      context.missing(_markerSetIdMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+          _labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('position_ms')) {
+      context.handle(
+          _positionMsMeta,
+          positionMs.isAcceptableOrUnknown(
+              data['position_ms']!, _positionMsMeta));
+    } else if (isInserting) {
+      context.missing(_positionMsMeta);
+    }
+    if (data.containsKey('display_order')) {
+      context.handle(
+          _displayOrderMeta,
+          displayOrder.isAcceptableOrUnknown(
+              data['display_order']!, _displayOrderMeta));
+    } else if (isInserting) {
+      context.missing(_displayOrderMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(_deletedMeta,
+          deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
+    }
+    if (data.containsKey('synced')) {
+      context.handle(_syncedMeta,
+          synced.isAcceptableOrUnknown(data['synced']!, _syncedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Marker map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Marker(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      markerSetId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}marker_set_id'])!,
+      label: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      positionMs: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}position_ms'])!,
+      displayOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      deleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
+      synced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}synced'])!,
+    );
+  }
+
+  @override
+  $MarkersTable createAlias(String alias) {
+    return $MarkersTable(attachedDatabase, alias);
+  }
+}
+
+class Marker extends DataClass implements Insertable<Marker> {
+  /// Unique identifier (UUID)
+  final String id;
+
+  /// ID of the marker set this marker belongs to
+  final String markerSetId;
+
+  /// Label for this marker (e.g., "intro", "verse 1", "bar 25")
+  final String label;
+
+  /// Position in track in milliseconds
+  final int positionMs;
+
+  /// Display order within the marker set
+  final int displayOrder;
+
+  /// When this record was created
+  final DateTime createdAt;
+
+  /// Soft delete flag (true = deleted, false = active)
+  final bool deleted;
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  final bool synced;
+  const Marker(
+      {required this.id,
+      required this.markerSetId,
+      required this.label,
+      required this.positionMs,
+      required this.displayOrder,
+      required this.createdAt,
+      required this.deleted,
+      required this.synced});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['marker_set_id'] = Variable<String>(markerSetId);
+    map['label'] = Variable<String>(label);
+    map['position_ms'] = Variable<int>(positionMs);
+    map['display_order'] = Variable<int>(displayOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['deleted'] = Variable<bool>(deleted);
+    map['synced'] = Variable<bool>(synced);
+    return map;
+  }
+
+  MarkersCompanion toCompanion(bool nullToAbsent) {
+    return MarkersCompanion(
+      id: Value(id),
+      markerSetId: Value(markerSetId),
+      label: Value(label),
+      positionMs: Value(positionMs),
+      displayOrder: Value(displayOrder),
+      createdAt: Value(createdAt),
+      deleted: Value(deleted),
+      synced: Value(synced),
+    );
+  }
+
+  factory Marker.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Marker(
+      id: serializer.fromJson<String>(json['id']),
+      markerSetId: serializer.fromJson<String>(json['markerSetId']),
+      label: serializer.fromJson<String>(json['label']),
+      positionMs: serializer.fromJson<int>(json['positionMs']),
+      displayOrder: serializer.fromJson<int>(json['displayOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      synced: serializer.fromJson<bool>(json['synced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'markerSetId': serializer.toJson<String>(markerSetId),
+      'label': serializer.toJson<String>(label),
+      'positionMs': serializer.toJson<int>(positionMs),
+      'displayOrder': serializer.toJson<int>(displayOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deleted': serializer.toJson<bool>(deleted),
+      'synced': serializer.toJson<bool>(synced),
+    };
+  }
+
+  Marker copyWith(
+          {String? id,
+          String? markerSetId,
+          String? label,
+          int? positionMs,
+          int? displayOrder,
+          DateTime? createdAt,
+          bool? deleted,
+          bool? synced}) =>
+      Marker(
+        id: id ?? this.id,
+        markerSetId: markerSetId ?? this.markerSetId,
+        label: label ?? this.label,
+        positionMs: positionMs ?? this.positionMs,
+        displayOrder: displayOrder ?? this.displayOrder,
+        createdAt: createdAt ?? this.createdAt,
+        deleted: deleted ?? this.deleted,
+        synced: synced ?? this.synced,
+      );
+  Marker copyWithCompanion(MarkersCompanion data) {
+    return Marker(
+      id: data.id.present ? data.id.value : this.id,
+      markerSetId:
+          data.markerSetId.present ? data.markerSetId.value : this.markerSetId,
+      label: data.label.present ? data.label.value : this.label,
+      positionMs:
+          data.positionMs.present ? data.positionMs.value : this.positionMs,
+      displayOrder: data.displayOrder.present
+          ? data.displayOrder.value
+          : this.displayOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      synced: data.synced.present ? data.synced.value : this.synced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Marker(')
+          ..write('id: $id, ')
+          ..write('markerSetId: $markerSetId, ')
+          ..write('label: $label, ')
+          ..write('positionMs: $positionMs, ')
+          ..write('displayOrder: $displayOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('synced: $synced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, markerSetId, label, positionMs,
+      displayOrder, createdAt, deleted, synced);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Marker &&
+          other.id == this.id &&
+          other.markerSetId == this.markerSetId &&
+          other.label == this.label &&
+          other.positionMs == this.positionMs &&
+          other.displayOrder == this.displayOrder &&
+          other.createdAt == this.createdAt &&
+          other.deleted == this.deleted &&
+          other.synced == this.synced);
+}
+
+class MarkersCompanion extends UpdateCompanion<Marker> {
+  final Value<String> id;
+  final Value<String> markerSetId;
+  final Value<String> label;
+  final Value<int> positionMs;
+  final Value<int> displayOrder;
+  final Value<DateTime> createdAt;
+  final Value<bool> deleted;
+  final Value<bool> synced;
+  final Value<int> rowid;
+  const MarkersCompanion({
+    this.id = const Value.absent(),
+    this.markerSetId = const Value.absent(),
+    this.label = const Value.absent(),
+    this.positionMs = const Value.absent(),
+    this.displayOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.synced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MarkersCompanion.insert({
+    required String id,
+    required String markerSetId,
+    required String label,
+    required int positionMs,
+    required int displayOrder,
+    required DateTime createdAt,
+    this.deleted = const Value.absent(),
+    this.synced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        markerSetId = Value(markerSetId),
+        label = Value(label),
+        positionMs = Value(positionMs),
+        displayOrder = Value(displayOrder),
+        createdAt = Value(createdAt);
+  static Insertable<Marker> custom({
+    Expression<String>? id,
+    Expression<String>? markerSetId,
+    Expression<String>? label,
+    Expression<int>? positionMs,
+    Expression<int>? displayOrder,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? deleted,
+    Expression<bool>? synced,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (markerSetId != null) 'marker_set_id': markerSetId,
+      if (label != null) 'label': label,
+      if (positionMs != null) 'position_ms': positionMs,
+      if (displayOrder != null) 'display_order': displayOrder,
+      if (createdAt != null) 'created_at': createdAt,
+      if (deleted != null) 'deleted': deleted,
+      if (synced != null) 'synced': synced,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MarkersCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? markerSetId,
+      Value<String>? label,
+      Value<int>? positionMs,
+      Value<int>? displayOrder,
+      Value<DateTime>? createdAt,
+      Value<bool>? deleted,
+      Value<bool>? synced,
+      Value<int>? rowid}) {
+    return MarkersCompanion(
+      id: id ?? this.id,
+      markerSetId: markerSetId ?? this.markerSetId,
+      label: label ?? this.label,
+      positionMs: positionMs ?? this.positionMs,
+      displayOrder: displayOrder ?? this.displayOrder,
+      createdAt: createdAt ?? this.createdAt,
+      deleted: deleted ?? this.deleted,
+      synced: synced ?? this.synced,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (markerSetId.present) {
+      map['marker_set_id'] = Variable<String>(markerSetId.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (positionMs.present) {
+      map['position_ms'] = Variable<int>(positionMs.value);
+    }
+    if (displayOrder.present) {
+      map['display_order'] = Variable<int>(displayOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (synced.present) {
+      map['synced'] = Variable<bool>(synced.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarkersCompanion(')
+          ..write('id: $id, ')
+          ..write('markerSetId: $markerSetId, ')
+          ..write('label: $label, ')
+          ..write('positionMs: $positionMs, ')
+          ..write('displayOrder: $displayOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('synced: $synced, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2362,12 +3304,22 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TracksTable tracks = $TracksTable(this);
   late final $UserPlaybackStatesTable userPlaybackStates =
       $UserPlaybackStatesTable(this);
+  late final $MarkerSetsTable markerSets = $MarkerSetsTable(this);
+  late final $MarkersTable markers = $MarkersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [choirs, choirMembers, concerts, songs, tracks, userPlaybackStates];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+        choirs,
+        choirMembers,
+        concerts,
+        songs,
+        tracks,
+        userPlaybackStates,
+        markerSets,
+        markers
+      ];
 }
 
 typedef $$ChoirsTableCreateCompanionBuilder = ChoirsCompanion Function({
@@ -3542,6 +4494,444 @@ typedef $$UserPlaybackStatesTableProcessedTableManager = ProcessedTableManager<
     ),
     UserPlaybackState,
     PrefetchHooks Function()>;
+typedef $$MarkerSetsTableCreateCompanionBuilder = MarkerSetsCompanion Function({
+  required String id,
+  required String trackId,
+  required String name,
+  Value<bool> isShared,
+  required String createdByUserId,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<bool> deleted,
+  Value<bool> synced,
+  Value<int> rowid,
+});
+typedef $$MarkerSetsTableUpdateCompanionBuilder = MarkerSetsCompanion Function({
+  Value<String> id,
+  Value<String> trackId,
+  Value<String> name,
+  Value<bool> isShared,
+  Value<String> createdByUserId,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<bool> deleted,
+  Value<bool> synced,
+  Value<int> rowid,
+});
+
+class $$MarkerSetsTableFilterComposer
+    extends Composer<_$AppDatabase, $MarkerSetsTable> {
+  $$MarkerSetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isShared => $composableBuilder(
+      column: $table.isShared, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnFilters(column));
+}
+
+class $$MarkerSetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MarkerSetsTable> {
+  $$MarkerSetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isShared => $composableBuilder(
+      column: $table.isShared, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnOrderings(column));
+}
+
+class $$MarkerSetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MarkerSetsTable> {
+  $$MarkerSetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<bool> get isShared =>
+      $composableBuilder(column: $table.isShared, builder: (column) => column);
+
+  GeneratedColumn<String> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get synced =>
+      $composableBuilder(column: $table.synced, builder: (column) => column);
+}
+
+class $$MarkerSetsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $MarkerSetsTable,
+    MarkerSet,
+    $$MarkerSetsTableFilterComposer,
+    $$MarkerSetsTableOrderingComposer,
+    $$MarkerSetsTableAnnotationComposer,
+    $$MarkerSetsTableCreateCompanionBuilder,
+    $$MarkerSetsTableUpdateCompanionBuilder,
+    (MarkerSet, BaseReferences<_$AppDatabase, $MarkerSetsTable, MarkerSet>),
+    MarkerSet,
+    PrefetchHooks Function()> {
+  $$MarkerSetsTableTableManager(_$AppDatabase db, $MarkerSetsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MarkerSetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MarkerSetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MarkerSetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> trackId = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<bool> isShared = const Value.absent(),
+            Value<String> createdByUserId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<bool> deleted = const Value.absent(),
+            Value<bool> synced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MarkerSetsCompanion(
+            id: id,
+            trackId: trackId,
+            name: name,
+            isShared: isShared,
+            createdByUserId: createdByUserId,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deleted: deleted,
+            synced: synced,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String trackId,
+            required String name,
+            Value<bool> isShared = const Value.absent(),
+            required String createdByUserId,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<bool> deleted = const Value.absent(),
+            Value<bool> synced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MarkerSetsCompanion.insert(
+            id: id,
+            trackId: trackId,
+            name: name,
+            isShared: isShared,
+            createdByUserId: createdByUserId,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deleted: deleted,
+            synced: synced,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$MarkerSetsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $MarkerSetsTable,
+    MarkerSet,
+    $$MarkerSetsTableFilterComposer,
+    $$MarkerSetsTableOrderingComposer,
+    $$MarkerSetsTableAnnotationComposer,
+    $$MarkerSetsTableCreateCompanionBuilder,
+    $$MarkerSetsTableUpdateCompanionBuilder,
+    (MarkerSet, BaseReferences<_$AppDatabase, $MarkerSetsTable, MarkerSet>),
+    MarkerSet,
+    PrefetchHooks Function()>;
+typedef $$MarkersTableCreateCompanionBuilder = MarkersCompanion Function({
+  required String id,
+  required String markerSetId,
+  required String label,
+  required int positionMs,
+  required int displayOrder,
+  required DateTime createdAt,
+  Value<bool> deleted,
+  Value<bool> synced,
+  Value<int> rowid,
+});
+typedef $$MarkersTableUpdateCompanionBuilder = MarkersCompanion Function({
+  Value<String> id,
+  Value<String> markerSetId,
+  Value<String> label,
+  Value<int> positionMs,
+  Value<int> displayOrder,
+  Value<DateTime> createdAt,
+  Value<bool> deleted,
+  Value<bool> synced,
+  Value<int> rowid,
+});
+
+class $$MarkersTableFilterComposer
+    extends Composer<_$AppDatabase, $MarkersTable> {
+  $$MarkersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get markerSetId => $composableBuilder(
+      column: $table.markerSetId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get positionMs => $composableBuilder(
+      column: $table.positionMs, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get displayOrder => $composableBuilder(
+      column: $table.displayOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnFilters(column));
+}
+
+class $$MarkersTableOrderingComposer
+    extends Composer<_$AppDatabase, $MarkersTable> {
+  $$MarkersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get markerSetId => $composableBuilder(
+      column: $table.markerSetId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get positionMs => $composableBuilder(
+      column: $table.positionMs, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get displayOrder => $composableBuilder(
+      column: $table.displayOrder,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnOrderings(column));
+}
+
+class $$MarkersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MarkersTable> {
+  $$MarkersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get markerSetId => $composableBuilder(
+      column: $table.markerSetId, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get positionMs => $composableBuilder(
+      column: $table.positionMs, builder: (column) => column);
+
+  GeneratedColumn<int> get displayOrder => $composableBuilder(
+      column: $table.displayOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get synced =>
+      $composableBuilder(column: $table.synced, builder: (column) => column);
+}
+
+class $$MarkersTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $MarkersTable,
+    Marker,
+    $$MarkersTableFilterComposer,
+    $$MarkersTableOrderingComposer,
+    $$MarkersTableAnnotationComposer,
+    $$MarkersTableCreateCompanionBuilder,
+    $$MarkersTableUpdateCompanionBuilder,
+    (Marker, BaseReferences<_$AppDatabase, $MarkersTable, Marker>),
+    Marker,
+    PrefetchHooks Function()> {
+  $$MarkersTableTableManager(_$AppDatabase db, $MarkersTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MarkersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MarkersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MarkersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> markerSetId = const Value.absent(),
+            Value<String> label = const Value.absent(),
+            Value<int> positionMs = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<bool> deleted = const Value.absent(),
+            Value<bool> synced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MarkersCompanion(
+            id: id,
+            markerSetId: markerSetId,
+            label: label,
+            positionMs: positionMs,
+            displayOrder: displayOrder,
+            createdAt: createdAt,
+            deleted: deleted,
+            synced: synced,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String markerSetId,
+            required String label,
+            required int positionMs,
+            required int displayOrder,
+            required DateTime createdAt,
+            Value<bool> deleted = const Value.absent(),
+            Value<bool> synced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MarkersCompanion.insert(
+            id: id,
+            markerSetId: markerSetId,
+            label: label,
+            positionMs: positionMs,
+            displayOrder: displayOrder,
+            createdAt: createdAt,
+            deleted: deleted,
+            synced: synced,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$MarkersTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $MarkersTable,
+    Marker,
+    $$MarkersTableFilterComposer,
+    $$MarkersTableOrderingComposer,
+    $$MarkersTableAnnotationComposer,
+    $$MarkersTableCreateCompanionBuilder,
+    $$MarkersTableUpdateCompanionBuilder,
+    (Marker, BaseReferences<_$AppDatabase, $MarkersTable, Marker>),
+    Marker,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3558,4 +4948,8 @@ class $AppDatabaseManager {
       $$TracksTableTableManager(_db, _db.tracks);
   $$UserPlaybackStatesTableTableManager get userPlaybackStates =>
       $$UserPlaybackStatesTableTableManager(_db, _db.userPlaybackStates);
+  $$MarkerSetsTableTableManager get markerSets =>
+      $$MarkerSetsTableTableManager(_db, _db.markerSets);
+  $$MarkersTableTableManager get markers =>
+      $$MarkersTableTableManager(_db, _db.markers);
 }

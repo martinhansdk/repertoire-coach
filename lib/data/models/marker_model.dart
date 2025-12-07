@@ -1,10 +1,13 @@
+import 'package:drift/drift.dart';
+
 import '../../domain/entities/marker.dart';
+import '../datasources/local/database.dart' as db;
 
 /// Marker data model
 ///
 /// Extends the domain entity and adds serialization capabilities.
-/// For now, this is a simple extension. In future, this will handle
-/// JSON serialization/deserialization for Supabase integration.
+/// Handles conversions between domain entities, Drift database records,
+/// and future JSON for Supabase integration.
 class MarkerModel extends Marker {
   const MarkerModel({
     required super.id,
@@ -36,6 +39,32 @@ class MarkerModel extends Marker {
       positionMs: positionMs,
       order: order,
       createdAt: createdAt,
+    );
+  }
+
+  /// Create a MarkerModel from a Drift database record
+  factory MarkerModel.fromDrift(db.Marker driftMarker) {
+    return MarkerModel(
+      id: driftMarker.id,
+      markerSetId: driftMarker.markerSetId,
+      label: driftMarker.label,
+      positionMs: driftMarker.positionMs,
+      order: driftMarker.displayOrder, // Map displayOrder to order
+      createdAt: driftMarker.createdAt,
+    );
+  }
+
+  /// Convert to Drift companion for database writes
+  db.MarkersCompanion toDriftCompanion({bool markForSync = true}) {
+    return db.MarkersCompanion(
+      id: Value(id),
+      markerSetId: Value(markerSetId),
+      label: Value(label),
+      positionMs: Value(positionMs),
+      displayOrder: Value(order), // Map order to displayOrder
+      createdAt: Value(createdAt),
+      deleted: const Value(false),
+      synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }
 

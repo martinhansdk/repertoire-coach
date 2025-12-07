@@ -162,8 +162,71 @@ class UserPlaybackStates extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Table definition for marker sets (collections of markers for tracks)
+class MarkerSets extends Table {
+  /// Unique identifier (UUID)
+  TextColumn get id => text()();
+
+  /// ID of the track this marker set belongs to
+  TextColumn get trackId => text()();
+
+  /// Name of the marker set (e.g., "Musical Structure", "Bar Numbers")
+  TextColumn get name => text()();
+
+  /// Is this marker set shared with choir members?
+  BoolColumn get isShared => boolean().withDefault(const Constant(false))();
+
+  /// ID of the user who created this marker set
+  TextColumn get createdByUserId => text()();
+
+  /// When this record was created
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// When this record was last updated (for sync)
+  DateTimeColumn get updatedAt => dateTime()();
+
+  /// Soft delete flag (true = deleted, false = active)
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Table definition for markers (individual position markers within marker sets)
+class Markers extends Table {
+  /// Unique identifier (UUID)
+  TextColumn get id => text()();
+
+  /// ID of the marker set this marker belongs to
+  TextColumn get markerSetId => text()();
+
+  /// Label for this marker (e.g., "intro", "verse 1", "bar 25")
+  TextColumn get label => text()();
+
+  /// Position in track in milliseconds
+  IntColumn get positionMs => integer()();
+
+  /// Display order within the marker set
+  IntColumn get displayOrder => integer()();
+
+  /// When this record was created
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// Soft delete flag (true = deleted, false = active)
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Main application database
-@DriftDatabase(tables: [Choirs, ChoirMembers, Concerts, Songs, Tracks, UserPlaybackStates])
+@DriftDatabase(tables: [Choirs, ChoirMembers, Concerts, Songs, Tracks, UserPlaybackStates, MarkerSets, Markers])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -171,7 +234,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   /// Migration strategy for database upgrades
   @override
@@ -253,6 +316,22 @@ class AppDatabase extends _$AppDatabase {
             // Create indexes for performance
             await customStatement(
               'CREATE INDEX idx_playback_states_user_track ON user_playback_states(user_id, track_id)',
+            );
+          }
+          if (from == 6 && to == 7) {
+            // Add MarkerSets and Markers tables
+            await m.createTable(markerSets);
+            await m.createTable(markers);
+
+            // Create indexes for performance
+            await customStatement(
+              'CREATE INDEX idx_marker_sets_track ON marker_sets(track_id)',
+            );
+            await customStatement(
+              'CREATE INDEX idx_marker_sets_user ON marker_sets(created_by_user_id)',
+            );
+            await customStatement(
+              'CREATE INDEX idx_markers_set ON markers(marker_set_id)',
             );
           }
           // Handle multi-version upgrade (e.g., 1 -> 5)
