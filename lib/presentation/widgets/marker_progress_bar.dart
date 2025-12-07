@@ -54,7 +54,7 @@ class MarkerProgressBar extends StatelessWidget {
             progressColor: theme.colorScheme.primary,
             backgroundColor: theme.colorScheme.surfaceContainerHighest,
             markerColor: theme.colorScheme.secondary,
-            loopColor: theme.colorScheme.tertiary.withOpacity(0.3),
+            loopColor: theme.colorScheme.tertiary.withValues(alpha: 0.3),
           ),
         ),
       ),

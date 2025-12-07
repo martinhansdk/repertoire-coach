@@ -146,7 +146,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                   labelText: 'Start Marker',
                   border: OutlineInputBorder(),
                 ),
-                value: startMarker,
+                initialValue: startMarker,
                 items: sortedMarkers.map((marker) {
                   return DropdownMenuItem(
                     value: marker,
@@ -171,7 +171,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                   labelText: 'End Marker',
                   border: OutlineInputBorder(),
                 ),
-                value: endMarker,
+                initialValue: endMarker,
                 items: sortedMarkers
                     .where((m) =>
                         startMarker == null || m.positionMs > startMarker!.positionMs)
@@ -198,6 +198,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
               onPressed: startMarker != null && endMarker != null
                   ? () async {
                       Navigator.of(context).pop();
+                      final messenger = ScaffoldMessenger.of(context);
                       try {
                         final loopControls = ref.read(loopControlsProvider);
                         await loopControls.setLoopFromMarkers(
@@ -206,7 +207,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                         );
 
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Text(
                                 'Looping: ${startMarker!.label} → ${endMarker!.label}',
@@ -217,7 +218,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Text('Error creating loop: $e'),
                               backgroundColor: Colors.red,
