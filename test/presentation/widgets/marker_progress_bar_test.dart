@@ -246,6 +246,7 @@ void main() {
         await tester.tapAt(tester.getTopRight(widget));
         await tester.pump();
         await tester.pump(); // Extra pump to ensure callback fires
+        await tester.pump(const Duration(milliseconds: 100)); // Additional delay
 
         expect(seekedPosition, isNotNull);
         // Should be close to 2 minutes

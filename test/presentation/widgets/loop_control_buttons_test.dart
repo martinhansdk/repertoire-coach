@@ -237,6 +237,7 @@ void main() {
         await tester.pump(); // Start async operation
         await tester.pump(); // Let UI update
         await tester.pump(const Duration(milliseconds: 100)); // Wait for snackbar
+        await tester.pumpAndSettle(); // Ensure all animations complete
 
         // Should call setCustomLoop
         verify(mockLoopControls.setCustomLoop(
@@ -418,6 +419,8 @@ void main() {
 
         await tester.tap(find.text('From Markers'));
         await tester.pumpAndSettle();
+        await tester.pump(); // Extra pump for dialog rendering
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Select first marker as start
         await tester.tap(find.byType(DropdownButtonFormField<Marker>).first);
@@ -522,6 +525,7 @@ void main() {
         await tester.pump(); // Start async operation
         await tester.pump(); // Let UI update
         await tester.pump(const Duration(milliseconds: 100)); // Wait for state update
+        await tester.pumpAndSettle(); // Ensure button text updates
 
         // Button should have primary color border
         final button = tester.widget<OutlinedButton>(
@@ -613,6 +617,7 @@ void main() {
         await tester.pump(); // Start async operation
         await tester.pump(); // Let snackbar appear
         await tester.pump(const Duration(milliseconds: 100)); // Wait for animation
+        await tester.pump(); // Extra pump for SnackBar rendering
 
         expect(
           find.descendant(

@@ -198,7 +198,11 @@ void main() {
         // Select different item (use .last to select from the menu, not the button)
         await tester.tap(find.text('Rehearsal Marks').last);
         await tester.pumpAndSettle();
-        await tester.pump(); // Extra pump for state update
+
+        // Multiple pumps needed for dropdown state and provider update
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpAndSettle();
 
         // Verify the dropdown value changed
         final dropdown = tester.widget<DropdownButton<String>>(
@@ -236,7 +240,11 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Rehearsal Marks').last);
         await tester.pumpAndSettle();
-        await tester.pump(); // Extra pump for provider update
+
+        // Multiple pumps needed for provider update
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpAndSettle();
 
         expect(selectedId, 'set-2');
       });
@@ -383,7 +391,11 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Rehearsal Marks').last);
         await tester.pumpAndSettle();
-        await tester.pump(); // Extra pump for state update
+
+        // Multiple pumps needed for state update
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpAndSettle();
 
         expect(find.text('Rehearsal Marks'), findsOneWidget);
 
