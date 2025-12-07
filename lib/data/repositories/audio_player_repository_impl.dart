@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:just_audio/just_audio.dart' as ja;
 import 'package:audio_session/audio_session.dart';
 import '../../domain/entities/audio_player_state.dart';
+import '../../domain/entities/loop_range.dart';
 import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
@@ -23,6 +24,8 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   PlaybackInfo _currentPlaybackInfo;
   Timer? _autoSaveTimer;
   bool _isLooping = false;
+  LoopRange? _loopRange;
+  StreamSubscription<Duration>? _loopSubscription;
 
   AudioPlayerRepositoryImpl(this._playbackStateDataSource)
       : _player = ja.AudioPlayer(),
@@ -81,6 +84,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       state: state,
       position: position,
       duration: duration,
+      loopRange: _loopRange,
     );
 
     _playbackController.add(_currentPlaybackInfo);
@@ -259,8 +263,37 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   bool get isLooping => _isLooping;
 
   @override
+  Future<void> setLoopRange(LoopRange? loopRange) async {
+    _loopRange = loopRange;
+
+    // Cancel existing loop monitoring
+    await _loopSubscription?.cancel();
+    _loopSubscription = null;
+
+    // Start monitoring if loop range is set
+    if (_loopRange != null) {
+      _loopSubscription = _player.positionStream.listen((position) {
+        // Check if we've reached or exceeded the loop end position
+        if (position >= _loopRange!.endPosition) {
+          // Seek back to the start position
+          _player.seek(_loopRange!.startPosition);
+        }
+      });
+    }
+
+    _updatePlaybackInfo();
+  }
+
+  @override
+  LoopRange? get currentLoopRange => _loopRange;
+
+  @override
+  bool get isRangeLooping => _loopRange != null;
+
+  @override
   Future<void> dispose() async {
     _stopAutoSaveTimer();
+    await _loopSubscription?.cancel();
     await savePlaybackPosition(); // Save one last time before disposing
     await _player.dispose();
     await _playbackController.close();

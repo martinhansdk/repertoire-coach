@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'audio_player_state.dart';
+import 'loop_range.dart';
 import 'track.dart';
 
 /// Contains all information about the current playback session
@@ -9,6 +10,7 @@ class PlaybackInfo extends Equatable {
   final Duration position;
   final Duration duration;
   final String? errorMessage;
+  final LoopRange? loopRange;
 
   const PlaybackInfo({
     this.currentTrack,
@@ -16,6 +18,7 @@ class PlaybackInfo extends Equatable {
     required this.position,
     required this.duration,
     this.errorMessage,
+    this.loopRange,
   });
 
   /// Create an idle/initial playback info
@@ -24,7 +27,8 @@ class PlaybackInfo extends Equatable {
         state = AudioPlayerState.idle,
         position = Duration.zero,
         duration = Duration.zero,
-        errorMessage = null;
+        errorMessage = null,
+        loopRange = null;
 
   /// Create a playback info with error state
   const PlaybackInfo.error(String message)
@@ -32,7 +36,8 @@ class PlaybackInfo extends Equatable {
         state = AudioPlayerState.error,
         position = Duration.zero,
         duration = Duration.zero,
-        errorMessage = message;
+        errorMessage = message,
+        loopRange = null;
 
   /// Check if player is currently playing
   bool get isPlaying => state == AudioPlayerState.playing;
@@ -49,6 +54,9 @@ class PlaybackInfo extends Equatable {
   /// Check if a track is loaded
   bool get hasTrack => currentTrack != null;
 
+  /// Check if A-B loop is active
+  bool get isLooping => loopRange != null;
+
   /// Get playback progress as a value between 0 and 1
   double get progress {
     if (duration.inMicroseconds == 0) return 0.0;
@@ -64,6 +72,8 @@ class PlaybackInfo extends Equatable {
     Duration? duration,
     String? errorMessage,
     bool clearError = false,
+    LoopRange? loopRange,
+    bool clearLoop = false,
   }) {
     return PlaybackInfo(
       currentTrack: clearTrack ? null : (currentTrack ?? this.currentTrack),
@@ -71,6 +81,7 @@ class PlaybackInfo extends Equatable {
       position: position ?? this.position,
       duration: duration ?? this.duration,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      loopRange: clearLoop ? null : (loopRange ?? this.loopRange),
     );
   }
 
@@ -81,6 +92,7 @@ class PlaybackInfo extends Equatable {
         position,
         duration,
         errorMessage,
+        loopRange,
       ];
 
   @override

@@ -1,3 +1,4 @@
+import '../entities/loop_range.dart';
 import '../entities/playback_info.dart';
 import '../entities/track.dart';
 
@@ -56,6 +57,24 @@ abstract class AudioPlayerRepository {
 
   /// Get the current loop mode state
   bool get isLooping;
+
+  /// Set an A-B loop range for practice
+  ///
+  /// When a loop range is set, playback will automatically jump back to the
+  /// start position when it reaches the end position.
+  ///
+  /// [loopRange] - The loop range to set, or null to clear the loop
+  Future<void> setLoopRange(LoopRange? loopRange);
+
+  /// Get the current A-B loop range
+  ///
+  /// Returns null if no loop range is set
+  LoopRange? get currentLoopRange;
+
+  /// Check if A-B range looping is currently active
+  ///
+  /// This is different from [isLooping] which indicates full track repeat
+  bool get isRangeLooping;
 
   /// Dispose of the audio player and release all resources
   Future<void> dispose();
