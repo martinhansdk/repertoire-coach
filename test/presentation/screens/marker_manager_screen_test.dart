@@ -108,6 +108,9 @@ void main() {
         await tester.pump();
 
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        // Clean up the pending timer by completing the Future
+        await tester.pump(const Duration(seconds: 1));
       });
     });
 
@@ -221,9 +224,9 @@ void main() {
       );
 
       testWidgets('should show popup menu for marker set', (tester) async {
-        await repository.createMarkerSet(testMarkerSet);
-
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         // Find and tap popup menu button
@@ -235,9 +238,9 @@ void main() {
       });
 
       testWidgets('should show edit dialog when edit menu item tapped', (tester) async {
-        await repository.createMarkerSet(testMarkerSet);
-
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         // Open popup menu
@@ -252,9 +255,9 @@ void main() {
       });
 
       testWidgets('should show delete confirmation when delete menu item tapped', (tester) async {
-        await repository.createMarkerSet(testMarkerSet);
-
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         // Open popup menu
@@ -270,9 +273,9 @@ void main() {
       });
 
       testWidgets('should cancel delete when cancel button tapped', (tester) async {
-        await repository.createMarkerSet(testMarkerSet);
-
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         // Open delete dialog
@@ -292,7 +295,9 @@ void main() {
       testWidgets('should delete marker set when confirmed', (tester) async {
         await repository.createMarkerSet(testMarkerSet);
 
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         expect(find.text('Test Set'), findsOneWidget);
@@ -392,8 +397,6 @@ void main() {
       });
 
       testWidgets('should show marker popup menu', (tester) async {
-        await repository.createMarkerSet(testMarkerSet);
-
         final marker = Marker(
           id: 'marker-1',
           markerSetId: testMarkerSet.id,
@@ -403,9 +406,12 @@ void main() {
           createdAt: DateTime.now(),
         );
 
+        await repository.createMarkerSet(testMarkerSet);
         await repository.createMarker(marker);
 
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('Structure'));
@@ -420,8 +426,6 @@ void main() {
       });
 
       testWidgets('should show edit marker dialog when edit tapped', (tester) async {
-        await repository.createMarkerSet(testMarkerSet);
-
         final marker = Marker(
           id: 'marker-1',
           markerSetId: testMarkerSet.id,
@@ -431,9 +435,12 @@ void main() {
           createdAt: DateTime.now(),
         );
 
+        await repository.createMarkerSet(testMarkerSet);
         await repository.createMarker(marker);
 
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('Structure'));
@@ -449,8 +456,6 @@ void main() {
       });
 
       testWidgets('should show delete marker confirmation', (tester) async {
-        await repository.createMarkerSet(testMarkerSet);
-
         final marker = Marker(
           id: 'marker-1',
           markerSetId: testMarkerSet.id,
@@ -460,9 +465,12 @@ void main() {
           createdAt: DateTime.now(),
         );
 
+        await repository.createMarkerSet(testMarkerSet);
         await repository.createMarker(marker);
 
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('Structure'));
@@ -479,8 +487,6 @@ void main() {
       });
 
       testWidgets('should delete marker when confirmed', (tester) async {
-        await repository.createMarkerSet(testMarkerSet);
-
         final marker = Marker(
           id: 'marker-1',
           markerSetId: testMarkerSet.id,
@@ -490,9 +496,12 @@ void main() {
           createdAt: DateTime.now(),
         );
 
+        await repository.createMarkerSet(testMarkerSet);
         await repository.createMarker(marker);
 
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([testMarkerSet]),
+        ));
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('Structure'));
