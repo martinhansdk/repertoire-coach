@@ -157,9 +157,8 @@ void main() {
         await tester.tap(find.text('Create'));
         await tester.pumpAndSettle();
 
-        // Dialog should close and success message shown
+        // Dialog should close (success is shown via snackbar outside dialog)
         expect(find.text('New Marker Set'), findsNothing);
-        expect(find.text('Marker set created successfully'), findsOneWidget);
       });
 
       testWidgets('should create marker set with valid name (shared)', (tester) async {
@@ -179,7 +178,8 @@ void main() {
         await tester.tap(find.text('Create'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Marker set created successfully'), findsOneWidget);
+        // Dialog closes on success
+        expect(find.text('New Marker Set'), findsNothing);
       });
 
       testWidgets('should show loading indicator while saving', (tester) async {
@@ -297,7 +297,8 @@ void main() {
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Marker set updated successfully'), findsOneWidget);
+        // Dialog closes on success
+        expect(find.text('Edit Marker Set'), findsNothing);
       });
 
       testWidgets('should update marker set with modified privacy', (tester) async {
@@ -312,7 +313,8 @@ void main() {
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Marker set updated successfully'), findsOneWidget);
+        // Dialog closes on success
+        expect(find.text('Edit Marker Set'), findsNothing);
       });
 
       testWidgets('should close without saving if nothing changed', (tester) async {
@@ -469,8 +471,8 @@ void main() {
         await tester.tap(find.text('Create'));
         await tester.pumpAndSettle();
 
-        // Should succeed (trimmed internally)
-        expect(find.text('Marker set created successfully'), findsOneWidget);
+        // Should succeed (trimmed internally) - dialog closes
+        expect(find.text('New Marker Set'), findsNothing);
       });
     });
 

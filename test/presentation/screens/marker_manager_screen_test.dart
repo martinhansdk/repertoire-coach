@@ -307,8 +307,8 @@ void main() {
         await tester.tap(deleteButton);
         await tester.pumpAndSettle();
 
-        // Should show success message
-        expect(find.text('Marker set deleted successfully'), findsOneWidget);
+        // Marker set should be deleted (list refreshed, empty state shown)
+        expect(find.text('Test Set'), findsNothing);
       });
     });
 
@@ -509,7 +509,8 @@ void main() {
         await tester.tap(deleteButton);
         await tester.pumpAndSettle();
 
-        expect(find.text('Marker deleted successfully'), findsOneWidget);
+        // Marker should be deleted (list refreshed)
+        expect(find.text('Solo'), findsNothing);
       });
     });
 

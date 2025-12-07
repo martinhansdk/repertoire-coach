@@ -228,9 +228,8 @@ void main() {
         await tester.tap(find.text('Add'));
         await tester.pumpAndSettle();
 
-        // Dialog should close and success message shown
+        // Dialog should close (success is shown via snackbar outside dialog)
         expect(find.text('Add Marker'), findsNothing);
-        expect(find.text('Marker created successfully'), findsOneWidget);
       });
 
       testWidgets('should show loading indicator while saving', (tester) async {
@@ -317,7 +316,8 @@ void main() {
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Marker updated successfully'), findsOneWidget);
+        // Dialog should close (success is shown via snackbar outside dialog)
+        expect(find.text('Edit Marker'), findsNothing);
       });
 
       testWidgets('should validate edited marker fields', (tester) async {
@@ -376,8 +376,8 @@ void main() {
         await tester.tap(find.text('Add'));
         await tester.pumpAndSettle();
 
-        // Marker should be created (verification through success message)
-        expect(find.text('Marker created successfully'), findsOneWidget);
+        // Marker should be created (dialog closes)
+        expect(find.text('Add Marker'), findsNothing);
       });
 
       testWidgets('should handle zero values in time fields', (tester) async {
@@ -393,7 +393,8 @@ void main() {
         await tester.tap(find.text('Add'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Marker created successfully'), findsOneWidget);
+        // Dialog closes on success
+        expect(find.text('Add Marker'), findsNothing);
       });
     });
 

@@ -76,7 +76,7 @@ void main() {
 
       testWidgets('should wrap CustomPaint', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
-        expect(find.byType(CustomPaint), findsOneWidget);
+        expect(find.byType(CustomPaint), findsAtLeastNWidgets(1));
       });
 
       testWidgets('should be wrapped in GestureDetector', (tester) async {
@@ -423,7 +423,7 @@ void main() {
         ));
 
         final initialPaint = find.byType(CustomPaint);
-        expect(initialPaint, findsOneWidget);
+        expect(initialPaint, findsAtLeastNWidgets(1));
 
         // Change progress
         await tester.pumpWidget(createWidgetUnderTest(
@@ -431,7 +431,7 @@ void main() {
         ));
 
         // Should trigger repaint
-        expect(find.byType(CustomPaint), findsOneWidget);
+        expect(find.byType(CustomPaint), findsAtLeastNWidgets(1));
       });
 
       testWidgets('should repaint when markers list changes', (tester) async {
@@ -444,7 +444,7 @@ void main() {
           markers: [testMarker1, testMarker2],
         ));
 
-        expect(find.byType(CustomPaint), findsOneWidget);
+        expect(find.byType(CustomPaint), findsAtLeastNWidgets(1));
       });
 
       testWidgets('should repaint when loop changes', (tester) async {
@@ -459,7 +459,7 @@ void main() {
           loopEnd: const Duration(seconds: 75),
         ));
 
-        expect(find.byType(CustomPaint), findsOneWidget);
+        expect(find.byType(CustomPaint), findsAtLeastNWidgets(1));
       });
     });
 

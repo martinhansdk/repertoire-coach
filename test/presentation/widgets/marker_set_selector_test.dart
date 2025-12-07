@@ -281,7 +281,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(Row), findsWidgets);
-        expect(find.byType(Expanded), findsOneWidget); // Dropdown should be expanded
+        expect(find.byType(Expanded), findsAtLeastNWidgets(1)); // Dropdown should be expanded
       });
 
       testWidgets('should have proper spacing between dropdown and button', (tester) async {

@@ -382,8 +382,8 @@ void main() {
         await tester.tap(find.text('From Markers'));
         await tester.pumpAndSettle();
 
-        // Markers should be in dropdowns
-        expect(find.byType(DropdownButtonFormField<Marker>), findsNWidgets(2));
+        // Markers should be in dropdowns (using DropdownButton, not DropdownButtonFormField)
+        expect(find.byType(DropdownButton<Marker>), findsNWidgets(2));
       });
 
       testWidgets('should disable Create Loop button until both markers selected', (tester) async {
@@ -395,7 +395,7 @@ void main() {
         await tester.tap(find.text('From Markers'));
         await tester.pumpAndSettle();
 
-        // Button should be disabled initially
+        // Button should be disabled initially (both dropdowns default to null)
         final createButton = tester.widget<FilledButton>(
           find.widgetWithText(FilledButton, 'Create Loop'),
         );
@@ -431,13 +431,13 @@ void main() {
         await tester.pumpAndSettle();
 
         // Select start marker
-        await tester.tap(find.byType(DropdownButtonFormField<Marker>).first);
+        await tester.tap(find.byType(DropdownButton<Marker>).first);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Intro').last);
         await tester.pumpAndSettle();
 
         // Select end marker
-        await tester.tap(find.byType(DropdownButtonFormField<Marker>).last);
+        await tester.tap(find.byType(DropdownButton<Marker>).last);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Verse').last);
         await tester.pumpAndSettle();
