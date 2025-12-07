@@ -129,14 +129,16 @@ class _MarkerDialogState extends ConsumerState<MarkerDialog> {
           // Invalidate the markers list to refresh it
           ref.invalidate(markersByMarkerSetProvider);
 
-          Navigator.of(context).pop(marker.id);
-
+          // Show success message before closing
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Marker created successfully'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
           );
+
+          Navigator.of(context).pop(marker.id);
         }
       } else {
         // Update existing marker
@@ -157,14 +159,16 @@ class _MarkerDialogState extends ConsumerState<MarkerDialog> {
             ref.invalidate(markersByMarkerSetProvider);
             ref.invalidate(markerByIdProvider);
 
-            Navigator.of(context).pop(true);
-
+            // Show success message before closing
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Marker updated successfully'),
                 backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
               ),
             );
+
+            Navigator.of(context).pop(true);
           } else {
             throw Exception('Failed to update marker');
           }

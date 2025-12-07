@@ -87,14 +87,16 @@ class _MarkerSetDialogState extends ConsumerState<MarkerSetDialog> {
           // Invalidate the marker sets list to refresh it
           ref.invalidate(markerSetsByTrackProvider);
 
-          Navigator.of(context).pop(markerSet.id);
-
+          // Show success message before closing
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Marker set created successfully'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
           );
+
+          Navigator.of(context).pop(markerSet.id);
         }
       } else {
         // Update existing marker set
@@ -116,14 +118,16 @@ class _MarkerSetDialogState extends ConsumerState<MarkerSetDialog> {
             ref.invalidate(markerSetsByTrackProvider);
             ref.invalidate(markerSetByIdProvider);
 
-            Navigator.of(context).pop(true);
-
+            // Show success message before closing
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Marker set updated successfully'),
                 backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
               ),
             );
+
+            Navigator.of(context).pop(true);
           } else {
             throw Exception('Failed to update marker set');
           }

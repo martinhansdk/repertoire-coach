@@ -141,51 +141,61 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<Marker>(
+              InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Start Marker',
                   border: OutlineInputBorder(),
                 ),
-                initialValue: startMarker,
-                items: sortedMarkers.map((marker) {
-                  return DropdownMenuItem(
-                    value: marker,
-                    child: Text(marker.label),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setDialogState(() {
-                    startMarker = value;
-                    // Reset end marker if it's now before start
-                    if (endMarker != null &&
-                        value != null &&
-                        endMarker!.positionMs <= value.positionMs) {
-                      endMarker = null;
-                    }
-                  });
-                },
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<Marker>(
+                    value: startMarker,
+                    isExpanded: true,
+                    items: sortedMarkers.map((marker) {
+                      return DropdownMenuItem(
+                        value: marker,
+                        child: Text(marker.label),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        startMarker = value;
+                        // Reset end marker if it's now before start
+                        if (endMarker != null &&
+                            value != null &&
+                            endMarker!.positionMs <= value.positionMs) {
+                          endMarker = null;
+                        }
+                      });
+                    },
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<Marker>(
+              InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'End Marker',
                   border: OutlineInputBorder(),
                 ),
-                initialValue: endMarker,
-                items: sortedMarkers
-                    .where((m) =>
-                        startMarker == null || m.positionMs > startMarker!.positionMs)
-                    .map((marker) {
-                  return DropdownMenuItem(
-                    value: marker,
-                    child: Text(marker.label),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setDialogState(() {
-                    endMarker = value;
-                  });
-                },
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<Marker>(
+                    value: endMarker,
+                    isExpanded: true,
+                    items: sortedMarkers
+                        .where((m) =>
+                            startMarker == null || m.positionMs > startMarker!.positionMs)
+                        .map((marker) {
+                      return DropdownMenuItem(
+                        value: marker,
+                        child: Text(marker.label),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        endMarker = value;
+                      });
+                    },
+                  ),
+                ),
               ),
             ],
           ),
