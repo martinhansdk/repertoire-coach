@@ -295,7 +295,8 @@ void main() {
         );
 
         await tester.tap(find.text('Save'));
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(); // Wait for dialog close animation
+        await tester.pump(const Duration(milliseconds: 100)); // Extra pump for safety
 
         // Dialog closes on success
         expect(find.text('Edit Marker Set'), findsNothing);
@@ -311,7 +312,8 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('Save'));
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(); // Wait for dialog close animation
+        await tester.pump(const Duration(milliseconds: 100)); // Extra pump for safety
 
         // Dialog closes on success
         expect(find.text('Edit Marker Set'), findsNothing);
@@ -408,10 +410,18 @@ void main() {
           'Error Test',
         );
         await tester.tap(find.text('Create'));
-        await tester.pumpAndSettle();
+        await tester.pump(); // Start async operation
+        await tester.pump(); // Let snackbar appear
+        await tester.pump(const Duration(milliseconds: 100)); // Wait for animation
 
-        // Should show error message
-        expect(find.textContaining('Error saving marker set'), findsOneWidget);
+        // Should show error message in SnackBar
+        expect(
+          find.descendant(
+            of: find.byType(SnackBar),
+            matching: find.textContaining('Error saving marker set'),
+          ),
+          findsOneWidget,
+        );
 
         // Dialog should remain open
         expect(find.text('New Marker Set'), findsOneWidget);

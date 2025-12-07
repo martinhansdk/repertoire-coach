@@ -242,8 +242,10 @@ void main() {
         ));
 
         // Tap at the end (right edge)
-        await tester.tapAt(tester.getTopRight(find.byType(MarkerProgressBar)));
+        final widget = find.byType(MarkerProgressBar);
+        await tester.tapAt(tester.getTopRight(widget));
         await tester.pump();
+        await tester.pump(); // Extra pump to ensure callback fires
 
         expect(seekedPosition, isNotNull);
         // Should be close to 2 minutes

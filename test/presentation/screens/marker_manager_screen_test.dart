@@ -66,7 +66,8 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        expect(find.byType(BackButton), findsOneWidget);
+        // AppBar creates automatic back button
+        expect(find.byTooltip('Back'), findsOneWidget);
       });
     });
 
@@ -523,7 +524,14 @@ void main() {
 
         expect(find.byType(FloatingActionButton), findsOneWidget);
         expect(find.text('New Set'), findsOneWidget);
-        expect(find.byIcon(Icons.add), findsOneWidget);
+        // Find the add icon within the FAB specifically
+        expect(
+          find.descendant(
+            of: find.byType(FloatingActionButton),
+            matching: find.byIcon(Icons.add),
+          ),
+          findsOneWidget,
+        );
       });
 
       testWidgets('should show create marker set dialog when FAB tapped', (tester) async {

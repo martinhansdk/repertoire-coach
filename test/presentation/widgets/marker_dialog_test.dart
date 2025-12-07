@@ -314,7 +314,8 @@ void main() {
         await tester.enterText(find.widgetWithText(TextFormField, 'Sec'), '45');
 
         await tester.tap(find.text('Save'));
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(); // Wait for dialog close animation
+        await tester.pump(const Duration(milliseconds: 100)); // Extra pump for safety
 
         // Dialog should close (success is shown via snackbar outside dialog)
         expect(find.text('Edit Marker'), findsNothing);
@@ -409,10 +410,18 @@ void main() {
 
         await tester.enterText(find.widgetWithText(TextFormField, 'Label'), 'Error Test');
         await tester.tap(find.text('Add'));
-        await tester.pumpAndSettle();
+        await tester.pump(); // Start async operation
+        await tester.pump(); // Let snackbar appear
+        await tester.pump(const Duration(milliseconds: 100)); // Wait for animation
 
-        // Should show error message
-        expect(find.textContaining('Error saving marker'), findsOneWidget);
+        // Should show error message in SnackBar
+        expect(
+          find.descendant(
+            of: find.byType(SnackBar),
+            matching: find.textContaining('Error saving marker'),
+          ),
+          findsOneWidget,
+        );
 
         // Dialog should remain open
         expect(find.text('Add Marker'), findsOneWidget);

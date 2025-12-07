@@ -195,11 +195,18 @@ void main() {
         await tester.tap(find.byType(DropdownButton<String>));
         await tester.pumpAndSettle();
 
-        // Select different item
+        // Select different item (use .last to select from the menu, not the button)
         await tester.tap(find.text('Rehearsal Marks').last);
         await tester.pumpAndSettle();
+        await tester.pump(); // Extra pump for state update
 
-        // Should show selected item
+        // Verify the dropdown value changed
+        final dropdown = tester.widget<DropdownButton<String>>(
+          find.byType(DropdownButton<String>),
+        );
+        expect(dropdown.value, 'set-2');
+
+        // Should show selected item in the dropdown button
         expect(find.text('Rehearsal Marks'), findsOneWidget);
       });
 
@@ -229,6 +236,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Rehearsal Marks').last);
         await tester.pumpAndSettle();
+        await tester.pump(); // Extra pump for provider update
 
         expect(selectedId, 'set-2');
       });
@@ -375,6 +383,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Rehearsal Marks').last);
         await tester.pumpAndSettle();
+        await tester.pump(); // Extra pump for state update
 
         expect(find.text('Rehearsal Marks'), findsOneWidget);
 

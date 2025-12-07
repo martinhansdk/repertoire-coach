@@ -234,7 +234,9 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.tap(find.widgetWithText(OutlinedButton, 'Set Point B'));
-        await tester.pumpAndSettle();
+        await tester.pump(); // Start async operation
+        await tester.pump(); // Let UI update
+        await tester.pump(const Duration(milliseconds: 100)); // Wait for snackbar
 
         // Should call setCustomLoop
         verify(mockLoopControls.setCustomLoop(
@@ -242,8 +244,14 @@ void main() {
           endPosition: const Duration(seconds: 60),
         )).called(1);
 
-        // Should show success message
-        expect(find.text('Loop activated'), findsOneWidget);
+        // Should show success message in SnackBar
+        expect(
+          find.descendant(
+            of: find.byType(SnackBar),
+            matching: find.text('Loop activated'),
+          ),
+          findsOneWidget,
+        );
       });
 
       testWidgets('should show error if Point B is before Point A', (tester) async {
@@ -511,7 +519,9 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.tap(find.widgetWithText(OutlinedButton, 'Set Point B'));
-        await tester.pumpAndSettle();
+        await tester.pump(); // Start async operation
+        await tester.pump(); // Let UI update
+        await tester.pump(const Duration(milliseconds: 100)); // Wait for state update
 
         // Button should have primary color border
         final button = tester.widget<OutlinedButton>(
@@ -600,9 +610,17 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.tap(find.widgetWithText(OutlinedButton, 'Set Point B'));
-        await tester.pumpAndSettle();
+        await tester.pump(); // Start async operation
+        await tester.pump(); // Let snackbar appear
+        await tester.pump(const Duration(milliseconds: 100)); // Wait for animation
 
-        expect(find.textContaining('Error creating loop'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(SnackBar),
+            matching: find.textContaining('Error creating loop'),
+          ),
+          findsOneWidget,
+        );
       });
 
       testWidgets('should show error message when clear fails', (tester) async {
