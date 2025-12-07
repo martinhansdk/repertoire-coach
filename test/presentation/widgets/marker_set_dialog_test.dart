@@ -297,6 +297,8 @@ void main() {
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle(); // Wait for dialog close animation
         await tester.pump(const Duration(milliseconds: 100)); // Extra pump for safety
+        await tester.pump(); // Additional pump for dialog close
+        await tester.pumpAndSettle(); // Final settle to complete all animations
 
         // Dialog closes on success
         expect(find.text('Edit Marker Set'), findsNothing);
@@ -314,6 +316,8 @@ void main() {
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle(); // Wait for dialog close animation
         await tester.pump(const Duration(milliseconds: 100)); // Extra pump for safety
+        await tester.pump(); // Additional pump for dialog close
+        await tester.pumpAndSettle(); // Final settle to complete all animations
 
         // Dialog closes on success
         expect(find.text('Edit Marker Set'), findsNothing);
@@ -413,6 +417,7 @@ void main() {
         await tester.pump(); // Start async operation
         await tester.pump(); // Let snackbar appear
         await tester.pump(const Duration(milliseconds: 100)); // Wait for animation
+        await tester.pump(); // Extra pump for SnackBar rendering
 
         // Should show error message in SnackBar
         expect(
