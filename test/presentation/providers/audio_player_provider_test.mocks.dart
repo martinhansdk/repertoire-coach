@@ -6,6 +6,7 @@
 import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:repertoire_coach/domain/entities/loop_range.dart' as _i6;
 import 'package:repertoire_coach/domain/entities/playback_info.dart' as _i2;
 import 'package:repertoire_coach/domain/entities/track.dart' as _i5;
 import 'package:repertoire_coach/domain/repositories/audio_player_repository.dart'
@@ -73,6 +74,12 @@ class MockAudioPlayerRepository extends _i1.Mock
   @override
   bool get isLooping => (super.noSuchMethod(
         Invocation.getter(#isLooping),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  bool get isRangeLooping => (super.noSuchMethod(
+        Invocation.getter(#isRangeLooping),
         returnValue: false,
       ) as bool);
 
@@ -167,6 +174,17 @@ class MockAudioPlayerRepository extends _i1.Mock
         Invocation.method(
           #setLoopMode,
           [enabled],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> setLoopRange(_i6.LoopRange? loopRange) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setLoopRange,
+          [loopRange],
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
