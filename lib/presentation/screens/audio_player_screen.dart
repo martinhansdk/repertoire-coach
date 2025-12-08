@@ -134,7 +134,9 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                   // Playback controls section (only show if playing a track from this song)
                   if (playbackInfo.hasTrack && isPlayingTrackFromThisSong) ...[
                     const Divider(),
-                    _buildPlaybackControls(playbackInfo, tracks),
+                    Flexible(
+                      child: _buildPlaybackControls(playbackInfo, tracks),
+                    ),
                   ],
                 ],
               );

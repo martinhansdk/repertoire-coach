@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/entities/loop_range.dart';
 import '../../domain/entities/marker.dart';
 import '../providers/audio_player_provider.dart';
 import '../providers/loop_control_provider.dart';
@@ -25,7 +26,9 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
   Duration? _loopPointB;
 
   void _setLoopPointA() {
-    final position = ref.read(currentPlaybackProvider).position;
+    // Read directly from repository to get live position (not cached)
+    final repository = ref.read(audioPlayerRepositoryProvider);
+    final position = repository.currentPlayback.position;
     setState(() {
       _loopPointA = position;
       if (_loopPointB != null && position >= _loopPointB!) {
@@ -35,7 +38,9 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
   }
 
   void _setLoopPointB() {
-    final position = ref.read(currentPlaybackProvider).position;
+    // Read directly from repository to get live position (not cached)
+    final repository = ref.read(audioPlayerRepositoryProvider);
+    final position = repository.currentPlayback.position;
     if (_loopPointA == null || position <= _loopPointA!) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -116,10 +121,10 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
   }
 
   Future<void> _showMarkerLoopDialog() async {
-    if (widget.markers.length < 2) {
+    if (widget.markers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Need at least 2 markers to create a loop'),
+          content: Text('Need at least 1 marker to create a loop'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -130,68 +135,104 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
     final sortedMarkers = List<Marker>.from(widget.markers)
       ..sort((a, b) => a.positionMs.compareTo(b.positionMs));
 
-    Marker? startMarker;
-    Marker? endMarker;
+    // Get current position for "Current Position" option
+    final repository = ref.read(audioPlayerRepositoryProvider);
+    final currentPosition = repository.currentPlayback.position;
+
+    // Track selection as either marker or 'current'
+    String? startSelection; // 'current' or marker.id
+    String? endSelection; // 'current' or marker.id
 
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Loop Between Markers'),
+          title: const Text('Create Loop'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Start point selector
               InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Start Marker',
+                  labelText: 'Loop Start',
                   border: OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<Marker>(
-                    value: startMarker,
+                  child: DropdownButton<String>(
+                    value: startSelection,
                     isExpanded: true,
-                    items: sortedMarkers.map((marker) {
-                      return DropdownMenuItem(
-                        value: marker,
-                        child: Text(marker.label),
-                      );
-                    }).toList(),
+                    hint: const Text('Select start point'),
+                    items: [
+                      const DropdownMenuItem(
+                        value: 'current',
+                        child: Row(
+                          children: [
+                            Icon(Icons.my_location, size: 16),
+                            SizedBox(width: 8),
+                            Text('Current Position'),
+                          ],
+                        ),
+                      ),
+                      ...sortedMarkers.map((marker) {
+                        return DropdownMenuItem(
+                          value: marker.id,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.bookmark, size: 16),
+                              const SizedBox(width: 8),
+                              Text(marker.label),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
                     onChanged: (value) {
                       setDialogState(() {
-                        startMarker = value;
-                        // Reset end marker if it's now before start
-                        if (endMarker != null &&
-                            value != null &&
-                            endMarker!.positionMs <= value.positionMs) {
-                          endMarker = null;
-                        }
+                        startSelection = value;
                       });
                     },
                   ),
                 ),
               ),
               const SizedBox(height: 16),
+              // End point selector
               InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'End Marker',
+                  labelText: 'Loop End',
                   border: OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<Marker>(
-                    value: endMarker,
+                  child: DropdownButton<String>(
+                    value: endSelection,
                     isExpanded: true,
-                    items: sortedMarkers
-                        .where((m) =>
-                            startMarker == null || m.positionMs > startMarker!.positionMs)
-                        .map((marker) {
-                      return DropdownMenuItem(
-                        value: marker,
-                        child: Text(marker.label),
-                      );
-                    }).toList(),
+                    hint: const Text('Select end point'),
+                    items: [
+                      const DropdownMenuItem(
+                        value: 'current',
+                        child: Row(
+                          children: [
+                            Icon(Icons.my_location, size: 16),
+                            SizedBox(width: 8),
+                            Text('Current Position'),
+                          ],
+                        ),
+                      ),
+                      ...sortedMarkers.map((marker) {
+                        return DropdownMenuItem(
+                          value: marker.id,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.bookmark, size: 16),
+                              const SizedBox(width: 8),
+                              Text(marker.label),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
                     onChanged: (value) {
                       setDialogState(() {
-                        endMarker = value;
+                        endSelection = value;
                       });
                     },
                   ),
@@ -205,23 +246,63 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: startMarker != null && endMarker != null
+              onPressed: startSelection != null && endSelection != null
                   ? () async {
                       Navigator.of(context).pop();
                       final messenger = ScaffoldMessenger.of(context);
                       try {
-                        final loopControls = ref.read(loopControlsProvider);
-                        await loopControls.setLoopFromMarkers(
-                          startMarker!,
-                          endMarker!,
+                        // Determine start and end positions
+                        final Duration startPos;
+                        final String startLabel;
+                        if (startSelection == 'current') {
+                          startPos = currentPosition;
+                          startLabel = _formatDuration(currentPosition);
+                        } else {
+                          final marker = sortedMarkers.firstWhere((m) => m.id == startSelection);
+                          startPos = Duration(milliseconds: marker.positionMs);
+                          startLabel = marker.label;
+                        }
+
+                        final Duration endPos;
+                        final String endLabel;
+                        if (endSelection == 'current') {
+                          endPos = currentPosition;
+                          endLabel = _formatDuration(currentPosition);
+                        } else {
+                          final marker = sortedMarkers.firstWhere((m) => m.id == endSelection);
+                          endPos = Duration(milliseconds: marker.positionMs);
+                          endLabel = marker.label;
+                        }
+
+                        // Validate positions
+                        if (endPos <= startPos) {
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('End position must be after start position'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                          return;
+                        }
+
+                        // Create the loop range
+                        final loopRange = LoopRange(
+                          startPosition: startPos,
+                          endPosition: endPos,
+                          startMarkerId: startSelection == 'current' ? null : startSelection,
+                          endMarkerId: endSelection == 'current' ? null : endSelection,
                         );
+
+                        // Set the loop
+                        final repository = ref.read(audioPlayerRepositoryProvider);
+                        await repository.setLoopRange(loopRange);
 
                         if (mounted) {
                           messenger.showSnackBar(
                             SnackBar(
-                              content: Text(
-                                'Looping: ${startMarker!.label} → ${endMarker!.label}',
-                              ),
+                              content: Text('Looping: $startLabel → $endLabel'),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -343,7 +424,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                         )
                       : null,
                 ),
-                if (widget.markers.length >= 2)
+                if (widget.markers.isNotEmpty)
                   OutlinedButton.icon(
                     onPressed: _showMarkerLoopDialog,
                     icon: const Icon(Icons.bookmarks),

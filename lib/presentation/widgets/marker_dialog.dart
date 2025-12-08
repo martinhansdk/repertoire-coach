@@ -84,8 +84,9 @@ class _MarkerDialogState extends ConsumerState<MarkerDialog> {
 
   /// Set the time fields to the current playback position
   void _setToCurrentPosition() {
-    final playbackInfo = ref.read(currentPlaybackProvider);
-    final position = playbackInfo.position;
+    // Read directly from repository to get live position (not cached)
+    final repository = ref.read(audioPlayerRepositoryProvider);
+    final position = repository.currentPlayback.position;
 
     final minutes = position.inMinutes;
     final seconds = position.inSeconds % 60;
