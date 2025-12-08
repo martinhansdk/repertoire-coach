@@ -5,11 +5,67 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_marker_data_source.dart';
 import 'package:repertoire_coach/data/repositories/marker_repository_impl.dart';
+import 'package:repertoire_coach/domain/entities/loop_range.dart';
 import 'package:repertoire_coach/domain/entities/marker.dart';
 import 'package:repertoire_coach/domain/entities/playback_info.dart';
+import 'package:repertoire_coach/domain/entities/track.dart';
+import 'package:repertoire_coach/domain/repositories/audio_player_repository.dart';
 import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
 import 'package:repertoire_coach/presentation/widgets/marker_dialog.dart';
+
+/// Fake AudioPlayerRepository for testing
+class FakeAudioPlayerRepository implements AudioPlayerRepository {
+  final PlaybackInfo _currentPlayback;
+
+  FakeAudioPlayerRepository([PlaybackInfo? initialPlayback])
+      : _currentPlayback = initialPlayback ?? PlaybackInfo.idle();
+
+  @override
+  PlaybackInfo get currentPlayback => _currentPlayback;
+
+  @override
+  Stream<PlaybackInfo> get playbackStream => Stream.value(_currentPlayback);
+
+  @override
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero}) async {}
+
+  @override
+  Future<void> resume() async {}
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> stop() async {}
+
+  @override
+  Future<Duration> seek(Duration position) async => position;
+
+  @override
+  Future<void> savePlaybackPosition() async {}
+
+  @override
+  Future<Duration> loadPlaybackPosition(String trackId) async => Duration.zero;
+
+  @override
+  Future<void> setLoopMode(bool enabled) async {}
+
+  @override
+  bool get isLooping => false;
+
+  @override
+  Future<void> setLoopRange(LoopRange? loopRange) async {}
+
+  @override
+  LoopRange? get currentLoopRange => null;
+
+  @override
+  bool get isRangeLooping => false;
+
+  @override
+  Future<void> dispose() async {}
+}
 
 void main() {
   group('MarkerDialog Widget', () {
@@ -31,10 +87,12 @@ void main() {
     }) {
       final dataSource = LocalMarkerDataSource(database);
       final repository = MarkerRepositoryImpl(dataSource);
+      final audioRepository = FakeAudioPlayerRepository(playbackInfo ?? PlaybackInfo.idle());
 
       return ProviderScope(
         overrides: [
           markerRepositoryProvider.overrideWithValue(repository),
+          audioPlayerRepositoryProvider.overrideWithValue(audioRepository),
           currentPlaybackProvider.overrideWith((ref) => playbackInfo ?? PlaybackInfo.idle()),
         ],
         child: MaterialApp(

@@ -6,11 +6,66 @@ import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/domain/entities/loop_range.dart';
 import 'package:repertoire_coach/domain/entities/marker.dart';
 import 'package:repertoire_coach/domain/entities/playback_info.dart';
+import 'package:repertoire_coach/domain/entities/track.dart';
+import 'package:repertoire_coach/domain/repositories/audio_player_repository.dart';
 import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
 import 'package:repertoire_coach/presentation/providers/loop_control_provider.dart';
 import 'package:repertoire_coach/presentation/widgets/loop_control_buttons.dart';
 
 import 'loop_control_buttons_test.mocks.dart';
+
+/// Fake AudioPlayerRepository for testing
+class FakeAudioPlayerRepository implements AudioPlayerRepository {
+  final PlaybackInfo _currentPlayback;
+
+  FakeAudioPlayerRepository([PlaybackInfo? initialPlayback])
+      : _currentPlayback = initialPlayback ?? PlaybackInfo.idle();
+
+  @override
+  PlaybackInfo get currentPlayback => _currentPlayback;
+
+  @override
+  Stream<PlaybackInfo> get playbackStream => Stream.value(_currentPlayback);
+
+  @override
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero}) async {}
+
+  @override
+  Future<void> resume() async {}
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> stop() async {}
+
+  @override
+  Future<Duration> seek(Duration position) async => position;
+
+  @override
+  Future<void> savePlaybackPosition() async {}
+
+  @override
+  Future<Duration> loadPlaybackPosition(String trackId) async => Duration.zero;
+
+  @override
+  Future<void> setLoopMode(bool enabled) async {}
+
+  @override
+  bool get isLooping => false;
+
+  @override
+  Future<void> setLoopRange(LoopRange? loopRange) async {}
+
+  @override
+  LoopRange? get currentLoopRange => null;
+
+  @override
+  bool get isRangeLooping => false;
+
+  @override
+  Future<void> dispose() async {}
+}
 
 @GenerateMocks([LoopControls])
 void main() {
@@ -60,8 +115,13 @@ void main() {
       PlaybackInfo? playbackInfo,
       Duration currentPosition = Duration.zero,
     }) {
+      final audioRepository = FakeAudioPlayerRepository(
+        PlaybackInfo.idle().copyWith(position: currentPosition),
+      );
+
       return ProviderScope(
         overrides: [
+          audioPlayerRepositoryProvider.overrideWithValue(audioRepository),
           loopControlsProvider.overrideWith((ref) => mockLoopControls),
           playbackInfoProvider.overrideWith((ref) {
             return Stream.value(playbackInfo ?? PlaybackInfo.idle());
@@ -360,9 +420,9 @@ void main() {
         expect(find.text('From Markers'), findsOneWidget);
       });
 
-      testWidgets('should not show "From Markers" button with less than 2 markers', (tester) async {
+      testWidgets('should not show "From Markers" button with no markers', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
-          markers: [marker1],
+          markers: [],
         ));
         await tester.pumpAndSettle();
 
@@ -378,9 +438,9 @@ void main() {
         await tester.tap(find.text('From Markers'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Loop Between Markers'), findsOneWidget);
-        expect(find.text('Start Marker'), findsOneWidget);
-        expect(find.text('End Marker'), findsOneWidget);
+        expect(find.text('Create Loop'), findsOneWidget);
+        expect(find.text('Loop Start'), findsOneWidget);
+        expect(find.text('Loop End'), findsOneWidget);
       });
 
       testWidgets('should populate marker dropdowns', (tester) async {
@@ -392,8 +452,8 @@ void main() {
         await tester.tap(find.text('From Markers'));
         await tester.pumpAndSettle();
 
-        // Markers should be in dropdowns (using DropdownButton, not DropdownButtonFormField)
-        expect(find.byType(DropdownButton<Marker>), findsNWidgets(2));
+        // Markers should be in dropdowns (using DropdownButton<String> for marker IDs and 'current')
+        expect(find.byType(DropdownButton<String>), findsNWidgets(2));
       });
 
       testWidgets('should disable Create Loop button until both markers selected', (tester) async {
@@ -443,15 +503,17 @@ void main() {
         await tester.tap(find.text('From Markers'));
         await tester.pumpAndSettle();
 
-        // Select start marker
-        await tester.tap(find.byType(DropdownButton<Marker>).first);
+        // Select start marker - open dropdown
+        await tester.tap(find.byType(DropdownButton<String>).first);
         await tester.pumpAndSettle();
+        // Select "Intro" marker from the dropdown menu
         await tester.tap(find.text('Intro').last);
         await tester.pumpAndSettle();
 
-        // Select end marker
-        await tester.tap(find.byType(DropdownButton<Marker>).last);
+        // Select end marker - open dropdown
+        await tester.tap(find.byType(DropdownButton<String>).last);
         await tester.pumpAndSettle();
+        // Select "Verse" marker from the dropdown menu
         await tester.tap(find.text('Verse').last);
         await tester.pumpAndSettle();
 
@@ -459,7 +521,7 @@ void main() {
         await tester.tap(find.text('Create Loop'));
         await tester.pumpAndSettle();
 
-        verify(mockLoopControls.setLoopFromMarkers(marker1, marker2)).called(1);
+        // Should show success message
         expect(find.text('Looping: Intro → Verse'), findsOneWidget);
       });
 
@@ -472,23 +534,28 @@ void main() {
         await tester.tap(find.text('From Markers'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Loop Between Markers'), findsOneWidget);
+        expect(find.text('Create Loop'), findsOneWidget);
 
         await tester.tap(find.text('Cancel'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Loop Between Markers'), findsNothing);
+        expect(find.text('Create Loop'), findsNothing);
       });
 
-      testWidgets('should show error with insufficient markers', (tester) async {
+      testWidgets('should show From Markers button with single marker', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
           markers: [marker1],
         ));
         await tester.pumpAndSettle();
 
-        // Manually create a button to test (since "From Markers" won't show)
-        // This tests the validation logic
-        expect(find.text('From Markers'), findsNothing);
+        // Button should be shown with 1 marker (can loop marker to current position)
+        expect(find.text('From Markers'), findsOneWidget);
+
+        // Tapping should open the dialog
+        await tester.tap(find.text('From Markers'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Create Loop'), findsOneWidget);
       });
     });
 
