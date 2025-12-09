@@ -26,6 +26,9 @@ class AudioPlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
+  bool _isDraggingSlider = false;
+  double _dragValue = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -342,11 +345,29 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
     if (selectedMarkerSetId == null) {
       // No marker set selected, use simple slider
+      final double sliderValue = _isDraggingSlider
+          ? _dragValue
+          : playbackInfo.progress.clamp(0.0, 1.0);
+
       return Slider(
-        value: playbackInfo.progress.clamp(0.0, 1.0),
+        value: sliderValue,
+        onChangeStart: (value) {
+          setState(() {
+            _isDraggingSlider = true;
+            _dragValue = value;
+          });
+        },
         onChanged: (value) {
+          setState(() {
+            _dragValue = value;
+          });
+        },
+        onChangeEnd: (value) {
           final newPosition = playbackInfo.duration * value;
           ref.read(audioPlayerControlsProvider).seek(newPosition);
+          setState(() {
+            _isDraggingSlider = false;
+          });
         },
       );
     }
@@ -367,20 +388,58 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
           },
         );
       },
-      loading: () => Slider(
-        value: playbackInfo.progress.clamp(0.0, 1.0),
-        onChanged: (value) {
-          final newPosition = playbackInfo.duration * value;
-          ref.read(audioPlayerControlsProvider).seek(newPosition);
-        },
-      ),
-      error: (_, __) => Slider(
-        value: playbackInfo.progress.clamp(0.0, 1.0),
-        onChanged: (value) {
-          final newPosition = playbackInfo.duration * value;
-          ref.read(audioPlayerControlsProvider).seek(newPosition);
-        },
-      ),
+      loading: () {
+        final double sliderValue = _isDraggingSlider
+            ? _dragValue
+            : playbackInfo.progress.clamp(0.0, 1.0);
+        return Slider(
+          value: sliderValue,
+          onChangeStart: (value) {
+            setState(() {
+              _isDraggingSlider = true;
+              _dragValue = value;
+            });
+          },
+          onChanged: (value) {
+            setState(() {
+              _dragValue = value;
+            });
+          },
+          onChangeEnd: (value) {
+            final newPosition = playbackInfo.duration * value;
+            ref.read(audioPlayerControlsProvider).seek(newPosition);
+            setState(() {
+              _isDraggingSlider = false;
+            });
+          },
+        );
+      },
+      error: (_, __) {
+        final double sliderValue = _isDraggingSlider
+            ? _dragValue
+            : playbackInfo.progress.clamp(0.0, 1.0);
+        return Slider(
+          value: sliderValue,
+          onChangeStart: (value) {
+            setState(() {
+              _isDraggingSlider = true;
+              _dragValue = value;
+            });
+          },
+          onChanged: (value) {
+            setState(() {
+              _dragValue = value;
+            });
+          },
+          onChangeEnd: (value) {
+            final newPosition = playbackInfo.duration * value;
+            ref.read(audioPlayerControlsProvider).seek(newPosition);
+            setState(() {
+              _isDraggingSlider = false;
+            });
+          },
+        );
+      },
     );
   }
 
