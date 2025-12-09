@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:just_audio/just_audio.dart' as ja;
 import 'package:audio_session/audio_session.dart';
+import 'package:audio_service/audio_service.dart';
 import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/loop_range.dart';
 import '../../domain/entities/playback_info.dart';
@@ -18,6 +19,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   final ja.AudioPlayer _player;
   final StreamController<PlaybackInfo> _playbackController;
   final LocalUserPlaybackStateDataSource _playbackStateDataSource;
+  AudioHandler? _audioHandler;
 
   Track? _currentTrack;
   String? _currentSongId;
@@ -33,6 +35,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
         _currentPlaybackInfo = const PlaybackInfo.idle() {
     _initializePlayerListeners();
     _configureAudioSession();
+    _initializeAudioService();
   }
 
   /// Configure audio session for background playback
@@ -53,6 +56,26 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       androidWillPauseWhenDucked: true,
     ));
+  }
+
+  /// Initialize audio service for background playback with media notifications
+  void _initializeAudioService() async {
+    try {
+      _audioHandler = await AudioService.init(
+        builder: () => _AudioPlayerHandler(_player),
+        config: AudioServiceConfig(
+          androidNotificationChannelId: 'com.example.repertoire_coach.audio',
+          androidNotificationChannelName: 'Repertoire Coach Audio',
+          androidNotificationOngoing: true,
+          androidShowNotificationBadge: true,
+          androidStopForegroundOnPause: false,
+        ),
+      );
+    } catch (e) {
+      // If audio service fails to initialize (e.g., on desktop platforms),
+      // continue without it. Background playback will still work on iOS/Android
+      // via audio_session configuration alone.
+    }
   }
 
   /// Initialize listeners for the just_audio player
@@ -150,6 +173,9 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       if (seekPosition > Duration.zero) {
         await _player.seek(seekPosition);
       }
+
+      // Update media item for notification
+      await _updateMediaItem();
 
       // Start playback
       await _player.play();
@@ -253,6 +279,23 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     _autoSaveTimer = null;
   }
 
+  /// Update the media item shown in the notification
+  Future<void> _updateMediaItem() async {
+    if (_audioHandler == null || _currentTrack == null) {
+      return;
+    }
+
+    final mediaItem = MediaItem(
+      id: _currentTrack!.id,
+      title: _currentTrack!.name,
+      artist: 'Repertoire Coach', // Generic artist name
+      duration: _player.duration ?? Duration.zero,
+      artUri: null, // No album art for now
+    );
+
+    await _audioHandler!.updateMediaItem(mediaItem);
+  }
+
   @override
   Future<void> setLoopMode(bool enabled) async {
     _isLooping = enabled;
@@ -297,5 +340,76 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     await savePlaybackPosition(); // Save one last time before disposing
     await _player.dispose();
     await _playbackController.close();
+  }
+}
+
+/// Audio handler for background playback
+///
+/// This class manages the audio service and syncs the just_audio player
+/// state with the system media controls and notification.
+class _AudioPlayerHandler extends BaseAudioHandler {
+  final ja.AudioPlayer _player;
+  StreamSubscription<ja.PlayerState>? _playerStateSubscription;
+
+  _AudioPlayerHandler(this._player) {
+    // Sync player state to audio service
+    _playerStateSubscription = _player.playerStateStream.listen((playerState) {
+      final playing = playerState.playing;
+      final processingState = _mapProcessingState(playerState.processingState);
+
+      playbackState.add(PlaybackState(
+        controls: [
+          if (playing) MediaControl.pause else MediaControl.play,
+          MediaControl.stop,
+        ],
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.play,
+          MediaAction.pause,
+          MediaAction.stop,
+        },
+        playing: playing,
+        processingState: processingState,
+        updatePosition: _player.position,
+        bufferedPosition: _player.bufferedPosition,
+        speed: _player.speed,
+      ));
+    });
+  }
+
+  /// Map just_audio processing state to audio_service processing state
+  AudioProcessingState _mapProcessingState(ja.ProcessingState state) {
+    switch (state) {
+      case ja.ProcessingState.idle:
+        return AudioProcessingState.idle;
+      case ja.ProcessingState.loading:
+        return AudioProcessingState.loading;
+      case ja.ProcessingState.buffering:
+        return AudioProcessingState.buffering;
+      case ja.ProcessingState.ready:
+        return AudioProcessingState.ready;
+      case ja.ProcessingState.completed:
+        return AudioProcessingState.completed;
+    }
+  }
+
+  @override
+  Future<void> play() => _player.play();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> stop() async {
+    await _player.stop();
+    await super.stop();
+  }
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  /// Cleanup subscriptions
+  Future<void> cleanup() async {
+    await _playerStateSubscription?.cancel();
   }
 }
