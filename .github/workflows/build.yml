@@ -71,12 +71,14 @@ jobs:
         docker pull ${{ needs.build-docker.outputs.image-tag }}
         docker tag ${{ needs.build-docker.outputs.image-tag }} repertoire-coach-builder
 
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
+    - name: Restore Gradle cache
+      uses: actions/cache/restore@v4
       with:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
+          ~/.android
+          android/.gradle
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
@@ -100,9 +102,29 @@ jobs:
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/workspace/.cache/.gradle \
           -v $HOME/.pub-cache:/workspace/.cache/.pub-cache \
+          -v $HOME/.android:/workspace/.cache/.android \
           -w /workspace \
           repertoire-coach-builder \
           sh -c "git config --global --add safe.directory /opt/flutter && flutter build apk --debug"
+          
+    - name: Fix Gradle cache permissions
+      if: always()
+      run: |
+        sudo chown -R $(whoami):$(id -gn) $HOME/.gradle 2>/dev/null || true
+        sudo chown -R $(whoami):$(id -gn) $HOME/.android 2>/dev/null || true
+        echo "Gradle cache directory contents:"
+        ls -la $HOME/.gradle/ 2>/dev/null || echo "No Gradle directory found"
+
+    - name: Save Gradle cache
+      uses: actions/cache/save@v4
+      if: always()
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          ~/.android
+          android/.gradle
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
     - name: Upload Debug APK artifact
       uses: actions/upload-artifact@v4
@@ -130,13 +152,15 @@ jobs:
       run: |
         docker pull ${{ needs.build-docker.outputs.image-tag }}
         docker tag ${{ needs.build-docker.outputs.image-tag }} repertoire-coach-builder
-
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
+        
+    - name: Restore Gradle cache
+      uses: actions/cache/restore@v4
       with:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
+          ~/.android
+          android/.gradle
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
@@ -173,9 +197,29 @@ jobs:
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/workspace/.cache/.gradle \
           -v $HOME/.pub-cache:/workspace/.cache/.pub-cache \
+          -v $HOME/.android:/workspace/.cache/.android \
           -w /workspace \
           repertoire-coach-builder \
           sh -c "git config --global --add safe.directory /opt/flutter && flutter build apk --release"
+
+    - name: Fix Gradle cache permissions
+      if: always()
+      run: |
+        sudo chown -R $(whoami):$(id -gn) $HOME/.gradle 2>/dev/null || true
+        sudo chown -R $(whoami):$(id -gn) $HOME/.android 2>/dev/null || true
+        echo "Gradle cache directory contents:"
+        ls -la $HOME/.gradle/ 2>/dev/null || echo "No Gradle directory found"
+
+    - name: Save Gradle cache
+      uses: actions/cache/save@v4
+      if: always()
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          ~/.android
+          android/.gradle
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
     - name: Upload Release APK artifact
       uses: actions/upload-artifact@v4
