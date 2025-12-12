@@ -1,0 +1,16 @@
+{
+    "mcpServers": {
+        "flutter": {
+        "command": "uv",
+        "args": [
+            "run",
+            "python",
+            "-m",
+            "src",
+            "/home/martin/code/repertoire-coach"
+        ],
+        "cwd": "/home/martin/code/repertoire-coach/flutter-mcp-server",
+        "env": {}
+        }
+    }
+}
