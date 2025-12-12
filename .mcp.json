@@ -4,12 +4,11 @@
         "command": "uv",
         "args": [
             "run",
-            "python",
-            "-m",
-            "src",
+            "--directory",
+            "/home/martin/code/repertoire-coach/flutter-mcp-server",
+            "flutter-mcp-server",
             "/home/martin/code/repertoire-coach"
         ],
-        "cwd": "/home/martin/code/repertoire-coach/flutter-mcp-server",
         "env": {}
         }
     }
