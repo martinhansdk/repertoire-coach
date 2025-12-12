@@ -73,6 +73,7 @@ class FlutterMCPServer:
                         "properties": {
                             "path": {"type": "string", "description": "Specific file/directory"},
                             "severity": {"type": "string", "enum": ["info", "warning", "error"], "description": "Minimum severity"},
+                            "maxIssues": {"type": "number", "description": "Max issues to return (default: 50, 0 for all)"},
                             "useDocker": {"type": "boolean", "description": "Run in Docker container"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
                             "timeout": {"type": "number", "description": "Timeout in seconds"}
@@ -145,6 +146,20 @@ class FlutterMCPServer:
                     name="list_test_runs",
                     description="List recent test runs with summaries",
                     inputSchema={"type": "object", "properties": {}}
+                ),
+                Tool(
+                    name="flutter_pub",
+                    description="Run Flutter pub commands (get, upgrade, outdated)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "command": {"type": "string", "enum": ["get", "upgrade", "outdated"], "description": "Pub command to run"},
+                            "useDocker": {"type": "boolean", "description": "Run in Docker container"},
+                            "dockerImage": {"type": "string", "description": "Docker image to use"},
+                            "timeout": {"type": "number", "description": "Timeout in seconds"}
+                        },
+                        "required": ["command"]
+                    }
                 )
             ]
 
@@ -167,6 +182,8 @@ class FlutterMCPServer:
                 result = await self._run_validation(args)
             elif name == "list_test_runs":
                 result = self.cache.list_test_runs()
+            elif name == "flutter_pub":
+                result = await self._flutter_pub(args)
             else:
                 raise ValueError(f"Unknown tool: {name}")
 
@@ -309,6 +326,7 @@ class FlutterMCPServer:
         use_docker = args.get("useDocker", True)
         timeout = args.get("timeout", 120)
         min_severity = args.get("severity", "info")
+        max_issues = args.get("maxIssues", 50)
 
         # Update Docker image if specified
         if args.get("dockerImage"):
@@ -334,11 +352,21 @@ class FlutterMCPServer:
                 if severity_order.get(issue.severity, 0) >= min_level
             ]
 
-        # Store in cache
+        # Store FULL result in cache (before limiting for response)
         params = {k: v for k, v in args.items() if v is not None}
         run_id = self.cache.store_analyze_result(result, params, output)
 
-        return asdict(result)
+        # Limit issues in response (but keep full data in cache)
+        result_dict = asdict(result)
+        if max_issues > 0 and result.issues and len(result.issues) > max_issues:
+            total_issues = len(result.issues)
+            result_dict['issues'] = result_dict['issues'][:max_issues]
+            result_dict['truncated'] = True
+            result_dict['total_issues'] = total_issues
+            result_dict['showing_issues'] = max_issues
+            result_dict['message'] = f"Showing first {max_issues} of {total_issues} issues. Use maxIssues=0 to see all or get_analyze_results to query cache."
+
+        return result_dict
 
     async def _flutter_build(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Execute flutter build command."""
@@ -470,6 +498,36 @@ class FlutterMCPServer:
         )
 
         return asdict(validation_result)
+
+    async def _flutter_pub(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute flutter pub command."""
+        command = args["command"]
+        use_docker = args.get("useDocker", True)
+        timeout = args.get("timeout", 120)
+
+        # Update Docker image if specified
+        if args.get("dockerImage"):
+            self.runner.docker_image = args["dockerImage"]
+
+        # Run the appropriate pub command
+        if command == "get":
+            returncode, stdout, stderr = self.runner.pub_get(use_docker=use_docker, timeout=timeout)
+        elif command == "upgrade":
+            returncode, stdout, stderr = self.runner.pub_upgrade(use_docker=use_docker, timeout=timeout)
+        elif command == "outdated":
+            returncode, stdout, stderr = self.runner.pub_outdated(use_docker=use_docker, timeout=timeout)
+        else:
+            return {"success": False, "error": f"Unknown pub command: {command}"}
+
+        output = stdout + stderr
+        success = returncode == 0
+
+        return {
+            "success": success,
+            "command": f"flutter pub {command}",
+            "returncode": returncode,
+            "output": output
+        }
 
     async def run(self):
         """Run the MCP server."""

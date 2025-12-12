@@ -177,6 +177,22 @@ class FlutterRunner:
         """Run Flutter pub get."""
         return self.run_flutter_command(["pub", "get"], use_docker=use_docker, timeout=timeout)
 
+    def pub_upgrade(
+        self,
+        use_docker: Optional[bool] = None,
+        timeout: int = 120
+    ) -> Tuple[int, str, str]:
+        """Run Flutter pub upgrade."""
+        return self.run_flutter_command(["pub", "upgrade"], use_docker=use_docker, timeout=timeout)
+
+    def pub_outdated(
+        self,
+        use_docker: Optional[bool] = None,
+        timeout: int = 120
+    ) -> Tuple[int, str, str]:
+        """Run Flutter pub outdated."""
+        return self.run_flutter_command(["pub", "outdated"], use_docker=use_docker, timeout=timeout)
+
     def doctor(
         self,
         use_docker: Optional[bool] = None,
