@@ -6,7 +6,9 @@ An MCP (Model Context Protocol) server that provides structured, token-efficient
 
 - **Structured Results**: Returns JSON instead of raw Flutter output
 - **Smart Caching**: Stores recent test/analyze/build results for quick queries
+- **Advanced Filtering**: Search, exclude patterns, deduplicate, and limit results for efficient log inspection
 - **Docker Support**: Run Flutter commands in Docker containers (no local Flutter install needed)
+- **Dependency Management**: Run pub get/upgrade/outdated without local Flutter install
 - **Comprehensive Parsing**: Extracts failures, warnings, and metadata from Flutter output
 - **Low Token Usage**: Reduces token consumption by ~96% compared to raw output
 - **MCP Resources**: Access latest results via standardized resource URIs
@@ -118,7 +120,9 @@ Run Flutter analysis with structured errors.
 **Parameters:**
 - `path` (string, optional): Specific file/directory
 - `severity` (string, optional): Minimum severity ("info", "warning", "error")
+- `maxIssues` (number, optional): Max issues to return (default: 50, 0 for all)
 - `useDocker` (boolean, optional): Run in Docker container
+- `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
 
 **Returns:**
@@ -141,7 +145,11 @@ Run Flutter analysis with structured errors.
       "column": 10
     }
   ],
-  "runId": "analyze:20251210123050:b4e1d9f2"
+  "runId": "analyze:20251210123050:b4e1d9f2",
+  "truncated": true,
+  "total_issues": 4061,
+  "showing_issues": 50,
+  "message": "Showing first 50 of 4061 issues. Use maxIssues=0 to see all or get_analyze_results to query cache."
 }
 ```
 
@@ -156,27 +164,111 @@ Run Flutter build with structured output.
 - `buildNumber` (string, optional): Build number
 - `buildName` (string, optional): Build name
 - `useDocker` (boolean, optional): Run in Docker container
+- `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
 
-### 4. `get_test_results`
+### 4. `flutter_pub`
 
-Query cached test results.
+Run Flutter pub commands for dependency management.
+
+**Parameters:**
+- `command` (string, required): Pub command to run ("get", "upgrade", "outdated")
+- `useDocker` (boolean, optional): Run in Docker container (default: true)
+- `dockerImage` (string, optional): Docker image to use
+- `timeout` (number, optional): Timeout in seconds
+
+**Returns:**
+```json
+{
+  "success": true,
+  "command": "flutter pub get",
+  "returncode": 0,
+  "output": "Resolving dependencies...\nGot dependencies!\n35 packages have newer versions incompatible with dependency constraints.\nTry `flutter pub outdated` for more information.\n"
+}
+```
+
+**Example - Fetch dependencies:**
+```json
+{
+  "command": "get"
+}
+```
+
+**Example - Check for outdated packages:**
+```json
+{
+  "command": "outdated"
+}
+```
+
+### 5. `get_test_results`
+
+Query cached test results with advanced filtering.
 
 **Parameters:**
 - `runId` (string, optional): Specific run ID (default: latest)
 - `failedOnly` (boolean, optional): Only return failed tests
-- `file` (string, optional): Filter by file
+- `file` (string, optional): Filter by file path (substring match)
+- `searchMessage` (string, optional): Search in test error messages (substring match)
+- `excludePattern` (string, optional): Regex pattern to exclude from messages
+- `maxFailures` (number, optional): Max failures to return (default: 50, 0 for all)
 
-### 5. `get_analyze_results`
+**Example - Find specific test failures:**
+```json
+{
+  "searchMessage": "assertion",
+  "maxFailures": 10
+}
+```
 
-Query cached analysis results.
+**Example - Exclude known flaky tests:**
+```json
+{
+  "excludePattern": "timeout|flaky",
+  "maxFailures": 20
+}
+```
+
+### 6. `get_analyze_results`
+
+Query cached analysis results with advanced filtering.
 
 **Parameters:**
 - `runId` (string, optional): Specific run ID (default: latest)
-- `severity` (string, optional): Filter by severity
-- `file` (string, optional): Filter by file
+- `severity` (string, optional): Filter by severity ("error", "warning", "info")
+- `file` (string, optional): Filter by file path (substring match)
+- `searchMessage` (string, optional): Search in error messages (substring match)
+- `excludePattern` (string, optional): Regex pattern to exclude from messages
+- `uniqueTypes` (boolean, optional): Return only one issue per error type (deduplication)
+- `maxIssues` (number, optional): Max issues to return (default: 50, 0 for all)
 
-### 6. `run_validation`
+**Example - Get unique error types:**
+```json
+{
+  "file": "database.dart",
+  "uniqueTypes": true,
+  "maxIssues": 10
+}
+```
+
+**Example - Exclude generated code errors:**
+```json
+{
+  "excludePattern": "Undefined.*Column|Constant",
+  "severity": "error",
+  "maxIssues": 20
+}
+```
+
+**Example - Find specific issues:**
+```json
+{
+  "searchMessage": "import",
+  "maxIssues": 10
+}
+```
+
+### 7. `run_validation`
 
 Run both analyze and test (equivalent to `scripts/validate.sh`).
 
@@ -187,6 +279,7 @@ Run both analyze and test (equivalent to `scripts/validate.sh`).
   - `failFast` (boolean, optional)
   - `coverage` (boolean, optional)
 - `useDocker` (boolean, optional): Run in Docker container
+- `dockerImage` (string, optional): Docker image to use
 
 **Returns:**
 ```json
@@ -198,7 +291,7 @@ Run both analyze and test (equivalent to `scripts/validate.sh`).
 }
 ```
 
-### 7. `list_test_runs`
+### 8. `list_test_runs`
 
 List recent test runs with summaries.
 
@@ -217,6 +310,77 @@ List recent test runs with summaries.
   }
 ]
 ```
+
+## Advanced Filtering Use Cases
+
+The cache query tools (`get_analyze_results` and `get_test_results`) support powerful filtering to help you inspect logs efficiently without re-running slow commands or consuming excessive tokens.
+
+### Use Case 1: Understanding Error Variety
+
+Get a quick overview of all unique error types in a file:
+
+```json
+{
+  "file": "database.dart",
+  "uniqueTypes": true,
+  "maxIssues": 15
+}
+```
+
+This shows one example of each error type, perfect for understanding the scope of issues.
+
+### Use Case 2: Filtering Out Noise
+
+Exclude known generated code errors to focus on real issues:
+
+```json
+{
+  "excludePattern": "Undefined.*Column|Constant|GeneratedColumn",
+  "severity": "error",
+  "maxIssues": 20
+}
+```
+
+### Use Case 3: Finding Specific Issues
+
+Search for import-related errors:
+
+```json
+{
+  "searchMessage": "import",
+  "maxIssues": 10
+}
+```
+
+### Use Case 4: Investigating Test Failures
+
+Find assertion failures only:
+
+```json
+{
+  "searchMessage": "assertion",
+  "file": "widget_test.dart",
+  "maxFailures": 15
+}
+```
+
+### Use Case 5: Excluding Flaky Tests
+
+Filter out known flaky or timeout issues:
+
+```json
+{
+  "excludePattern": "timeout|flaky|intermittent",
+  "maxFailures": 20
+}
+```
+
+### Benefits
+
+- **No Re-runs**: Query cached results instantly
+- **Token Efficient**: Get exactly the data you need (50 items max by default)
+- **Flexible**: Combine filters for precise results
+- **Full Data Preserved**: Original results remain in cache
 
 ## Available Resources
 
@@ -395,6 +559,6 @@ The cache has a 1-hour TTL. To clear expired entries, restart the server.
 - [ ] Incremental testing (only run affected tests)
 - [ ] Parallel test execution
 - [ ] Test flakiness tracking
-- [ ] Custom result filters
 - [ ] Web dashboard for results
 - [ ] CI/CD integration formats
+- [ ] Smart issue grouping by root cause
