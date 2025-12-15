@@ -31,8 +31,8 @@ class FlutterRunner:
         return [
             "docker", "run",
             "--rm",
-            "-v", f"{self.project_root.absolute()}:/workspace",
-            "-w", "/workspace",
+            "-v", f"{self.project_root.absolute()}:/app",
+            "-w", "/app",
             self.docker_image,
             "flutter"
         ] + flutter_args

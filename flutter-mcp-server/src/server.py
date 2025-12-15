@@ -30,7 +30,7 @@ class FlutterMCPServer:
         # Initialize components
         self.runner = FlutterRunner(
             docker_enabled=True,
-            docker_image="ghcr.io/cirruslabs/flutter:stable",
+            docker_image="repertoire-coach-builder",
             project_root=str(self.project_root)
         )
         self.cache = ResultCache()
@@ -285,6 +285,11 @@ class FlutterMCPServer:
 
             raise ValueError(f"Unknown resource: {uri}")
 
+    async def _ensure_dependencies(self, use_docker: bool = True) -> None:
+        """Ensure Flutter dependencies are installed (run pub get)."""
+        # Run pub get to ensure dependencies are available
+        self.runner.pub_get(use_docker=use_docker, timeout=120)
+
     async def _flutter_test(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Execute flutter test command."""
         start_time = time.time()
@@ -301,6 +306,9 @@ class FlutterMCPServer:
         # Update Docker image if specified
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
+
+        # Ensure dependencies are installed
+        await self._ensure_dependencies(use_docker)
 
         # Run test
         returncode, stdout, stderr = self.runner.test(
@@ -338,6 +346,9 @@ class FlutterMCPServer:
         # Update Docker image if specified
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
+
+        # Ensure dependencies are installed
+        await self._ensure_dependencies(use_docker)
 
         # Run analyze
         returncode, stdout, stderr = self.runner.analyze(
@@ -391,6 +402,9 @@ class FlutterMCPServer:
         # Update Docker image if specified
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
+
+        # Ensure dependencies are installed
+        await self._ensure_dependencies(use_docker)
 
         # Run build
         returncode, stdout, stderr = self.runner.build(
