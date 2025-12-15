@@ -106,7 +106,10 @@ class FlutterMCPServer:
                         "properties": {
                             "runId": {"type": "string", "description": "Specific run ID"},
                             "failedOnly": {"type": "boolean", "description": "Only return failed tests"},
-                            "file": {"type": "string", "description": "Filter by file"}
+                            "file": {"type": "string", "description": "Filter by file path (substring match)"},
+                            "searchMessage": {"type": "string", "description": "Search in test error messages (substring match)"},
+                            "excludePattern": {"type": "string", "description": "Regex pattern to exclude from messages"},
+                            "maxFailures": {"type": "number", "description": "Max failures to return (default: 50, 0 for all)"}
                         }
                     }
                 ),
@@ -118,7 +121,11 @@ class FlutterMCPServer:
                         "properties": {
                             "runId": {"type": "string", "description": "Specific run ID"},
                             "severity": {"type": "string", "enum": ["info", "warning", "error"], "description": "Filter by severity"},
-                            "file": {"type": "string", "description": "Filter by file"}
+                            "file": {"type": "string", "description": "Filter by file path (substring match)"},
+                            "searchMessage": {"type": "string", "description": "Search in error messages (substring match)"},
+                            "excludePattern": {"type": "string", "description": "Regex pattern to exclude from messages"},
+                            "uniqueTypes": {"type": "boolean", "description": "Return only one issue per error type (deduplication)"},
+                            "maxIssues": {"type": "number", "description": "Max issues to return (default: 50, 0 for all)"}
                         }
                     }
                 ),
@@ -410,41 +417,88 @@ class FlutterMCPServer:
 
     async def _get_test_results(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Get cached test results."""
+        import re
+
         run_id = args.get("runId")
         failed_only = args.get("failedOnly", False)
         file_filter = args.get("file")
+        search_message = args.get("searchMessage")
+        exclude_pattern = args.get("excludePattern")
+        max_failures = args.get("maxFailures", 50)
 
         result = self.cache.get_test_result(run_id)
         if not result:
             return {"error": "No test results found"}
 
+        original_count = len(result.failures) if result.failures else 0
+
         # Apply filters
-        if failed_only and result.failures:
-            # Only include failures
-            pass
-        elif failed_only:
-            result.failures = []
+        if result.failures:
+            # File filter
+            if file_filter:
+                result.failures = [
+                    f for f in result.failures
+                    if file_filter in f.file
+                ]
 
-        if file_filter and result.failures:
-            result.failures = [
-                f for f in result.failures
-                if file_filter in f.file
-            ]
+            # Search message filter
+            if search_message:
+                result.failures = [
+                    f for f in result.failures
+                    if search_message.lower() in f.message.lower()
+                ]
 
-        return asdict(result)
+            # Exclude pattern (regex)
+            if exclude_pattern:
+                try:
+                    pattern = re.compile(exclude_pattern)
+                    result.failures = [
+                        f for f in result.failures
+                        if not pattern.search(f.message)
+                    ]
+                except re.error:
+                    return {"error": f"Invalid regex pattern: {exclude_pattern}"}
+
+        # Convert to dict and apply limit
+        result_dict = asdict(result)
+        filtered_count = len(result_dict.get('failures', []))
+
+        if max_failures > 0 and result.failures and len(result.failures) > max_failures:
+            result_dict['failures'] = result_dict['failures'][:max_failures]
+            result_dict['truncated'] = True
+            result_dict['total_failures'] = original_count
+            result_dict['filtered_failures'] = filtered_count
+            result_dict['showing_failures'] = max_failures
+            result_dict['message'] = f"Showing {max_failures} of {filtered_count} filtered failures (total: {original_count})"
+        elif filtered_count < original_count:
+            result_dict['filtered'] = True
+            result_dict['total_failures'] = original_count
+            result_dict['showing_failures'] = filtered_count
+            result_dict['message'] = f"Showing {filtered_count} of {original_count} failures after filtering"
+
+        return result_dict
 
     async def _get_analyze_results(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Get cached analyze results."""
+        import re
+
         run_id = args.get("runId")
         severity_filter = args.get("severity")
         file_filter = args.get("file")
+        search_message = args.get("searchMessage")
+        exclude_pattern = args.get("excludePattern")
+        unique_types = args.get("uniqueTypes", False)
+        max_issues = args.get("maxIssues", 50)
 
         result = self.cache.get_analyze_result(run_id)
         if not result:
             return {"error": "No analyze results found"}
 
+        original_count = len(result.issues) if result.issues else 0
+
         # Apply filters
         if result.issues:
+            # Severity filter
             if severity_filter:
                 severity_order = {"error": 3, "warning": 2, "info": 1, "hint": 0}
                 min_level = severity_order.get(severity_filter, 0)
@@ -453,13 +507,59 @@ class FlutterMCPServer:
                     if severity_order.get(issue.severity, 0) >= min_level
                 ]
 
+            # File filter
             if file_filter:
                 result.issues = [
                     issue for issue in result.issues
                     if file_filter in issue.file
                 ]
 
-        return asdict(result)
+            # Search message filter
+            if search_message:
+                result.issues = [
+                    issue for issue in result.issues
+                    if search_message.lower() in issue.message.lower()
+                ]
+
+            # Exclude pattern (regex)
+            if exclude_pattern:
+                try:
+                    pattern = re.compile(exclude_pattern)
+                    result.issues = [
+                        issue for issue in result.issues
+                        if not pattern.search(issue.message)
+                    ]
+                except re.error:
+                    return {"error": f"Invalid regex pattern: {exclude_pattern}"}
+
+            # Deduplicate by type
+            if unique_types:
+                seen_types = set()
+                unique_issues = []
+                for issue in result.issues:
+                    if issue.type not in seen_types:
+                        seen_types.add(issue.type)
+                        unique_issues.append(issue)
+                result.issues = unique_issues
+
+        # Convert to dict and apply limit
+        result_dict = asdict(result)
+        filtered_count = len(result_dict.get('issues', []))
+
+        if max_issues > 0 and result.issues and len(result.issues) > max_issues:
+            result_dict['issues'] = result_dict['issues'][:max_issues]
+            result_dict['truncated'] = True
+            result_dict['total_issues'] = original_count
+            result_dict['filtered_issues'] = filtered_count
+            result_dict['showing_issues'] = max_issues
+            result_dict['message'] = f"Showing {max_issues} of {filtered_count} filtered issues (total: {original_count})"
+        elif filtered_count < original_count:
+            result_dict['filtered'] = True
+            result_dict['total_issues'] = original_count
+            result_dict['showing_issues'] = filtered_count
+            result_dict['message'] = f"Showing {filtered_count} of {original_count} issues after filtering"
+
+        return result_dict
 
     async def _run_validation(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Run both analyze and test."""
