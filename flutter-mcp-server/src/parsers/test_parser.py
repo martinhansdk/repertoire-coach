@@ -140,6 +140,16 @@ class TestParser:
             if 'Warning:' in line:
                 warnings.append(line.strip())
 
+        # If we didn't find a summary line, extract final counts from the last progress line
+        # This handles the compact reporter format which doesn't have a summary line
+        if summary.total == 0 and summary.passed == 0:
+            # Find the last line with test progress (e.g., "00:53 +586 ~52:")
+            for line in reversed(lines):
+                test_match = self.TEST_LINE_PATTERN.match(line)
+                if test_match:
+                    # Found the last progress line, use these as final counts
+                    break
+
         # Calculate total
         summary.total = summary.passed + summary.failed + summary.skipped
 
