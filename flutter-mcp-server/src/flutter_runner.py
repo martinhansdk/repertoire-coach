@@ -26,16 +26,29 @@ class FlutterRunner:
         """Check if Docker is available."""
         return shutil.which("docker") is not None
 
-    def _build_docker_command(self, flutter_args: List[str]) -> List[str]:
+    def _build_docker_command(self, flutter_args: List[str], with_pub_get: bool = False) -> List[str]:
         """Build Docker command to run Flutter."""
-        return [
-            "docker", "run",
-            "--rm",
-            "-v", f"{self.project_root.absolute()}:/app",
-            "-w", "/app",
-            self.docker_image,
-            "flutter"
-        ] + flutter_args
+        if with_pub_get:
+            # Run pub get first, then the command, all in the same container
+            flutter_cmd = " ".join(["flutter"] + flutter_args)
+            return [
+                "docker", "run",
+                "--rm",
+                "-v", f"{self.project_root.absolute()}:/app",
+                "-w", "/app",
+                self.docker_image,
+                "sh", "-c",
+                f"flutter pub get > /dev/null 2>&1 && {flutter_cmd}"
+            ]
+        else:
+            return [
+                "docker", "run",
+                "--rm",
+                "-v", f"{self.project_root.absolute()}:/app",
+                "-w", "/app",
+                self.docker_image,
+                "flutter"
+            ] + flutter_args
 
     def _run_command(
         self,
@@ -74,6 +87,7 @@ class FlutterRunner:
         self,
         args: List[str],
         use_docker: Optional[bool] = None,
+        with_pub_get: bool = False,
         timeout: int = 300
     ) -> Tuple[int, str, str]:
         """Run a Flutter command and return results.
@@ -81,6 +95,7 @@ class FlutterRunner:
         Args:
             args: Flutter command arguments (e.g., ['test', '--reporter', 'compact'])
             use_docker: Override docker setting for this command
+            with_pub_get: If True, run 'flutter pub get' first in the same container
             timeout: Command timeout in seconds
 
         Returns:
@@ -92,7 +107,7 @@ class FlutterRunner:
             if not self._check_docker_available():
                 raise RuntimeError("Docker is not available. Install Docker or set useDocker=false")
 
-            cmd = self._build_docker_command(args)
+            cmd = self._build_docker_command(args, with_pub_get=with_pub_get)
         else:
             cmd = [self.flutter_path] + args
 
@@ -126,7 +141,7 @@ class FlutterRunner:
         if coverage:
             args.append("--coverage")
 
-        return self.run_flutter_command(args, use_docker=use_docker, timeout=timeout)
+        return self.run_flutter_command(args, use_docker=use_docker, with_pub_get=True, timeout=timeout)
 
     def analyze(
         self,
@@ -140,7 +155,7 @@ class FlutterRunner:
         if path:
             args.append(path)
 
-        return self.run_flutter_command(args, use_docker=use_docker, timeout=timeout)
+        return self.run_flutter_command(args, use_docker=use_docker, with_pub_get=True, timeout=timeout)
 
     def build(
         self,
@@ -167,7 +182,7 @@ class FlutterRunner:
         if build_name:
             args.extend(["--build-name", build_name])
 
-        return self.run_flutter_command(args, use_docker=use_docker, timeout=timeout)
+        return self.run_flutter_command(args, use_docker=use_docker, with_pub_get=True, timeout=timeout)
 
     def pub_get(
         self,

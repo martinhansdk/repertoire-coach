@@ -285,11 +285,6 @@ class FlutterMCPServer:
 
             raise ValueError(f"Unknown resource: {uri}")
 
-    async def _ensure_dependencies(self, use_docker: bool = True) -> None:
-        """Ensure Flutter dependencies are installed (run pub get)."""
-        # Run pub get to ensure dependencies are available
-        self.runner.pub_get(use_docker=use_docker, timeout=120)
-
     async def _flutter_test(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Execute flutter test command."""
         start_time = time.time()
@@ -307,10 +302,7 @@ class FlutterMCPServer:
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
 
-        # Ensure dependencies are installed
-        await self._ensure_dependencies(use_docker)
-
-        # Run test
+        # Run test (pub get is automatically run first in the same container)
         returncode, stdout, stderr = self.runner.test(
             path=path,
             name=name,
@@ -347,10 +339,7 @@ class FlutterMCPServer:
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
 
-        # Ensure dependencies are installed
-        await self._ensure_dependencies(use_docker)
-
-        # Run analyze
+        # Run analyze (pub get is automatically run first in the same container)
         returncode, stdout, stderr = self.runner.analyze(
             path=path,
             use_docker=use_docker,
@@ -403,10 +392,7 @@ class FlutterMCPServer:
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
 
-        # Ensure dependencies are installed
-        await self._ensure_dependencies(use_docker)
-
-        # Run build
+        # Run build (pub get is automatically run first in the same container)
         returncode, stdout, stderr = self.runner.build(
             target=target,
             mode=mode,
