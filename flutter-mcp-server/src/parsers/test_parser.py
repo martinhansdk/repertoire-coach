@@ -45,10 +45,24 @@ class TestParser:
         collecting_error = False
 
         for i, line in enumerate(lines):
-            # Parse test progress line (e.g., "00:05 +42 -1: test_file.dart: Test Name")
+            # Parse test progress line (e.g., "00:05 +42 -1 ~3: test_file.dart: Test Name")
             test_match = self.TEST_LINE_PATTERN.match(line)
             if test_match:
                 time, status, count, description = test_match.groups()
+
+                # Extract ALL status+count pairs from the line (compact reporter includes all)
+                # Find all patterns like "+42", "-1", "~3" in the line
+                all_counts = re.findall(r'([+\-~])(\d+)', line)
+                for stat, cnt in all_counts:
+                    if stat == '+':
+                        summary.passed = int(cnt)
+                    elif stat == '-':
+                        summary.failed = int(cnt)
+                        collecting_error = True
+                        error_message_lines = []
+                        stack_trace_lines = []
+                    elif stat == '~':
+                        summary.skipped = int(cnt)
 
                 # Extract file and test name from description
                 parts = description.split(': ')
@@ -58,15 +72,6 @@ class TestParser:
                 else:
                     current_test_name = description.strip()
 
-                if status == '+':
-                    summary.passed = int(count)
-                elif status == '-':
-                    summary.failed = int(count)
-                    collecting_error = True
-                    error_message_lines = []
-                    stack_trace_lines = []
-                elif status == '~':
-                    summary.skipped = int(count)
                 continue
 
             # Parse compilation errors
