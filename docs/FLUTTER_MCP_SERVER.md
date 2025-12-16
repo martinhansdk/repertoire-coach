@@ -61,11 +61,13 @@ Run Flutter tests with structured output.
   failFast?: boolean;         // Stop on first failure (default: false)
   coverage?: boolean;         // Generate coverage report (default: false)
   verbose?: boolean;          // Include full output in cache (default: false)
-  useDocker?: boolean;        // Run in Docker container (default: false)
-  dockerImage?: string;       // Docker image (default: ghcr.io/cirruslabs/flutter:stable)
+  useDocker?: boolean;        // Run in Docker container (default: true)
+  dockerImage?: string;       // Docker image (default: repertoire-coach-builder)
   timeout?: number;           // Timeout in seconds (default: 300)
 }
 ```
+
+**Note:** The server automatically runs `flutter pub get` before running tests in the same Docker container to ensure dependencies are available. This matches the behavior of the validation scripts.
 
 **Returns:**
 ```typescript
@@ -105,11 +107,14 @@ Run Flutter analysis with structured errors.
 {
   path?: string;              // Specific file/directory (default: entire project)
   severity?: "info" | "warning" | "error";  // Minimum severity (default: info)
-  useDocker?: boolean;
-  dockerImage?: string;
-  timeout?: number;
+  maxIssues?: number;         // Max issues to return (default: 50, 0 for all)
+  useDocker?: boolean;        // Run in Docker container (default: true)
+  dockerImage?: string;       // Docker image (default: repertoire-coach-builder)
+  timeout?: number;           // Timeout in seconds (default: 120)
 }
 ```
+
+**Note:** The server automatically runs `flutter pub get` before running analysis in the same Docker container to ensure dependencies are available.
 
 **Returns:**
 ```typescript
@@ -140,16 +145,18 @@ Run Flutter build with structured output.
 **Parameters:**
 ```typescript
 {
-  target: "android" | "ios" | "web" | "apk" | "appbundle";
+  target: "android" | "ios" | "web" | "apk" | "appbundle";  // required
   mode?: "debug" | "profile" | "release";  // default: debug
   flavor?: string;            // Build flavor
   buildNumber?: string;
   buildName?: string;
-  useDocker?: boolean;
-  dockerImage?: string;
+  useDocker?: boolean;        // Run in Docker container (default: true)
+  dockerImage?: string;       // Docker image (default: repertoire-coach-builder)
   timeout?: number;           // default: 600 (10 min)
 }
 ```
+
+**Note:** The server automatically runs `flutter pub get` before running build in the same Docker container to ensure dependencies are available.
 
 **Returns:**
 ```typescript
