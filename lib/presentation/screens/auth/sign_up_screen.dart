@@ -28,49 +28,50 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     super.dispose();
   }
 
+  bool _isLoading = false;
+
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    await ref.read(authNotifierProvider.notifier).signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          displayName: _displayNameController.text.trim().isEmpty
-              ? null
-              : _displayNameController.text.trim(),
-        );
+    setState(() => _isLoading = true);
 
-    if (mounted) {
-      final authState = ref.read(authNotifierProvider);
-      authState.when(
-        data: (_) {
-          // Sign up successful, navigate back to sign in
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created successfully! Please sign in.'),
-              backgroundColor: Colors.green,
-            ),
+    try {
+      await ref.read(authActionsProvider).signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            displayName: _displayNameController.text.trim().isEmpty
+                ? null
+                : _displayNameController.text.trim(),
           );
-        },
-        loading: () {},
-        error: (error, stackTrace) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Sign up failed: ${error.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        },
-      );
+
+      // Sign up successful
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully! Please sign in.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sign up failed: ${error.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authNotifierProvider);
-    final isLoading = authState.isLoading;
+    final isLoading = _isLoading;
 
     return Scaffold(
       appBar: AppBar(

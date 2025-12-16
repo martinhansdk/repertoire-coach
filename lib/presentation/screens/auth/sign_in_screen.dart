@@ -24,28 +24,31 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     super.dispose();
   }
 
+  bool _isLoading = false;
+
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    await ref.read(authNotifierProvider.notifier).signIn(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+    setState(() => _isLoading = true);
 
-    if (mounted) {
-      final authState = ref.read(authNotifierProvider);
-      authState.whenOrNull(
-        error: (error, stackTrace) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Sign in failed: ${error.toString()}'),
-              backgroundColor: Colors.red,
-            ),
+    try {
+      await ref.read(authActionsProvider).signIn(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
           );
-        },
-      );
+      // Sign in successful - AuthWrapper will handle navigation
+    } catch (error) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sign in failed: ${error.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -57,8 +60,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authNotifierProvider);
-    final isLoading = authState.isLoading;
+    final isLoading = _isLoading;
 
     return Scaffold(
       appBar: AppBar(

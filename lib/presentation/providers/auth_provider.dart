@@ -43,62 +43,52 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   );
 });
 
-/// State notifier for authentication actions.
-class AuthNotifier extends StateNotifier<AsyncValue<void>> {
+/// Authentication actions provider.
+///
+/// Provides methods to perform authentication operations.
+/// UI screens should handle loading/error states locally.
+final authActionsProvider = Provider<AuthActions>((ref) {
+  final authRepository = ref.watch(authRepositoryProvider);
+  return AuthActions(authRepository);
+});
+
+/// Authentication actions class.
+class AuthActions {
   final AuthRepository _authRepository;
 
-  AuthNotifier(this._authRepository) : super(const AsyncValue.data(null));
+  AuthActions(this._authRepository);
 
   /// Sign up a new user.
-  Future<void> signUp({
+  Future<User?> signUp({
     required String email,
     required String password,
     String? displayName,
   }) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await _authRepository.signUp(
-        email: email,
-        password: password,
-        displayName: displayName,
-      );
-    });
+    return await _authRepository.signUp(
+      email: email,
+      password: password,
+      displayName: displayName,
+    );
   }
 
   /// Sign in an existing user.
-  Future<void> signIn({
+  Future<User?> signIn({
     required String email,
     required String password,
   }) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await _authRepository.signIn(
-        email: email,
-        password: password,
-      );
-    });
+    return await _authRepository.signIn(
+      email: email,
+      password: password,
+    );
   }
 
   /// Sign out the current user.
   Future<void> signOut() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await _authRepository.signOut();
-    });
+    await _authRepository.signOut();
   }
 
   /// Send a password reset email.
   Future<void> resetPassword(String email) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await _authRepository.resetPassword(email);
-    });
+    await _authRepository.resetPassword(email);
   }
 }
-
-/// Provider for the AuthNotifier.
-final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AsyncValue<void>>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(authRepository);
-});
