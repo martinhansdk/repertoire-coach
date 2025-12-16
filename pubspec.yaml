@@ -58,6 +58,9 @@ dependencies:
   file_picker: ^8.1.4
   receive_sharing_intent: ^1.8.1
 
+  # Cloud sync and authentication
+  supabase_flutter: ^2.5.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

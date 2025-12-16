@@ -1,11 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/config/environment.dart';
 import 'core/constants.dart';
+import 'core/services/supabase_service.dart';
 import 'core/theme.dart';
-import 'presentation/screens/choir_list_screen.dart';
-import 'presentation/screens/concert_list_screen.dart';
+import 'presentation/screens/auth/auth_wrapper.dart';
+import 'presentation/screens/home_screen.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter binding is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase if credentials are configured
+  if (Environment.isSupabaseConfigured) {
+    try {
+      await SupabaseService.initialize(
+        url: Environment.supabaseUrl,
+        anonKey: Environment.supabaseAnonKey,
+      );
+      print('Supabase initialized successfully');
+    } catch (e) {
+      print('Failed to initialize Supabase: $e');
+      print('App will run in offline-only mode');
+    }
+  } else {
+    print('Supabase credentials not configured - running in offline-only mode');
+  }
+
   runApp(
     // Wrap the app in ProviderScope to enable Riverpod
     const ProviderScope(
@@ -28,52 +49,10 @@ class RepertoireCoachApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const _HomeScreen(),
+      home: SupabaseService.isInitialized
+          ? const AuthWrapper() // Cloud-enabled mode
+          : const HomeScreen(), // Offline-only mode
       debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-/// Home screen with bottom navigation
-class _HomeScreen extends StatefulWidget {
-  const _HomeScreen();
-
-  @override
-  State<_HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<_HomeScreen> {
-  int _selectedIndex = 0;
-
-  static const List<Widget> _screens = [
-    ChoirListScreen(),
-    ConcertListScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Choirs',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.event_outlined),
-            selectedIcon: Icon(Icons.event),
-            label: 'Concerts',
-          ),
-        ],
-      ),
     );
   }
 }
