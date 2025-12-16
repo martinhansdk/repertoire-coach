@@ -187,24 +187,21 @@ uv run python -c "from src.server import FlutterMCPServer; print('OK')"
 
 ### Custom Docker Image
 
-To use a different Flutter Docker image, update your MCP config:
+The server is configured to use the `repertoire-coach-builder` Docker image by default. To use a different Flutter Docker image, modify `src/server.py` line 33:
 
-```json
-{
-  "mcpServers": {
-    "flutter": {
-      "command": "python3",
-      "args": ["-m", "src.server", "/home/martin/code/repertoire-coach"],
-      "cwd": "/home/martin/code/repertoire-coach/flutter-mcp-server",
-      "env": {
-        "FLUTTER_DOCKER_IMAGE": "ghcr.io/cirruslabs/flutter:3.16.0"
-      }
-    }
-  }
-}
+```python
+# In src/server.py __init__ method
+self.runner = FlutterRunner(
+    docker_enabled=True,
+    docker_image="ghcr.io/cirruslabs/flutter:stable",  # Change this
+    project_root=str(self.project_root)
+)
 ```
 
-Then modify `src/server.py` to read this env var.
+Common alternatives:
+- `ghcr.io/cirruslabs/flutter:stable` - Latest stable Flutter
+- `ghcr.io/cirruslabs/flutter:3.16.0` - Specific Flutter version
+- Your custom image with project dependencies pre-installed
 
 ### Multiple Projects
 
@@ -231,9 +228,14 @@ You can configure multiple Flutter projects:
 
 The server respects these environment variables (if implemented):
 
-- `FLUTTER_DOCKER_IMAGE`: Docker image to use (default: `ghcr.io/cirruslabs/flutter:stable`)
+- `FLUTTER_DOCKER_IMAGE`: Docker image to use (currently hardcoded to `repertoire-coach-builder`)
 - `FLUTTER_PATH`: Path to local Flutter binary (if not using Docker)
 - `MCP_LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
+
+## Key Behaviors
+
+- **Automatic Dependency Installation**: The server automatically runs `flutter pub get` before each command (test, analyze, build) in the same Docker container. This ensures dependencies are always available and matches the behavior of the validation scripts.
+- **Single Container Execution**: Commands like `flutter test` run in a single Docker container with pub get, not separate containers. This prevents the "0 tests" issue caused by missing dependencies.
 
 ## Security Notes
 

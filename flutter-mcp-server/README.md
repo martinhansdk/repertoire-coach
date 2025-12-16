@@ -2,6 +2,8 @@
 
 An MCP (Model Context Protocol) server that provides structured, token-efficient access to Flutter/Dart test and build operations. Designed to reduce token usage by 60-80% when working with test-heavy workflows by returning compact structured data instead of raw console output.
 
+**Note:** This server is configured for the repertoire-coach project using the `repertoire-coach-builder` Docker image. To use with other projects, either build that image or modify `src/server.py` line 33 to use `ghcr.io/cirruslabs/flutter:stable` or your preferred Flutter Docker image.
+
 ## Features
 
 - **Structured Results**: Returns JSON instead of raw Flutter output
@@ -423,18 +425,25 @@ Total: 2,500 tokens
 
 ## Docker Integration
 
-The server runs Flutter commands in Docker by default, which means:
+The server runs Flutter commands in Docker by default using the `repertoire-coach-builder` image, which means:
 
 ✅ No local Flutter installation required
 ✅ Consistent Flutter environment across machines
 ✅ Isolated from host system
-✅ Easy to update Flutter version
+✅ Dependencies automatically installed (pub get runs in same container)
+
+**Important:** The server automatically runs `flutter pub get` before each command (test, analyze, build) in the same Docker container to ensure dependencies are available. This matches the behavior of the validation scripts.
 
 To disable Docker and use local Flutter:
 ```json
 {
   "useDocker": false
 }
+```
+
+To use a different Docker image, modify `src/server.py` line 33:
+```python
+docker_image="ghcr.io/cirruslabs/flutter:stable"  # or your preferred image
 ```
 
 ## Examples
@@ -541,9 +550,15 @@ If you get "Docker is not available", either:
 1. Install Docker
 2. Set `useDocker: false` to use local Flutter installation
 
+### Docker image not found
+
+If you get errors about `repertoire-coach-builder` image not found:
+1. Build the Docker image: `docker build -t repertoire-coach-builder -f Dockerfile.build .` (from project root)
+2. Or modify `src/server.py` to use a different image like `ghcr.io/cirruslabs/flutter:stable`
+
 ### Flutter command timeout
 
-Increase the timeout parameter:
+Increase the timeout parameter (note: pub get runs automatically, adding ~10-15s):
 ```json
 {
   "timeout": 600
@@ -553,6 +568,12 @@ Increase the timeout parameter:
 ### Cache not updating
 
 The cache has a 1-hour TTL. To clear expired entries, restart the server.
+
+### Tests show 0 passed
+
+This was fixed in recent versions. Ensure you have the latest code where:
+- Dependencies are installed in the same Docker container as the command
+- Test parser extracts all status counts from compact reporter output
 
 ## Future Enhancements
 
