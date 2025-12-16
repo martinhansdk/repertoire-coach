@@ -185,39 +185,140 @@ Implemented a complete offline-first feature demonstrating the full stack:
 
 ## Phase 2: Cloud Integration
 
-### Supabase Setup
-- [ ] Create Supabase project
-- [ ] Setup PostgreSQL database schema (tables, indexes, triggers)
-- [ ] Implement Row Level Security (RLS) policies for all tables
-- [ ] Setup Supabase Authentication
-- [ ] Implement login/signup screens
-- [ ] Setup Supabase Storage buckets
-- [ ] Define Storage policies (choir-based access control)
+**Status:** 🟡 In Progress - Step 2 (Authentication) Complete
+**Started:** 2025-12-16
+**Current Step:** Step 2 Complete, Ready for Step 3 (Remote Data Sources)
 
-### Data Synchronization
-- [ ] Implement remote data sources (PostgreSQL + Supabase Storage)
-- [ ] Integrate Supabase client in Flutter app
-- [ ] Sync choir data to PostgreSQL (shared among members)
-- [ ] Sync choir membership changes
-- [ ] Sync concert data to PostgreSQL (within choirs, sorted by date)
-- [ ] Sync song metadata to PostgreSQL (within concerts, shared)
-- [ ] Upload audio files to Supabase Storage (choir-scoped paths)
-- [ ] Sync tracks to PostgreSQL (shared)
-- [ ] Sync section markers to PostgreSQL (per-user, private)
-- [ ] Sync playback positions to PostgreSQL (per-user, private)
-- [ ] Sync user's last accessed concert
-- [ ] Download audio files from cloud
-- [ ] Implement real-time subscriptions for critical data updates
-- [ ] Handle offline/online modes
-- [ ] Implement offline queue for pending operations
-- [ ] Background sync service
+### Step 1: Supabase Setup (External - Manual)
+- [ ] Create Supabase project (manual step - documented in plan)
+- [ ] Setup PostgreSQL database schema (SQL provided in ARCHITECTURE.md lines 200-324)
+- [ ] Implement Row Level Security policies (SQL provided in ARCHITECTURE.md lines 376-578)
+- [ ] Setup Supabase Storage buckets with policies (SQL provided in plan)
+- [ ] Enable Email/Password authentication
 
-### User Management
-- [ ] User profile screen
-- [ ] View user's choirs
-- [ ] Leave choir functionality
-- [ ] Sign out functionality
-- [ ] Account settings
+### Step 2: Authentication Layer ✅ COMPLETE (2025-12-16)
+- [x] Add supabase_flutter dependency (^2.5.0)
+- [x] Create SupabaseService singleton for client management
+- [x] Create Environment configuration for credentials
+- [x] Create AuthRepository interface (domain layer)
+- [x] Create AuthRepositoryImpl (data layer)
+- [x] Implement SignInScreen with validation
+- [x] Implement SignUpScreen with validation
+- [x] Create AuthWrapper for routing (sign in vs main app)
+- [x] Create auth providers (AuthActions, currentUserProvider, isAuthenticatedProvider)
+- [x] Update main.dart with conditional initialization
+- [x] Graceful fallback to offline-only mode
+- [x] Extract HomeScreen for reuse
+
+**What Works:**
+- ✅ App compiles successfully (0 errors, 0 warnings)
+- ✅ Auth code passes static analysis
+- ✅ Offline-first design preserved
+- ✅ Two modes: offline-only (no credentials) or cloud-enabled (with Supabase)
+
+**Outstanding Issues:**
+- ⚠️ **No automated tests written** - Test environment issues prevented writing unit/widget tests
+  - Attempted to write AuthRepositoryImpl unit tests but Supabase types difficult to mock
+  - MCP test runner returning "0 tests" despite code compiling
+  - Manual testing with real Supabase recommended
+  - Integration tests would be more valuable than mocked unit tests
+- ⚠️ Uses print() statements instead of proper logging (5 lint warnings)
+- ⚠️ User record creation in users table not tested (happens after sign up)
+
+**Next Actions:**
+1. Manual: Complete Step 1 (Supabase project setup) using plan documentation
+2. Begin Step 3: Remote Data Sources implementation
+
+### Step 3: Remote Data Sources (Next Up)
+- [ ] Create BaseRemoteDataSource with error handling
+- [ ] Create RemoteChoirDataSource (CRUD operations via Supabase PostgreSQL)
+- [ ] Create RemoteConcertDataSource
+- [ ] Create RemoteSongDataSource
+- [ ] Create RemoteTrackDataSource
+- [ ] Create RemoteMarkerDataSource
+- [ ] Create RemoteUserPlaybackStateDataSource
+- [ ] Update all data models to implement fromJson/toJson for Supabase
+- [ ] Write unit tests for each remote data source (mock Supabase client)
+- [ ] Verify JSON serialization matches PostgreSQL schema
+
+### Step 4: Repository Updates (Multi-Source Pattern)
+- [ ] Update ConcertRepositoryImpl to accept both local and remote data sources
+- [ ] Update ChoirRepositoryImpl for multi-source
+- [ ] Update SongRepositoryImpl for multi-source
+- [ ] Update TrackRepositoryImpl for multi-source
+- [ ] Update MarkerRepositoryImpl for multi-source
+- [ ] Implement offline-first pattern (always read from local, sync in background)
+- [ ] Update providers to inject both local and remote data sources
+- [ ] Determine sync mode based on auth state
+- [ ] Write tests for offline/online mode behavior
+
+### Step 5: Sync Engine
+- [ ] Add SyncQueue table to database schema (for offline operations)
+- [ ] Create SyncOperation, SyncConflict, SyncStatus models
+- [ ] Create SyncQueue service for offline queue management
+- [ ] Create SyncService for bidirectional sync
+- [ ] Implement syncToCloud() - upload local changes
+- [ ] Implement syncFromCloud() - download remote changes
+- [ ] Implement conflict resolution (last write wins based on updated_at)
+- [ ] Create sync providers for UI integration
+- [ ] Add periodic background sync (every 5 minutes)
+- [ ] Create sync status indicator widget
+- [ ] Handle network connectivity changes
+- [ ] Write comprehensive sync tests (unit + integration)
+
+### Step 6: Storage Integration (Audio Files)
+- [ ] Create CloudStorageService for Supabase Storage operations
+- [ ] Add storageUrl and storagePath fields to Track model
+- [ ] Update FileStorageService with saveDownloadedFile() method
+- [ ] Implement uploadTrackAudio() in TrackRepository
+- [ ] Implement ensureTrackCached() in TrackRepository (download on demand)
+- [ ] Update file import flow to trigger background upload
+- [ ] Update audio player to ensure file cached before playing
+- [ ] Implement cache management (delete old files if storage full)
+- [ ] Write tests for storage service
+
+### Step 7: Real-time Subscriptions
+- [ ] Create RealtimeService for Supabase Realtime
+- [ ] Subscribe to concerts table changes
+- [ ] Subscribe to songs table changes
+- [ ] Subscribe to tracks table changes
+- [ ] Subscribe to shared marker_sets changes
+- [ ] Handle insert/update/delete events from realtime
+- [ ] Update local database when remote changes occur
+- [ ] Initialize/cleanup subscriptions based on auth state
+- [ ] Write tests for realtime event handling
+
+### Step 8: User Management UI
+- [ ] Update ProfileScreen to display email and edit name
+- [ ] Add SettingsScreen with sync settings (auto-sync, WiFi-only)
+- [ ] Add cache management UI (clear cached audio files)
+- [ ] Update ChoirMembersScreen with email lookup
+- [ ] Add "Leave choir" button for non-owners
+- [ ] Create ConnectionStatusBanner widget (online/offline/syncing)
+- [ ] Add manual sync button in settings
+- [ ] Write widget tests for new screens
+
+### Step 9: Migration Strategy
+- [ ] Create MigrationService to sync existing local data to cloud
+- [ ] Create MigrationScreen with progress UI
+- [ ] Trigger migration on first successful sign in
+- [ ] Mark migration as completed in local storage
+- [ ] Handle migration failures gracefully
+- [ ] Write tests for migration logic
+
+### Step 10: Testing & Integration
+- [ ] Write integration tests for auth flow
+- [ ] Write integration tests for sync flow
+- [ ] Write integration tests for storage flow
+- [ ] Write integration tests for realtime collaboration
+- [ ] Manual testing: new user sign up
+- [ ] Manual testing: existing user migration
+- [ ] Manual testing: multi-device sync
+- [ ] Manual testing: offline/online transitions
+- [ ] Manual testing: real-time collaboration
+- [ ] Performance testing with large datasets
+- [ ] Validate all tests pass (target 70%+ coverage)
+
 
 ## Phase 3: Advanced Playback Features
 
