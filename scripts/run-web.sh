@@ -19,13 +19,29 @@ echo "Getting dependencies and building web assets (this may take a minute)..."
 echo "Server will be available at: http://localhost:8080"
 echo ""
 
+# Load environment variables from .env if it exists
+DART_DEFINES=""
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+  echo "Loading Supabase credentials from .env file..."
+  export $(grep -v '^#' "${PROJECT_ROOT}/.env" | xargs)
+  if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+    DART_DEFINES="--dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+    echo "✓ Supabase configured (cloud mode enabled)"
+  fi
+else
+  echo "⚠ No .env file found - running in offline-only mode"
+fi
+echo ""
+
 # Run Flutter web server and log output
 # First get dependencies, then run the web server
+# Use cirruslabs/flutter image which handles permissions correctly
 docker run --rm \
-  -v "${PROJECT_ROOT}":/app \
+  -v "${PROJECT_ROOT}":/workspace \
+  -w /workspace \
   -p 8080:8080 \
-  repertoire-coach-builder \
-  bash -c "flutter pub get && flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0" 2>&1 | tee "$LOGFILE" | grep -E "Launching|Syncing files|Running|Building|successfully|Failed|Error|Warning|is being served at|Ready|Resolving dependencies|Got dependencies|Waiting for connection"
+  ghcr.io/cirruslabs/flutter:stable \
+  bash -c "flutter pub get && flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0 $DART_DEFINES" 2>&1 | tee "$LOGFILE" | grep -E "Launching|Syncing files|Running|Building|successfully|Failed|Error|Warning|is being served at|Ready|Resolving dependencies|Got dependencies|Waiting for connection"
 
 EXIT_CODE=${PIPESTATUS[0]}
 

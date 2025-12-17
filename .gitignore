@@ -46,3 +46,7 @@ app.*.map.json
 
 # Claude Code local settings
 .claude/
+
+# Environment variables (contains secrets)
+.env
+.env.local
