@@ -37,8 +37,8 @@ echo ""
 # First get dependencies, then run the web server
 # Use cirruslabs/flutter image which handles permissions correctly
 docker run --rm \
-  -v "${PROJECT_ROOT}":/workspace \
-  -w /workspace \
+  -v "${PROJECT_ROOT}":/app \
+  -w /app \
   -p 8080:8080 \
   ghcr.io/cirruslabs/flutter:stable \
   bash -c "flutter pub get && flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0 $DART_DEFINES" 2>&1 | tee "$LOGFILE" | grep -E "Launching|Syncing files|Running|Building|successfully|Failed|Error|Warning|is being served at|Ready|Resolving dependencies|Got dependencies|Waiting for connection"

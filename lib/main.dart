@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/config/environment.dart';
@@ -18,13 +20,13 @@ void main() async {
         url: Environment.supabaseUrl,
         anonKey: Environment.supabaseAnonKey,
       );
-      print('Supabase initialized successfully');
+      developer.log('Supabase initialized successfully', name: 'main');
     } catch (e) {
-      print('Failed to initialize Supabase: $e');
-      print('App will run in offline-only mode');
+      developer.log('Failed to initialize Supabase: $e', name: 'main', error: e);
+      developer.log('App will run in offline-only mode', name: 'main');
     }
   } else {
-    print('Supabase credentials not configured - running in offline-only mode');
+    developer.log('Supabase credentials not configured - running in offline-only mode', name: 'main');
   }
 
   runApp(

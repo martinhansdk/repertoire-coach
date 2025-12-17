@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/domain/repositories/auth_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -115,7 +117,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       // Log error but don't fail sign up if user record creation fails
       // The user is still authenticated via Supabase Auth
-      print('Warning: Failed to create user record: $e');
+      developer.log('Warning: Failed to create user record: $e', name: 'AuthRepositoryImpl', error: e);
     }
   }
 }
