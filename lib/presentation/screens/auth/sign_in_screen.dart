@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
+import 'package:repertoire_coach/presentation/screens/auth/forgot_password_screen.dart';
 import 'package:repertoire_coach/presentation/screens/auth/sign_up_screen.dart';
 
 /// Screen for user sign in.
@@ -55,6 +56,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   void _navigateToSignUp() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const SignUpScreen()),
+    );
+  }
+
+  void _navigateToForgotPassword() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
     );
   }
 
@@ -143,7 +150,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   },
                   enabled: !isLoading,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+
+                // Forgot password link
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: isLoading ? null : _navigateToForgotPassword,
+                    child: const Text('Forgot Password?'),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // Sign in button
                 ElevatedButton(
