@@ -1,16 +1,16 @@
 import 'package:drift/drift.dart';
-import 'package:drift/wasm.dart';
+// ignore: deprecated_member_use
+import 'package:drift/web.dart';
 
-/// Open database connection for web platform (uses WASM + IndexedDB)
+/// Open database connection for web platform (uses IndexedDB)
+///
+/// Note: This uses IndexedDB directly without SQLite WASM.
+/// While this works, it has some limitations compared to SQLite.
+/// For production, consider setting up WASM support for full SQLite compatibility.
 LazyDatabase openDatabaseConnection() {
   return LazyDatabase(() async {
-    // Create database with IndexedDB storage (simple mode, no web worker)
-    final database = await WasmDatabase.open(
-      databaseName: 'repertoire_coach_db',
-      sqlite3Uri: Uri.parse('sqlite3.wasm'),
-      driftWorkerUri: Uri.parse('drift_worker.dart.js'),
+    return WebDatabase.withStorage(
+      await DriftWebStorage.indexedDbIfSupported('repertoire_coach_db'),
     );
-
-    return database.resolvedExecutor;
   });
 }
