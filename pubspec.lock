@@ -973,6 +973,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.5.40"
+  sqlite3_web:
+    dependency: "direct main"
+    description:
+      name: sqlite3_web
+      sha256: "73f730b621f5c255722f0e35cf5fc5f38610d9b18e80f70c2c532008cdb83e39"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   sqlparser:
     dependency: transitive
     description:
