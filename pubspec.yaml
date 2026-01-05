@@ -61,6 +61,7 @@ dependencies:
 
   # Cloud sync and authentication
   supabase_flutter: ^2.5.0
+  universal_html: ^2.2.4
 
 dev_dependencies:
   flutter_test:

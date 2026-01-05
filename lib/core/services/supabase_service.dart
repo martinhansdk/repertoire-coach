@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Singleton service for managing Supabase client initialization and access.
@@ -67,12 +68,27 @@ class SupabaseService {
       throw ArgumentError.value(anonKey, 'anonKey', 'Cannot be empty');
     }
 
-    await Supabase.initialize(
-      url: url,
-      anonKey: anonKey,
-      // Enable debug logging in debug mode
-      debug: false,
-    );
+    // Initialize Supabase with platform-specific auth options
+    if (kIsWeb) {
+      // On web, configure PKCE flow and session detection for proper
+      // handling of email confirmation and password reset flows
+      await Supabase.initialize(
+        url: url,
+        anonKey: anonKey,
+        debug: false,
+        authOptions: const FlutterAuthClientOptions(
+          authFlowType: AuthFlowType.pkce,
+          detectSessionInUri: true,
+        ),
+      );
+    } else {
+      // On mobile platforms, use default auth options
+      await Supabase.initialize(
+        url: url,
+        anonKey: anonKey,
+        debug: false,
+      );
+    }
 
     final service = SupabaseService._();
     service._client = Supabase.instance.client;

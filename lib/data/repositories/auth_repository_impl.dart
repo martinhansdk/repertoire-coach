@@ -1,8 +1,10 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/domain/repositories/auth_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:universal_html/html.dart' as html show window;
 
 /// Implementation of [AuthRepository] using Supabase Auth.
 class AuthRepositoryImpl implements AuthRepository {
@@ -11,6 +13,17 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._supabaseService);
 
   SupabaseClient get _client => _supabaseService.client;
+
+  /// Get the redirect URL for auth callbacks on web.
+  ///
+  /// On web, this returns the current origin (e.g., http://localhost:8080).
+  /// On other platforms, returns null (not needed for mobile).
+  String? get _redirectUrl {
+    if (kIsWeb) {
+      return html.window.location.origin;
+    }
+    return null;
+  }
 
   @override
   Future<User?> signUp({
@@ -23,6 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
         email: email,
         password: password,
         data: displayName != null ? {'display_name': displayName} : null,
+        emailRedirectTo: _redirectUrl,
       );
 
       // If sign up successful, create user record in our users table
@@ -87,7 +101,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> resetPassword(String email) async {
     try {
-      await _client.auth.resetPasswordForEmail(email);
+      await _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: _redirectUrl,
+      );
     } on AuthException catch (e) {
       throw AuthException(e.message, statusCode: e.statusCode);
     } catch (e) {
