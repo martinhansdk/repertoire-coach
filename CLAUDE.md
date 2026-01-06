@@ -32,6 +32,27 @@ scripts/build.sh       # Builds app in Docker
 docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
+**Running the Web Server (for development/testing):**
+```bash
+# Run Flutter web development server with hot reload
+scripts/run-web.sh
+
+# The server will be available at: http://localhost:8080
+# Press Ctrl+C to stop the server
+```
+
+The `run-web.sh` script:
+- Automatically loads Supabase credentials from `.env`
+- Runs `flutter pub get` to ensure dependencies are up to date
+- Starts the Flutter development server with hot reload support
+- Logs output to `logs/web-run-{timestamp}.log`
+
+**IMPORTANT:** Do NOT use simple HTTP servers (like `python3 -m http.server`) to serve Flutter web builds. Flutter's development server provides:
+- Hot reload for faster development
+- Proper MIME types and headers
+- Source maps for debugging
+- WebSocket support for development tools
+
 This applies to:
 - Claude Code (you)
 - All specialized agents (flutter-master-coder, flutter-test-architect, etc.)
