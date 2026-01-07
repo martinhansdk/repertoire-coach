@@ -59,6 +59,31 @@ On the build configuration page, enter:
 > - Go to Settings > API
 > - Copy "Project URL" and "anon/public" key
 
+### 3b. Configure Supabase Authentication Redirects
+
+After deployment, you need to configure Supabase to redirect to your production URL:
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project
+3. Navigate to **Authentication** → **URL Configuration**
+4. Configure the following:
+
+**Site URL**: Set to your Cloudflare Pages URL
+```
+https://your-app.pages.dev
+```
+
+**Redirect URLs**: Add these patterns (click "Add URL" for each):
+```
+https://your-app.pages.dev/**
+http://localhost:8080/**
+http://localhost:3000/**
+```
+
+> **Why this matters**: Without these settings, password reset emails and OAuth redirects will fail or redirect to localhost. The `/**` wildcard allows all routes under your domain.
+
+**If you add a custom domain later**, remember to add it to the redirect URLs too.
+
 ### 4. Deploy
 
 1. Click **Save and Deploy**
@@ -262,7 +287,22 @@ wrangler login
 wrangler pages deploy build/web --project-name=repertoire-coach
 ```
 
-### 5. Subsequent Deploys
+### 5. Configure Supabase Redirects
+
+After your first deployment, configure Supabase authentication:
+
+1. Note your Cloudflare Pages URL (shown after deployment)
+2. Go to [Supabase Dashboard](https://supabase.com/dashboard) → Your Project
+3. Navigate to **Authentication** → **URL Configuration**
+4. Set **Site URL**: `https://your-app.pages.dev`
+5. Add **Redirect URLs**:
+   - `https://your-app.pages.dev/**`
+   - `http://localhost:8080/**`
+   - `http://localhost:3000/**`
+
+This ensures password resets and OAuth work correctly.
+
+### 6. Subsequent Deploys
 
 Just run:
 ```bash
@@ -273,6 +313,7 @@ Just run:
 - Faster builds (uses your local machine)
 - More control over the build process
 - No need to set up CI/CD
+- Simpler initial setup
 
 **Disadvantages:**
 - Manual deployment (not automatic on git push)
