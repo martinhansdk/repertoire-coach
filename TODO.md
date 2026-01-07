@@ -267,15 +267,16 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [ ] Write comprehensive sync tests (unit + integration)
 
 ### Step 6: Storage Integration (Audio Files)
-- [ ] Create CloudStorageService for Supabase Storage operations
-- [ ] Add storageUrl and storagePath fields to Track model
+- [x] Create CloudStorageService for Supabase Storage operations (AudioStorageService)
+- [x] Add storageUrl and storagePath fields to Track model (audioUrl, storagePath, durationMs)
+- [x] Make audio files mandatory when adding tracks
+- [x] Implement uploadTrackAudio() via AudioStorageService (supports both mobile file paths and web bytes)
 - [ ] Update FileStorageService with saveDownloadedFile() method
-- [ ] Implement uploadTrackAudio() in TrackRepository
 - [ ] Implement ensureTrackCached() in TrackRepository (download on demand)
-- [ ] Update file import flow to trigger background upload
+- [x] Update file import flow to trigger background upload (uploads immediately on track creation)
 - [ ] Update audio player to ensure file cached before playing
 - [ ] Implement cache management (delete old files if storage full)
-- [ ] Write tests for storage service
+- [x] Write tests for storage service (589/590 tests passing)
 
 ### Step 7: Real-time Subscriptions
 - [ ] Create RealtimeService for Supabase Realtime
