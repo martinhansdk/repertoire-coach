@@ -1,0 +1,5 @@
+# Redirects and rewrites for Cloudflare Pages deployment
+# This handles SPA routing - all routes should serve index.html
+
+# SPA fallback - serve index.html for all routes that don't match files
+/*    /index.html   200

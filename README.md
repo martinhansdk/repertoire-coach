@@ -16,7 +16,7 @@ A cross-platform mobile and desktop application designed to help choir members p
 ## Technology Stack
 
 - **Flutter**: Cross-platform app development
-- **Firebase**: Backend services (Authentication, Firestore, Storage)
+- **Supabase**: Backend services (Authentication, PostgreSQL Database, Storage)
 - **Native Android**: For Android Auto integration
 - **just_audio**: High-quality audio playback
 
@@ -89,6 +89,8 @@ python3 -m http.server 8000
 - [Requirements](REQUIREMENTS.md) - Complete feature requirements and user workflows
 - [Architecture](ARCHITECTURE.md) - Technical design, data models, and implementation details
 - [TODO](TODO.md) - Development tasks and progress tracking
+- [Docker & Deployment](DOCKER.md) - Docker setup and device deployment
+- [Cloudflare Pages](CLOUDFLARE.md) - Web hosting on Cloudflare Pages
 
 ## Contributing
 
