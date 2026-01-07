@@ -17,23 +17,15 @@ LOGFILE="${PROJECT_ROOT}/logs/test-${TIMESTAMP}.log"
 echo "Running flutter test..."
 
 # Run inside docker and capture all output to log file
-# Use root user in CI to avoid permission issues with mounted volumes
-if [ -n "$CI" ]; then
-  DOCKER_USER="--user root"
-  DOCKER_ENV="-e CI=true"
-else
-  DOCKER_USER=""
-  DOCKER_ENV=""
-fi
-
-docker run --rm $DOCKER_USER $DOCKER_ENV \
-  -v "${PROJECT_ROOT}:/app" \
-  repertoire-coach-builder \
+# Use cirruslabs/flutter image for consistent environment
+docker run --rm \
+  -v "${PROJECT_ROOT}":/app \
+  -w /app \
+  ghcr.io/cirruslabs/flutter:stable \
   sh -c '
-    if [ -n "$CI" ]; then
-      git config --global --add safe.directory /opt/flutter
-    fi
-    flutter pub get
+    # Clean up any existing build artifacts that might have wrong permissions
+    rm -rf .dart_tool build
+    flutter pub get > /dev/null 2>&1
     flutter test "$@"
   ' sh "$@" > "$LOGFILE" 2>&1
 

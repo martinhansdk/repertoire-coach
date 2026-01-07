@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'auth_wrapper.dart';
 
 /// Screen for completing password reset after clicking email link.
 ///
@@ -211,9 +212,21 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
                   // Sign in button
                   FilledButton(
-                    onPressed: () {
-                      // Navigate back to sign in
-                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    onPressed: () async {
+                      // Sign out the user so they can sign in with new password
+                      await Supabase.instance.client.auth.signOut();
+
+                      // Navigate to AuthWrapper which will show SignInScreen
+                      // Use pushAndRemoveUntil to clear navigation stack
+                      // This works reliably in web apps where you arrive from email links
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const AuthWrapper(),
+                          ),
+                          (route) => false, // Remove all previous routes
+                        );
+                      }
                     },
                     child: const Text('Go to Sign In'),
                   ),
