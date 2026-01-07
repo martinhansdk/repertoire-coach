@@ -53,6 +53,37 @@ The `run-web.sh` script:
 - Source maps for debugging
 - WebSocket support for development tools
 
+**CRITICAL: Drift WASM Version Matching**
+
+The web platform uses WebAssembly files that **MUST** match the exact package versions in `pubspec.yaml`:
+
+```bash
+# ALWAYS check pubspec.yaml versions first:
+grep "drift:" pubspec.yaml     # Example: drift: ^2.29.0
+grep "sqlite3:" pubspec.yaml   # Example: sqlite3: ^2.9.4
+```
+
+Then download matching WASM files to `web/` directory:
+
+| Package | Version | WASM File | Download From |
+|---------|---------|-----------|---------------|
+| `drift: ^2.29.0` | 2.29.0 | `drift_worker.dart.js` | [drift v2.29.0 release](https://github.com/simolus3/drift/releases/tag/drift-2.29.0) |
+| `sqlite3: ^2.9.4` | 2.9.4 | `sqlite3.wasm` | [sqlite3.dart v2.9.4 release](https://github.com/simolus3/sqlite3.dart/releases/tag/sqlite3-2.9.4) |
+
+**Common Errors from Version Mismatches:**
+- `LinkError: Import #18 'dart' 'dispatch_xFunc': function import requires a callable` → drift_worker.dart.js version mismatch
+- `LinkError: Import object field 'dispatch_xFunc' is not a Function` → sqlite3.wasm version mismatch
+- Blank page with "Using WasmStorageImplementation" but no UI → WASM files not loading or version mismatch
+
+**After changing WASM files:**
+```bash
+# 1. Stop the dev server (Ctrl+C or docker kill)
+# 2. Clear build cache if issues persist
+rm -rf .dart_tool/build
+# 3. Restart dev server
+scripts/run-web.sh
+```
+
 This applies to:
 - Claude Code (you)
 - All specialized agents (flutter-master-coder, flutter-test-architect, etc.)
