@@ -8,7 +8,17 @@ This guide covers deploying the Repertoire Coach web app to Cloudflare Pages.
 2. Your repository on GitHub
 3. Supabase project URL and anonymous key
 
-## Deployment Steps
+## Deployment Methods
+
+There are two ways to deploy to Cloudflare Pages:
+1. **Git-based deployment** (recommended) - Cloudflare builds and deploys automatically from GitHub
+2. **Direct upload** - Build locally and upload via Wrangler CLI
+
+Choose the method that matches what you're seeing in the Cloudflare dashboard.
+
+---
+
+## Method 1: Git-Based Deployment (Recommended)
 
 ### 1. Prepare Your Repository
 
@@ -34,10 +44,12 @@ git push
 On the build configuration page, enter:
 
 **Build configurations:**
-- **Framework preset**: None
-- **Build command**: `scripts/build-web-cloudflare.sh`
+- **Framework preset**: None (or select "Flutter" if available)
+- **Build command**: `chmod +x scripts/build-web-cloudflare.sh && scripts/build-web-cloudflare.sh`
 - **Build output directory**: `build/web`
 - **Root directory**: (leave blank)
+
+> **Note**: If Cloudflare Pages shows different fields (like "Deploy command"), you may be using a different deployment method. The standard Pages deployment should show these three fields.
 
 **Environment variables** (click "Add variable"):
 - `SUPABASE_URL`: Your Supabase project URL (e.g., `https://xxxxx.supabase.co`)
@@ -219,6 +231,54 @@ Cloudflare Pages free tier includes:
 - 1 build at a time
 
 This is more than enough for most projects.
+
+---
+
+## Method 2: Direct Upload via Wrangler CLI
+
+If you prefer to build locally and upload directly:
+
+### 1. Install Wrangler
+
+```bash
+npm install -g wrangler
+```
+
+### 2. Login to Cloudflare
+
+```bash
+wrangler login
+```
+
+### 3. Build Locally
+
+```bash
+./scripts/build-web.sh
+```
+
+### 4. Deploy to Cloudflare Pages
+
+```bash
+wrangler pages deploy build/web --project-name=repertoire-coach
+```
+
+### 5. Subsequent Deploys
+
+Just run:
+```bash
+./scripts/build-web.sh && wrangler pages deploy build/web --project-name=repertoire-coach
+```
+
+**Advantages:**
+- Faster builds (uses your local machine)
+- More control over the build process
+- No need to set up CI/CD
+
+**Disadvantages:**
+- Manual deployment (not automatic on git push)
+- Requires Wrangler CLI installed
+
+---
 
 ## Next Steps
 
