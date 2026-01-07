@@ -27,9 +27,9 @@ class AudioUploadResult {
 ///
 /// Handles both mobile (file path) and web (bytes) uploads.
 /// Audio files are organized by choir and track ID:
-/// `audio/{choirId}/{trackId}.{extension}`
+/// `audio_files/{choirId}/{trackId}.{extension}`
 class AudioStorageService {
-  static const String _bucketName = 'audio';
+  static const String _bucketName = 'audio_files';
 
   final SupabaseService _supabaseService;
 
@@ -117,8 +117,8 @@ class AudioStorageService {
     required String trackId,
     required String extension,
   }) async {
-    // Build storage path: audio/{choirId}/{trackId}.{extension}
-    final storagePath = 'audio/$choirId/$trackId$extension';
+    // Build storage path: audio_files/{choirId}/{trackId}.{extension}
+    final storagePath = 'audio_files/$choirId/$trackId$extension';
 
     try {
       // Upload to Supabase Storage

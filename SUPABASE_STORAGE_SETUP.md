@@ -1,25 +1,32 @@
 # Supabase Storage Setup for Audio Files
 
-## Quick Fix: Create the Audio Bucket
+## Note: Using Existing `audio_files` Bucket
 
-You're getting "404 bucket not found" because the Supabase Storage bucket hasn't been created yet.
+The app is configured to use the existing `audio_files` bucket in your Supabase project.
 
-### Option 1: Via Supabase Dashboard (Quickest)
+If you need to set up the bucket or configure policies, follow the instructions below.
+
+### Storage Bucket Setup (if needed)
+
+If the `audio_files` bucket doesn't exist yet:
 
 1. Go to your Supabase project dashboard
 2. Navigate to **Storage** in the left sidebar
 3. Click **New Bucket**
 4. Set the following:
-   - **Name**: `audio`
+   - **Name**: `audio_files`
    - **Public bucket**: ✅ **Yes** (checked)
    - Click **Create bucket**
 
-5. Then set up policies:
-   - Click on the `audio` bucket
-   - Go to **Policies** tab
-   - Click **New Policy**
-   - Select **For full customization**
-   - Add the following 4 policies (copy from below)
+### Configure Policies
+
+To set up Row Level Security policies for the `audio_files` bucket:
+
+1. Click on the `audio_files` bucket
+2. Go to **Policies** tab
+3. Click **New Policy**
+4. Select **For full customization**
+5. Add the following 4 policies (copy from below)
 
 #### Policy 1: INSERT (Upload)
 ```sql
@@ -27,7 +34,7 @@ CREATE POLICY "Choir members can upload audio files"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (
-  bucket_id = 'audio'
+  bucket_id = 'audio_files'
   AND (storage.foldername(name))[1] IN (
     SELECT choir_id::text
     FROM choir_members
@@ -42,7 +49,7 @@ CREATE POLICY "Choir members can read audio files"
 ON storage.objects FOR SELECT
 TO authenticated
 USING (
-  bucket_id = 'audio'
+  bucket_id = 'audio_files'
   AND (storage.foldername(name))[1] IN (
     SELECT choir_id::text
     FROM choir_members
@@ -57,7 +64,7 @@ CREATE POLICY "Choir members can update audio files"
 ON storage.objects FOR UPDATE
 TO authenticated
 USING (
-  bucket_id = 'audio'
+  bucket_id = 'audio_files'
   AND (storage.foldername(name))[1] IN (
     SELECT choir_id::text
     FROM choir_members
@@ -72,7 +79,7 @@ CREATE POLICY "Choir members can delete audio files"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (
-  bucket_id = 'audio'
+  bucket_id = 'audio_files'
   AND (storage.foldername(name))[1] IN (
     SELECT choir_id::text
     FROM choir_members
@@ -103,7 +110,7 @@ supabase db push
 ### Storage Structure
 Audio files are organized by choir and track:
 ```
-audio/
+audio_files/
   {choir_id}/
     {track_id}.mp3
     {track_id}.m4a

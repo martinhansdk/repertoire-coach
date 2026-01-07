@@ -1,17 +1,18 @@
 -- Create audio storage bucket for track audio files
--- Bucket: audio
--- Path structure: audio/{choir_id}/{track_id}.{extension}
+-- Bucket: audio_files
+-- Path structure: audio_files/{choir_id}/{track_id}.{extension}
 
--- Create the storage bucket
+-- Create the storage bucket (if it doesn't already exist)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('audio', 'audio', true);
+VALUES ('audio_files', 'audio_files', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Policy: Allow authenticated users to upload audio files to their choirs
 CREATE POLICY "Choir members can upload audio files"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (
-  bucket_id = 'audio'
+  bucket_id = 'audio_files'
   AND (storage.foldername(name))[1] IN (
     SELECT choir_id::text
     FROM choir_members
@@ -24,7 +25,7 @@ CREATE POLICY "Choir members can read audio files"
 ON storage.objects FOR SELECT
 TO authenticated
 USING (
-  bucket_id = 'audio'
+  bucket_id = 'audio_files'
   AND (storage.foldername(name))[1] IN (
     SELECT choir_id::text
     FROM choir_members
@@ -37,7 +38,7 @@ CREATE POLICY "Choir members can update audio files"
 ON storage.objects FOR UPDATE
 TO authenticated
 USING (
-  bucket_id = 'audio'
+  bucket_id = 'audio_files'
   AND (storage.foldername(name))[1] IN (
     SELECT choir_id::text
     FROM choir_members
@@ -50,7 +51,7 @@ CREATE POLICY "Choir members can delete audio files"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (
-  bucket_id = 'audio'
+  bucket_id = 'audio_files'
   AND (storage.foldername(name))[1] IN (
     SELECT choir_id::text
     FROM choir_members
