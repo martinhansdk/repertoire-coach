@@ -13,11 +13,13 @@ import 'song_detail_screen.dart';
 class SongListScreen extends ConsumerWidget {
   final String concertId;
   final String concertName;
+  final String choirId;
 
   const SongListScreen({
     super.key,
     required this.concertId,
     required this.concertName,
+    required this.choirId,
   });
 
   Future<void> _showCreateSongDialog(BuildContext context) async {
@@ -69,6 +71,7 @@ class SongListScreen extends ConsumerWidget {
                           songId: song.id,
                           songTitle: song.title,
                           concertName: concertName,
+                          choirId: choirId,
                         ),
                       ),
                     );

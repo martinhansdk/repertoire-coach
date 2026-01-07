@@ -1580,6 +1580,24 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, Track> {
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
       'name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _audioUrlMeta =
+      const VerificationMeta('audioUrl');
+  @override
+  late final GeneratedColumn<String> audioUrl = GeneratedColumn<String>(
+      'audio_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _storagePathMeta =
+      const VerificationMeta('storagePath');
+  @override
+  late final GeneratedColumn<String> storagePath = GeneratedColumn<String>(
+      'storage_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _durationMsMeta =
+      const VerificationMeta('durationMs');
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+      'duration_ms', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _filePathMeta =
       const VerificationMeta('filePath');
   @override
@@ -1618,8 +1636,19 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, Track> {
           GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
       defaultValue: const Constant(false));
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, songId, name, filePath, createdAt, updatedAt, deleted, synced];
+  List<GeneratedColumn> get $columns => [
+        id,
+        songId,
+        name,
+        audioUrl,
+        storagePath,
+        durationMs,
+        filePath,
+        createdAt,
+        updatedAt,
+        deleted,
+        synced
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1646,6 +1675,22 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, Track> {
           _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('audio_url')) {
+      context.handle(_audioUrlMeta,
+          audioUrl.isAcceptableOrUnknown(data['audio_url']!, _audioUrlMeta));
+    }
+    if (data.containsKey('storage_path')) {
+      context.handle(
+          _storagePathMeta,
+          storagePath.isAcceptableOrUnknown(
+              data['storage_path']!, _storagePathMeta));
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+          _durationMsMeta,
+          durationMs.isAcceptableOrUnknown(
+              data['duration_ms']!, _durationMsMeta));
     }
     if (data.containsKey('file_path')) {
       context.handle(_filePathMeta,
@@ -1686,6 +1731,12 @@ class $TracksTable extends Tracks with TableInfo<$TracksTable, Track> {
           .read(DriftSqlType.string, data['${effectivePrefix}song_id'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      audioUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}audio_url']),
+      storagePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}storage_path']),
+      durationMs: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}duration_ms']),
       filePath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}file_path']),
       createdAt: attachedDatabase.typeMapping
@@ -1715,7 +1766,16 @@ class Track extends DataClass implements Insertable<Track> {
   /// Track name
   final String name;
 
-  /// Local file path to audio file
+  /// Public URL to access the audio file (from Supabase Storage)
+  final String? audioUrl;
+
+  /// Path in Supabase Storage bucket
+  final String? storagePath;
+
+  /// Duration of the audio file in milliseconds
+  final int? durationMs;
+
+  /// Local file path to audio file (legacy, for offline/temp use)
   final String? filePath;
 
   /// When this record was created
@@ -1733,6 +1793,9 @@ class Track extends DataClass implements Insertable<Track> {
       {required this.id,
       required this.songId,
       required this.name,
+      this.audioUrl,
+      this.storagePath,
+      this.durationMs,
       this.filePath,
       required this.createdAt,
       required this.updatedAt,
@@ -1744,6 +1807,15 @@ class Track extends DataClass implements Insertable<Track> {
     map['id'] = Variable<String>(id);
     map['song_id'] = Variable<String>(songId);
     map['name'] = Variable<String>(name);
+    if (!nullToAbsent || audioUrl != null) {
+      map['audio_url'] = Variable<String>(audioUrl);
+    }
+    if (!nullToAbsent || storagePath != null) {
+      map['storage_path'] = Variable<String>(storagePath);
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
     if (!nullToAbsent || filePath != null) {
       map['file_path'] = Variable<String>(filePath);
     }
@@ -1759,6 +1831,15 @@ class Track extends DataClass implements Insertable<Track> {
       id: Value(id),
       songId: Value(songId),
       name: Value(name),
+      audioUrl: audioUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(audioUrl),
+      storagePath: storagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(storagePath),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
       filePath: filePath == null && nullToAbsent
           ? const Value.absent()
           : Value(filePath),
@@ -1776,6 +1857,9 @@ class Track extends DataClass implements Insertable<Track> {
       id: serializer.fromJson<String>(json['id']),
       songId: serializer.fromJson<String>(json['songId']),
       name: serializer.fromJson<String>(json['name']),
+      audioUrl: serializer.fromJson<String?>(json['audioUrl']),
+      storagePath: serializer.fromJson<String?>(json['storagePath']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
       filePath: serializer.fromJson<String?>(json['filePath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1790,6 +1874,9 @@ class Track extends DataClass implements Insertable<Track> {
       'id': serializer.toJson<String>(id),
       'songId': serializer.toJson<String>(songId),
       'name': serializer.toJson<String>(name),
+      'audioUrl': serializer.toJson<String?>(audioUrl),
+      'storagePath': serializer.toJson<String?>(storagePath),
+      'durationMs': serializer.toJson<int?>(durationMs),
       'filePath': serializer.toJson<String?>(filePath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1802,6 +1889,9 @@ class Track extends DataClass implements Insertable<Track> {
           {String? id,
           String? songId,
           String? name,
+          Value<String?> audioUrl = const Value.absent(),
+          Value<String?> storagePath = const Value.absent(),
+          Value<int?> durationMs = const Value.absent(),
           Value<String?> filePath = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt,
@@ -1811,6 +1901,9 @@ class Track extends DataClass implements Insertable<Track> {
         id: id ?? this.id,
         songId: songId ?? this.songId,
         name: name ?? this.name,
+        audioUrl: audioUrl.present ? audioUrl.value : this.audioUrl,
+        storagePath: storagePath.present ? storagePath.value : this.storagePath,
+        durationMs: durationMs.present ? durationMs.value : this.durationMs,
         filePath: filePath.present ? filePath.value : this.filePath,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -1822,6 +1915,11 @@ class Track extends DataClass implements Insertable<Track> {
       id: data.id.present ? data.id.value : this.id,
       songId: data.songId.present ? data.songId.value : this.songId,
       name: data.name.present ? data.name.value : this.name,
+      audioUrl: data.audioUrl.present ? data.audioUrl.value : this.audioUrl,
+      storagePath:
+          data.storagePath.present ? data.storagePath.value : this.storagePath,
+      durationMs:
+          data.durationMs.present ? data.durationMs.value : this.durationMs,
       filePath: data.filePath.present ? data.filePath.value : this.filePath,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1836,6 +1934,9 @@ class Track extends DataClass implements Insertable<Track> {
           ..write('id: $id, ')
           ..write('songId: $songId, ')
           ..write('name: $name, ')
+          ..write('audioUrl: $audioUrl, ')
+          ..write('storagePath: $storagePath, ')
+          ..write('durationMs: $durationMs, ')
           ..write('filePath: $filePath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1846,8 +1947,8 @@ class Track extends DataClass implements Insertable<Track> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, songId, name, filePath, createdAt, updatedAt, deleted, synced);
+  int get hashCode => Object.hash(id, songId, name, audioUrl, storagePath,
+      durationMs, filePath, createdAt, updatedAt, deleted, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1855,6 +1956,9 @@ class Track extends DataClass implements Insertable<Track> {
           other.id == this.id &&
           other.songId == this.songId &&
           other.name == this.name &&
+          other.audioUrl == this.audioUrl &&
+          other.storagePath == this.storagePath &&
+          other.durationMs == this.durationMs &&
           other.filePath == this.filePath &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1866,6 +1970,9 @@ class TracksCompanion extends UpdateCompanion<Track> {
   final Value<String> id;
   final Value<String> songId;
   final Value<String> name;
+  final Value<String?> audioUrl;
+  final Value<String?> storagePath;
+  final Value<int?> durationMs;
   final Value<String?> filePath;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1876,6 +1983,9 @@ class TracksCompanion extends UpdateCompanion<Track> {
     this.id = const Value.absent(),
     this.songId = const Value.absent(),
     this.name = const Value.absent(),
+    this.audioUrl = const Value.absent(),
+    this.storagePath = const Value.absent(),
+    this.durationMs = const Value.absent(),
     this.filePath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1887,6 +1997,9 @@ class TracksCompanion extends UpdateCompanion<Track> {
     required String id,
     required String songId,
     required String name,
+    this.audioUrl = const Value.absent(),
+    this.storagePath = const Value.absent(),
+    this.durationMs = const Value.absent(),
     this.filePath = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1902,6 +2015,9 @@ class TracksCompanion extends UpdateCompanion<Track> {
     Expression<String>? id,
     Expression<String>? songId,
     Expression<String>? name,
+    Expression<String>? audioUrl,
+    Expression<String>? storagePath,
+    Expression<int>? durationMs,
     Expression<String>? filePath,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1913,6 +2029,9 @@ class TracksCompanion extends UpdateCompanion<Track> {
       if (id != null) 'id': id,
       if (songId != null) 'song_id': songId,
       if (name != null) 'name': name,
+      if (audioUrl != null) 'audio_url': audioUrl,
+      if (storagePath != null) 'storage_path': storagePath,
+      if (durationMs != null) 'duration_ms': durationMs,
       if (filePath != null) 'file_path': filePath,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1926,6 +2045,9 @@ class TracksCompanion extends UpdateCompanion<Track> {
       {Value<String>? id,
       Value<String>? songId,
       Value<String>? name,
+      Value<String?>? audioUrl,
+      Value<String?>? storagePath,
+      Value<int?>? durationMs,
       Value<String?>? filePath,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
@@ -1936,6 +2058,9 @@ class TracksCompanion extends UpdateCompanion<Track> {
       id: id ?? this.id,
       songId: songId ?? this.songId,
       name: name ?? this.name,
+      audioUrl: audioUrl ?? this.audioUrl,
+      storagePath: storagePath ?? this.storagePath,
+      durationMs: durationMs ?? this.durationMs,
       filePath: filePath ?? this.filePath,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1956,6 +2081,15 @@ class TracksCompanion extends UpdateCompanion<Track> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
+    }
+    if (audioUrl.present) {
+      map['audio_url'] = Variable<String>(audioUrl.value);
+    }
+    if (storagePath.present) {
+      map['storage_path'] = Variable<String>(storagePath.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
     }
     if (filePath.present) {
       map['file_path'] = Variable<String>(filePath.value);
@@ -1984,6 +2118,9 @@ class TracksCompanion extends UpdateCompanion<Track> {
           ..write('id: $id, ')
           ..write('songId: $songId, ')
           ..write('name: $name, ')
+          ..write('audioUrl: $audioUrl, ')
+          ..write('storagePath: $storagePath, ')
+          ..write('durationMs: $durationMs, ')
           ..write('filePath: $filePath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -4098,6 +4235,9 @@ typedef $$TracksTableCreateCompanionBuilder = TracksCompanion Function({
   required String id,
   required String songId,
   required String name,
+  Value<String?> audioUrl,
+  Value<String?> storagePath,
+  Value<int?> durationMs,
   Value<String?> filePath,
   required DateTime createdAt,
   required DateTime updatedAt,
@@ -4109,6 +4249,9 @@ typedef $$TracksTableUpdateCompanionBuilder = TracksCompanion Function({
   Value<String> id,
   Value<String> songId,
   Value<String> name,
+  Value<String?> audioUrl,
+  Value<String?> storagePath,
+  Value<int?> durationMs,
   Value<String?> filePath,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -4134,6 +4277,15 @@ class $$TracksTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
       column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get audioUrl => $composableBuilder(
+      column: $table.audioUrl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get storagePath => $composableBuilder(
+      column: $table.storagePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+      column: $table.durationMs, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get filePath => $composableBuilder(
       column: $table.filePath, builder: (column) => ColumnFilters(column));
@@ -4169,6 +4321,15 @@ class $$TracksTableOrderingComposer
   ColumnOrderings<String> get name => $composableBuilder(
       column: $table.name, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get audioUrl => $composableBuilder(
+      column: $table.audioUrl, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get storagePath => $composableBuilder(
+      column: $table.storagePath, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+      column: $table.durationMs, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get filePath => $composableBuilder(
       column: $table.filePath, builder: (column) => ColumnOrderings(column));
 
@@ -4202,6 +4363,15 @@ class $$TracksTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get audioUrl =>
+      $composableBuilder(column: $table.audioUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get storagePath => $composableBuilder(
+      column: $table.storagePath, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+      column: $table.durationMs, builder: (column) => column);
 
   GeneratedColumn<String> get filePath =>
       $composableBuilder(column: $table.filePath, builder: (column) => column);
@@ -4245,6 +4415,9 @@ class $$TracksTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String> songId = const Value.absent(),
             Value<String> name = const Value.absent(),
+            Value<String?> audioUrl = const Value.absent(),
+            Value<String?> storagePath = const Value.absent(),
+            Value<int?> durationMs = const Value.absent(),
             Value<String?> filePath = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -4256,6 +4429,9 @@ class $$TracksTableTableManager extends RootTableManager<
             id: id,
             songId: songId,
             name: name,
+            audioUrl: audioUrl,
+            storagePath: storagePath,
+            durationMs: durationMs,
             filePath: filePath,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -4267,6 +4443,9 @@ class $$TracksTableTableManager extends RootTableManager<
             required String id,
             required String songId,
             required String name,
+            Value<String?> audioUrl = const Value.absent(),
+            Value<String?> storagePath = const Value.absent(),
+            Value<int?> durationMs = const Value.absent(),
             Value<String?> filePath = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
@@ -4278,6 +4457,9 @@ class $$TracksTableTableManager extends RootTableManager<
             id: id,
             songId: songId,
             name: name,
+            audioUrl: audioUrl,
+            storagePath: storagePath,
+            durationMs: durationMs,
             filePath: filePath,
             createdAt: createdAt,
             updatedAt: updatedAt,

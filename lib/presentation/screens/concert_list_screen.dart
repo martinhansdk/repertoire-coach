@@ -47,6 +47,7 @@ class ConcertListScreen extends ConsumerWidget {
                         builder: (context) => SongListScreen(
                           concertId: concert.id,
                           concertName: concert.name,
+                          choirId: concert.choirId,
                         ),
                       ),
                     );

@@ -119,7 +119,16 @@ class Tracks extends Table {
   /// Track name
   TextColumn get name => text()();
 
-  /// Local file path to audio file
+  /// Public URL to access the audio file (from Supabase Storage)
+  TextColumn get audioUrl => text().nullable()();
+
+  /// Path in Supabase Storage bucket
+  TextColumn get storagePath => text().nullable()();
+
+  /// Duration of the audio file in milliseconds
+  IntColumn get durationMs => integer().nullable()();
+
+  /// Local file path to audio file (legacy, for offline/temp use)
   TextColumn get filePath => text().nullable()();
 
   /// When this record was created

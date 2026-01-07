@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -8,16 +10,18 @@ import '../providers/track_provider.dart';
 
 /// Dialog for creating a new track
 ///
-/// Prompts the user to enter track name and optional file path.
-/// The track is automatically associated with the provided song.
+/// Prompts the user to enter track name and audio file (mandatory).
+/// The track is automatically associated with the provided song and choir.
 class AddTrackDialog extends ConsumerStatefulWidget {
   final String songId;
   final String songTitle;
+  final String choirId;
 
   const AddTrackDialog({
     super.key,
     required this.songId,
     required this.songTitle,
+    required this.choirId,
   });
 
   @override
@@ -28,6 +32,12 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _filePathController = TextEditingController();
+
+  // Store selected file info
+  String? _selectedFilePath;
+  Uint8List? _selectedFileBytes;
+  String? _selectedFileName;
+
   bool _isCreating = false;
 
   @override
@@ -42,11 +52,26 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.audio,
         allowMultiple: false,
+        withData: kIsWeb, // Load bytes on web
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null) {
+        final file = result.files.single;
+
         setState(() {
-          _filePathController.text = result.files.single.path!;
+          if (kIsWeb) {
+            // On web, use bytes
+            _selectedFileBytes = file.bytes;
+            _selectedFileName = file.name;
+            _selectedFilePath = null;
+            _filePathController.text = file.name;
+          } else {
+            // On mobile/desktop, use path
+            _selectedFilePath = file.path;
+            _selectedFileName = file.name;
+            _selectedFileBytes = null;
+            _filePathController.text = file.path ?? file.name;
+          }
         });
       }
     } catch (e) {
@@ -66,21 +91,50 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
       return;
     }
 
+    // Validate that audio file is selected
+    if (_selectedFilePath == null && _selectedFileBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an audio file'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isCreating = true;
     });
 
     try {
+      final trackId = const Uuid().v4();
+      final audioStorageService = ref.read(audioStorageServiceProvider);
+
+      // Upload audio file to Supabase Storage
+      final uploadResult = kIsWeb
+          ? await audioStorageService.uploadAudioFromBytes(
+              bytes: _selectedFileBytes!,
+              fileName: _selectedFileName!,
+              choirId: widget.choirId,
+              trackId: trackId,
+            )
+          : await audioStorageService.uploadAudioFromFile(
+              filePath: _selectedFilePath!,
+              choirId: widget.choirId,
+              trackId: trackId,
+            );
+
+      // Create track with uploaded audio URL
       final repository = ref.read(trackRepositoryProvider);
       final now = DateTime.now().toUtc();
 
-      final filePath = _filePathController.text.trim();
-
       final track = Track(
-        id: const Uuid().v4(),
+        id: trackId,
         songId: widget.songId,
         name: _nameController.text.trim(),
-        filePath: filePath.isEmpty ? null : filePath,
+        audioUrl: uploadResult.audioUrl,
+        storagePath: uploadResult.storagePath,
+        durationMs: uploadResult.durationMs,
         createdAt: now,
         updatedAt: now,
       );
@@ -167,7 +221,7 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
               TextFormField(
                 controller: _filePathController,
                 decoration: InputDecoration(
-                  labelText: 'Audio File (Optional)',
+                  labelText: 'Audio File *',
                   hintText: 'Select an audio file',
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.audiotrack),
@@ -176,10 +230,17 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
                     onPressed: _isCreating ? null : _pickAudioFile,
                     tooltip: 'Browse for audio file',
                   ),
+                  helperText: 'Required - Works on all platforms including web',
                 ),
                 enabled: !_isCreating,
                 readOnly: true,
                 onTap: _isCreating ? null : _pickAudioFile,
+                validator: (value) {
+                  if (_selectedFilePath == null && _selectedFileBytes == null) {
+                    return 'Please select an audio file';
+                  }
+                  return null;
+                },
               ),
             ],
           ),

@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/audio_storage_service.dart';
 import '../../data/datasources/local/local_track_data_source.dart';
 import '../../data/repositories/track_repository_impl.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/track_repository.dart';
+import 'auth_provider.dart';
 import 'concert_provider.dart';
 
 /// Provider for the local track data source
@@ -11,6 +13,14 @@ import 'concert_provider.dart';
 final localTrackDataSourceProvider = Provider<LocalTrackDataSource>((ref) {
   final database = ref.watch(databaseProvider);
   return LocalTrackDataSource(database);
+});
+
+/// Provider for the audio storage service
+///
+/// Handles uploading and managing audio files in Supabase Storage.
+final audioStorageServiceProvider = Provider<AudioStorageService>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return AudioStorageService(supabaseService);
 });
 
 /// Provider for the track repository

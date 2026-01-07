@@ -15,12 +15,14 @@ class SongDetailScreen extends ConsumerWidget {
   final String songId;
   final String songTitle;
   final String concertName;
+  final String choirId;
 
   const SongDetailScreen({
     super.key,
     required this.songId,
     required this.songTitle,
     required this.concertName,
+    required this.choirId,
   });
 
   Future<void> _showAddTrackDialog(BuildContext context) async {
@@ -29,6 +31,7 @@ class SongDetailScreen extends ConsumerWidget {
       builder: (context) => AddTrackDialog(
         songId: songId,
         songTitle: songTitle,
+        choirId: choirId,
       ),
     );
   }
