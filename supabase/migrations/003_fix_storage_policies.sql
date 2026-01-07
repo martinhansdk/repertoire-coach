@@ -19,8 +19,8 @@ AS $$
   SELECT EXISTS (
     SELECT 1
     FROM choir_members
-    WHERE choir_id = p_choir_id
-    AND user_id = p_user_id::text
+    WHERE choir_id = p_choir_id::uuid
+    AND user_id = p_user_id
   );
 $$;
 
