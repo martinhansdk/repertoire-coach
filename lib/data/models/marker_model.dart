@@ -68,5 +68,27 @@ class MarkerModel extends Marker {
     );
   }
 
-  // Future: Add fromJson and toJson methods for Supabase
+  /// Create a MarkerModel from Supabase JSON
+  factory MarkerModel.fromJson(Map<String, dynamic> json) {
+    return MarkerModel(
+      id: json['id'],
+      markerSetId: json['marker_set_id'],
+      label: json['label'],
+      positionMs: json['position_ms'],
+      order: json['display_order'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+
+  /// Convert to Supabase JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'marker_set_id': markerSetId,
+      'label': label,
+      'position_ms': positionMs,
+      'display_order': order,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
 }

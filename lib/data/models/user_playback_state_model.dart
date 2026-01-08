@@ -65,5 +65,26 @@ class UserPlaybackStateModel extends UserPlaybackState {
     );
   }
 
-  // Future: Add fromJson and toJson methods for Supabase
+  /// Create a UserPlaybackStateModel from Supabase JSON
+  factory UserPlaybackStateModel.fromJson(Map<String, dynamic> json) {
+    return UserPlaybackStateModel(
+      id: json['id'] ?? '', // Composite key, may not be returned
+      userId: json['user_id'],
+      songId: json['song_id'],
+      trackId: json['track_id'],
+      position: json['position_ms'],
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+
+  /// Convert to Supabase JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      'song_id': songId,
+      'track_id': trackId,
+      'position_ms': position,
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 }

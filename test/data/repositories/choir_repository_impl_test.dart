@@ -1,22 +1,38 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_choir_data_source.dart';
 import 'package:repertoire_coach/data/models/choir_model.dart';
 import 'package:repertoire_coach/data/repositories/choir_repository_impl.dart';
 import 'package:repertoire_coach/domain/repositories/choir_repository.dart';
 
+import 'choir_repository_impl_test.mocks.dart';
+
+@GenerateMocks([SupabaseService])
 void main() {
   group('ChoirRepositoryImpl', () {
     late db.AppDatabase database;
     late LocalChoirDataSource dataSource;
+    late MockSupabaseService mockSupabaseService;
     late ChoirRepository repository;
 
     setUp(() async {
       // Create in-memory database for testing
       database = db.AppDatabase.forTesting(NativeDatabase.memory());
       dataSource = LocalChoirDataSource(database);
-      repository = ChoirRepositoryImpl(dataSource);
+      mockSupabaseService = MockSupabaseService();
+
+      // Mock as not authenticated for offline tests
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+
+      repository = ChoirRepositoryImpl(
+        dataSource,
+        null, // No remote data source for offline tests
+        mockSupabaseService,
+      );
 
       // Seed test data
       await _seedTestData(dataSource);

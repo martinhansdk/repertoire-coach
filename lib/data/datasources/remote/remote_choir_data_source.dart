@@ -1,0 +1,274 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../models/choir_member_model.dart';
+import '../../models/choir_model.dart';
+
+/// Remote data source for choir and membership operations using Supabase
+///
+/// Provides CRUD operations for choirs and choir members with cloud persistence.
+/// All operations require authentication and respect Row Level Security policies.
+class RemoteChoirDataSource {
+  final SupabaseClient _supabase;
+
+  RemoteChoirDataSource(this._supabase);
+
+  // ============================================================================
+  // CHOIR OPERATIONS
+  // ============================================================================
+
+  /// Get all choirs for a user from Supabase
+  ///
+  /// Returns choirs where the user is a member.
+  /// Respects RLS policies (users can only see choirs they're members of).
+  Future<List<ChoirModel>> getChoirs(String userId) async {
+    try {
+      // First get choir IDs where user is a member
+      final memberResponse = await _supabase
+          .from('choir_members')
+          .select('choir_id')
+          .eq('user_id', userId);
+
+      if (memberResponse == null || (memberResponse as List).isEmpty) {
+        return [];
+      }
+
+      final choirIds = (memberResponse as List)
+          .map((json) => json['choir_id'] as String)
+          .toList();
+
+      // Then get the choir details
+      final choirResponse = await _supabase
+          .from('choirs')
+          .select('''
+            id,
+            name,
+            owner_id,
+            created_at
+          ''')
+          .in_('id', choirIds);
+
+      if (choirResponse == null) {
+        return [];
+      }
+
+      final choirs = (choirResponse as List)
+          .map((json) => ChoirModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      return choirs;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch choirs from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching choirs: $e');
+    }
+  }
+
+  /// Get choir by ID from Supabase
+  ///
+  /// Returns null if choir doesn't exist or user doesn't have access.
+  /// Respects RLS policies.
+  Future<ChoirModel?> getChoirById(String id) async {
+    try {
+      final response = await _supabase
+          .from('choirs')
+          .select('''
+            id,
+            name,
+            owner_id,
+            created_at
+          ''')
+          .eq('id', id)
+          .maybeSingle();
+
+      if (response == null) {
+        return null;
+      }
+
+      return ChoirModel.fromJson(response as Map<String, dynamic>);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch choir from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching choir: $e');
+    }
+  }
+
+  /// Create a new choir in Supabase
+  ///
+  /// Creates the choir and automatically adds the creator as a member.
+  /// This must be done in a transaction to ensure consistency.
+  Future<void> createChoir(ChoirModel choir, String creatorUserId) async {
+    try {
+      // Insert the choir
+      await _supabase.from('choirs').insert(choir.toJson());
+
+      // Add creator as a member
+      final member = ChoirMemberModel(
+        choirId: choir.id,
+        userId: creatorUserId,
+        joinedAt: DateTime.now().toUtc(),
+      );
+
+      await _supabase.from('choir_members').insert(member.toJson());
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to create choir in Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error creating choir: $e');
+    }
+  }
+
+  /// Update an existing choir in Supabase
+  ///
+  /// Only choir owners can update (enforced by RLS policies).
+  Future<void> updateChoir(ChoirModel choir) async {
+    try {
+      await _supabase
+          .from('choirs')
+          .update({
+            'name': choir.name,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', choir.id);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update choir in Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error updating choir: $e');
+    }
+  }
+
+  /// Delete a choir from Supabase
+  ///
+  /// Only choir owners can delete (enforced by RLS policies).
+  /// Cascade deletes will remove all related data (concerts, songs, etc.).
+  Future<void> deleteChoir(String id) async {
+    try {
+      await _supabase.from('choirs').delete().eq('id', id);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to delete choir from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error deleting choir: $e');
+    }
+  }
+
+  // ============================================================================
+  // CHOIR MEMBERSHIP OPERATIONS
+  // ============================================================================
+
+  /// Add a member to a choir in Supabase
+  ///
+  /// Only choir owners can add members (enforced by RLS policies).
+  Future<void> addMember(String choirId, String userId) async {
+    try {
+      final member = ChoirMemberModel(
+        choirId: choirId,
+        userId: userId,
+        joinedAt: DateTime.now().toUtc(),
+      );
+
+      await _supabase.from('choir_members').insert(member.toJson());
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to add member in Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error adding member: $e');
+    }
+  }
+
+  /// Remove a member from a choir in Supabase
+  ///
+  /// Only choir owners can remove members (enforced by RLS policies).
+  Future<void> removeMember(String choirId, String userId) async {
+    try {
+      await _supabase
+          .from('choir_members')
+          .delete()
+          .eq('choir_id', choirId)
+          .eq('user_id', userId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to remove member from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error removing member: $e');
+    }
+  }
+
+  /// Get all member user IDs for a choir from Supabase
+  ///
+  /// Returns list of user IDs who are members of the choir.
+  Future<List<String>> getChoirMembers(String choirId) async {
+    try {
+      final response = await _supabase
+          .from('choir_members')
+          .select('user_id')
+          .eq('choir_id', choirId);
+
+      if (response == null) {
+        return [];
+      }
+
+      return (response as List)
+          .map((json) => json['user_id'] as String)
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception(
+          'Failed to fetch choir members from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching choir members: $e');
+    }
+  }
+
+  /// Check if a user is a member of a choir in Supabase
+  Future<bool> isMember(String choirId, String userId) async {
+    try {
+      final response = await _supabase
+          .from('choir_members')
+          .select('user_id')
+          .eq('choir_id', choirId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      return response != null;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to check membership in Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error checking membership: $e');
+    }
+  }
+
+  /// Check if a user is the owner of a choir in Supabase
+  Future<bool> isOwner(String choirId, String userId) async {
+    try {
+      final response = await _supabase
+          .from('choirs')
+          .select('owner_id')
+          .eq('id', choirId)
+          .maybeSingle();
+
+      if (response == null) {
+        return false;
+      }
+
+      return response['owner_id'] == userId;
+    } on PostgrestException catch (e) {
+      throw Exception(
+          'Failed to check choir ownership in Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error checking ownership: $e');
+    }
+  }
+
+  /// Get the number of members in a choir from Supabase
+  Future<int> getMemberCount(String choirId) async {
+    try {
+      final response = await _supabase
+          .from('choir_members')
+          .select('user_id', const FetchOptions(count: CountOption.exact))
+          .eq('choir_id', choirId);
+
+      // The count is in the response metadata
+      return (response as PostgrestList).count ?? 0;
+    } on PostgrestException catch (e) {
+      throw Exception(
+          'Failed to get member count from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error getting member count: $e');
+    }
+  }
+}

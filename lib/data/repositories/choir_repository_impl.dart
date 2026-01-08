@@ -1,20 +1,29 @@
 import 'package:uuid/uuid.dart';
 
+import '../../core/services/supabase_service.dart';
 import '../../domain/entities/choir.dart';
 import '../../domain/repositories/choir_repository.dart';
 import '../datasources/local/local_choir_data_source.dart';
+import '../datasources/remote/remote_choir_data_source.dart';
 import '../models/choir_model.dart';
 
-/// Choir repository implementation using local Drift database
+/// Choir repository implementation with offline-first sync
 ///
-/// Provides offline-first data persistence with SQLite.
-/// All data is stored locally and works without internet connection.
-/// Future versions will add cloud sync with Supabase.
+/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
+/// - Reads always from local DB (fast, works offline)
+/// - Writes to both local AND remote when authenticated
+/// - Background sync ensures data consistency
 class ChoirRepositoryImpl implements ChoirRepository {
   final LocalChoirDataSource _localDataSource;
+  final RemoteChoirDataSource? _remoteDataSource;
+  final SupabaseService _supabaseService;
   final Uuid _uuid = const Uuid();
 
-  ChoirRepositoryImpl(this._localDataSource);
+  ChoirRepositoryImpl(
+    this._localDataSource,
+    this._remoteDataSource,
+    this._supabaseService,
+  );
 
   // ============================================================================
   // CHOIR OPERATIONS
@@ -49,8 +58,22 @@ class ChoirRepositoryImpl implements ChoirRepository {
       createdAt: DateTime.now().toUtc(),
     );
 
-    // Save to database (this also adds the owner as a member)
+    // Save to local database (this also adds the owner as a member)
     await _localDataSource.createChoir(choirModel, ownerId);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource!.createChoir(choirModel, ownerId);
+        // Mark as synced in local DB
+        await _localDataSource.markChoirAsSynced(id);
+        await _localDataSource.markMemberAsSynced(id, ownerId);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        // In production, this should use proper logging
+        print('Failed to sync choir to remote: $e');
+      }
+    }
 
     return id;
   }
@@ -58,12 +81,39 @@ class ChoirRepositoryImpl implements ChoirRepository {
   @override
   Future<void> updateChoir(Choir choir) async {
     final choirModel = ChoirModel.fromEntity(choir);
+
+    // Update in local database
     await _localDataSource.updateChoir(choirModel);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource!.updateChoir(choirModel);
+        // Mark as synced in local DB
+        await _localDataSource.markChoirAsSynced(choir.id);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        print('Failed to sync choir update to remote: $e');
+      }
+    }
   }
 
   @override
   Future<void> deleteChoir(String id) async {
+    // Delete from local database (soft delete)
     await _localDataSource.deleteChoir(id);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource!.deleteChoir(id);
+        // Mark as synced in local DB
+        await _localDataSource.markChoirAsSynced(id);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        print('Failed to sync choir deletion to remote: $e');
+      }
+    }
   }
 
   // ============================================================================
@@ -72,7 +122,20 @@ class ChoirRepositoryImpl implements ChoirRepository {
 
   @override
   Future<void> addMember(String choirId, String userId) async {
+    // Add to local database
     await _localDataSource.addMember(choirId, userId);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource!.addMember(choirId, userId);
+        // Mark as synced in local DB
+        await _localDataSource.markMemberAsSynced(choirId, userId);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        print('Failed to sync member addition to remote: $e');
+      }
+    }
   }
 
   @override
@@ -83,7 +146,22 @@ class ChoirRepositoryImpl implements ChoirRepository {
       throw Exception('Cannot remove choir owner. Delete the choir instead.');
     }
 
-    return await _localDataSource.removeMember(choirId, userId);
+    // Remove from local database
+    final removed = await _localDataSource.removeMember(choirId, userId);
+
+    // Sync to remote if authenticated and member was actually removed
+    if (removed &&
+        _supabaseService.isAuthenticated &&
+        _remoteDataSource != null) {
+      try {
+        await _remoteDataSource!.removeMember(choirId, userId);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        print('Failed to sync member removal to remote: $e');
+      }
+    }
+
+    return removed;
   }
 
   @override

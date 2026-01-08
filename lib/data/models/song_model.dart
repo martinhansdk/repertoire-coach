@@ -63,5 +63,25 @@ class SongModel extends Song {
     );
   }
 
-  // Future: Add fromJson and toJson methods for Supabase
+  /// Create a SongModel from Supabase JSON
+  factory SongModel.fromJson(Map<String, dynamic> json) {
+    return SongModel(
+      id: json['id'],
+      concertId: json['concert_id'],
+      title: json['title'],
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+
+  /// Convert to Supabase JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'concert_id': concertId,
+      'title': title,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 }

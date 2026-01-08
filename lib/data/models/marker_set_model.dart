@@ -73,5 +73,29 @@ class MarkerSetModel extends MarkerSet {
     );
   }
 
-  // Future: Add fromJson and toJson methods for Supabase
+  /// Create a MarkerSetModel from Supabase JSON
+  factory MarkerSetModel.fromJson(Map<String, dynamic> json) {
+    return MarkerSetModel(
+      id: json['id'],
+      trackId: json['track_id'],
+      name: json['name'],
+      isShared: json['is_shared'],
+      createdByUserId: json['created_by_user_id'],
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+
+  /// Convert to Supabase JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'track_id': trackId,
+      'name': name,
+      'is_shared': isShared,
+      'created_by_user_id': createdByUserId,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 }

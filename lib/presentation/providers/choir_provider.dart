@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/local/local_choir_data_source.dart';
+import '../../data/datasources/remote/remote_choir_data_source.dart';
 import '../../data/repositories/choir_repository_impl.dart';
 import '../../domain/entities/choir.dart';
 import '../../domain/repositories/choir_repository.dart';
 import 'concert_provider.dart'; // For databaseProvider
+import 'auth_provider.dart'; // For supabaseServiceProvider
 
 /// Provider for the local choir data source
 ///
@@ -13,20 +15,40 @@ final localChoirDataSourceProvider = Provider<LocalChoirDataSource>((ref) {
   return LocalChoirDataSource(database);
 });
 
+/// Provider for the remote choir data source
+///
+/// Wraps Supabase operations for choir and membership management.
+/// Only used when user is authenticated.
+final remoteChoirDataSourceProvider = Provider<RemoteChoirDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (!supabaseService.isAuthenticated) {
+    return null;
+  }
+  return RemoteChoirDataSource(supabaseService.client);
+});
+
 /// Provider for the choir repository
 ///
-/// This provides a single instance of the repository throughout the app.
-/// Currently uses local Drift database. Future versions will add Supabase sync.
+/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
+/// Implements offline-first pattern: reads from local, writes to both.
 final choirRepositoryProvider = Provider<ChoirRepository>((ref) {
   final localDataSource = ref.watch(localChoirDataSourceProvider);
-  return ChoirRepositoryImpl(localDataSource);
+  final remoteDataSource = ref.watch(remoteChoirDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return ChoirRepositoryImpl(
+    localDataSource,
+    remoteDataSource,
+    supabaseService,
+  );
 });
 
 /// Provider for the current user ID
 ///
-/// PHASE 1: Hardcoded to 'user1' for offline development and testing.
-/// PHASE 2: Will be replaced with actual authenticated user from Supabase Auth.
-final currentUserIdProvider = Provider<String>((ref) => 'user1');
+/// Returns the authenticated user ID from Supabase, or 'user1' if not authenticated.
+final currentUserIdProvider = Provider<String>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return supabaseService.currentUser?.id ?? 'user1';
+});
 
 /// Provider for the list of choirs for the current user
 ///
