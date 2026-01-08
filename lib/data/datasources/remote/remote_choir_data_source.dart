@@ -259,11 +259,12 @@ class RemoteChoirDataSource {
     try {
       final response = await _supabase
           .from('choir_members')
-          .select('user_id', const FetchOptions(count: CountOption.exact))
-          .eq('choir_id', choirId);
+          .select('user_id')
+          .eq('choir_id', choirId)
+          .count();
 
-      // The count is in the response metadata
-      return (response as PostgrestList).count ?? 0;
+      // Return the count from the response
+      return response.count;
     } on PostgrestException catch (e) {
       throw Exception(
           'Failed to get member count from Supabase: ${e.message}');
