@@ -13,8 +13,13 @@ import 'package:repertoire_coach/presentation/screens/concert_list_screen.dart';
 import 'package:repertoire_coach/presentation/screens/song_list_screen.dart';
 import 'package:repertoire_coach/presentation/providers/song_provider.dart';
 import '../providers/song_provider_test.mocks.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 
+import 'concert_list_screen_test.mocks.dart';
+
+@GenerateMocks([SupabaseService])
 void main() {
   group('ConcertListScreen Widget', () {
     late db.AppDatabase database;
@@ -25,7 +30,13 @@ void main() {
       // Create in-memory database for testing
       database = db.AppDatabase.forTesting(NativeDatabase.memory());
       dataSource = LocalConcertDataSource(database);
-      repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      repository = ConcertRepositoryImpl(
+        dataSource,
+        null, // No remote data source for offline tests
+        mockSupabaseService,
+      );
 
       // Seed test data
       await _seedTestData(dataSource);
@@ -103,7 +114,13 @@ void main() {
       // Arrange - Create empty database for this test
       final emptyDatabase = db.AppDatabase.forTesting(NativeDatabase.memory());
       final emptyDataSource = LocalConcertDataSource(emptyDatabase);
-      final emptyRepository = ConcertRepositoryImpl(emptyDataSource);
+      final mockSupabaseService2 = MockSupabaseService();
+      when(mockSupabaseService2.isAuthenticated).thenReturn(false);
+      final emptyRepository = ConcertRepositoryImpl(
+        emptyDataSource,
+        null,
+        mockSupabaseService2,
+      );
 
       // Override provider to use empty repository
       await tester.pumpWidget(

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/audio_storage_service.dart';
 import '../../data/datasources/local/local_track_data_source.dart';
+import '../../data/datasources/remote/remote_track_data_source.dart';
 import '../../data/repositories/track_repository_impl.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/track_repository.dart';
@@ -15,6 +16,18 @@ final localTrackDataSourceProvider = Provider<LocalTrackDataSource>((ref) {
   return LocalTrackDataSource(database);
 });
 
+/// Provider for the remote track data source
+///
+/// Wraps Supabase operations for track management.
+/// Only used when user is authenticated.
+final remoteTrackDataSourceProvider = Provider<RemoteTrackDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (!supabaseService.isAuthenticated) {
+    return null;
+  }
+  return RemoteTrackDataSource(supabaseService.client);
+});
+
 /// Provider for the audio storage service
 ///
 /// Handles uploading and managing audio files in Supabase Storage.
@@ -25,11 +38,17 @@ final audioStorageServiceProvider = Provider<AudioStorageService>((ref) {
 
 /// Provider for the track repository
 ///
-/// This provides a single instance of the repository throughout the app.
-/// Currently uses local Drift database. Future versions will add Supabase sync.
+/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
+/// Implements offline-first pattern: reads from local, writes to both.
 final trackRepositoryProvider = Provider<TrackRepository>((ref) {
   final localDataSource = ref.watch(localTrackDataSourceProvider);
-  return TrackRepositoryImpl(localDataSource);
+  final remoteDataSource = ref.watch(remoteTrackDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return TrackRepositoryImpl(
+    localDataSource,
+    remoteDataSource,
+    supabaseService,
+  );
 });
 
 /// Provider for tracks filtered by a specific song

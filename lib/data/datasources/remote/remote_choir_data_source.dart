@@ -45,7 +45,7 @@ class RemoteChoirDataSource {
             owner_id,
             created_at
           ''')
-          .in_('id', choirIds);
+          .inFilter('id', choirIds);
 
       if (choirResponse == null) {
         return [];

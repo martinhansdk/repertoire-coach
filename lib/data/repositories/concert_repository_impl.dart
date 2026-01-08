@@ -1,17 +1,26 @@
+import '../../core/services/supabase_service.dart';
 import '../../domain/entities/concert.dart';
 import '../../domain/repositories/concert_repository.dart';
 import '../datasources/local/local_concert_data_source.dart';
+import '../datasources/remote/remote_concert_data_source.dart';
 import '../models/concert_model.dart';
 
-/// Concert repository implementation using local Drift database
+/// Concert repository implementation with offline-first sync
 ///
-/// Provides offline-first data persistence with SQLite.
-/// All data is stored locally and works without internet connection.
-/// Future versions will add cloud sync with Supabase.
+/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
+/// - Reads always from local DB (fast, works offline)
+/// - Writes to both local AND remote when authenticated
+/// - Background sync ensures data consistency
 class ConcertRepositoryImpl implements ConcertRepository {
   final LocalConcertDataSource _localDataSource;
+  final RemoteConcertDataSource? _remoteDataSource;
+  final SupabaseService _supabaseService;
 
-  ConcertRepositoryImpl(this._localDataSource);
+  ConcertRepositoryImpl(
+    this._localDataSource,
+    this._remoteDataSource,
+    this._supabaseService,
+  );
 
   @override
   Future<List<Concert>> getConcerts() async {
@@ -40,17 +49,59 @@ class ConcertRepositoryImpl implements ConcertRepository {
   @override
   Future<void> createConcert(Concert concert) async {
     final concertModel = ConcertModel.fromEntity(concert);
+
+    // Save to local database
     await _localDataSource.insertConcert(concertModel);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource.createConcert(concertModel);
+        await _localDataSource.markAsSynced(concert.id);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        // ignore: avoid_print
+        print('Failed to sync concert to remote: $e');
+      }
+    }
   }
 
   @override
   Future<bool> updateConcert(Concert concert) async {
     final concertModel = ConcertModel.fromEntity(concert);
-    return await _localDataSource.updateConcert(concertModel);
+
+    // Update in local database
+    final result = await _localDataSource.updateConcert(concertModel);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource.updateConcert(concertModel);
+        await _localDataSource.markAsSynced(concert.id);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        // ignore: avoid_print
+        print('Failed to sync concert update to remote: $e');
+      }
+    }
+
+    return result;
   }
 
   @override
   Future<void> deleteConcert(String concertId) async {
+    // Delete from local database
     await _localDataSource.deleteConcert(concertId);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource.deleteConcert(concertId);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        // ignore: avoid_print
+        print('Failed to sync concert deletion to remote: $e');
+      }
+    }
   }
 }

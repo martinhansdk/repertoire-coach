@@ -1,14 +1,20 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_song_data_source.dart';
 import 'package:repertoire_coach/data/repositories/song_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/song.dart';
 import 'package:repertoire_coach/domain/repositories/song_repository.dart';
 
+import 'song_crud_integration_test.mocks.dart';
+
 /// Integration test for the complete song CRUD workflow
 ///
 /// Tests the full flow from domain layer through data layer to database.
+@GenerateMocks([SupabaseService])
 void main() {
   group('Song CRUD Integration Test', () {
     late db.AppDatabase database;
@@ -19,7 +25,13 @@ void main() {
       // Create in-memory database for testing
       database = db.AppDatabase.forTesting(NativeDatabase.memory());
       dataSource = LocalSongDataSource(database);
-      repository = SongRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      repository = SongRepositoryImpl(
+        dataSource,
+        null, // No remote data source for offline tests
+        mockSupabaseService,
+      );
     });
 
     tearDown(() async {

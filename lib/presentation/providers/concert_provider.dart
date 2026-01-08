@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/local/database.dart' as db;
 import '../../data/datasources/local/local_concert_data_source.dart';
+import '../../data/datasources/remote/remote_concert_data_source.dart';
 import '../../data/repositories/concert_repository_impl.dart';
 import '../../domain/entities/concert.dart';
 import '../../domain/repositories/concert_repository.dart';
+import 'auth_provider.dart'; // For supabaseServiceProvider
 
 /// Provider for the Drift database instance
 ///
@@ -21,13 +23,31 @@ final localConcertDataSourceProvider = Provider<LocalConcertDataSource>((ref) {
   return LocalConcertDataSource(database);
 });
 
+/// Provider for the remote concert data source
+///
+/// Wraps Supabase operations for concert management.
+/// Only used when user is authenticated.
+final remoteConcertDataSourceProvider = Provider<RemoteConcertDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (!supabaseService.isAuthenticated) {
+    return null;
+  }
+  return RemoteConcertDataSource(supabaseService.client);
+});
+
 /// Provider for the concert repository
 ///
-/// This provides a single instance of the repository throughout the app.
-/// Currently uses local Drift database. Future versions will add Supabase sync.
+/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
+/// Implements offline-first pattern: reads from local, writes to both.
 final concertRepositoryProvider = Provider<ConcertRepository>((ref) {
   final localDataSource = ref.watch(localConcertDataSourceProvider);
-  return ConcertRepositoryImpl(localDataSource);
+  final remoteDataSource = ref.watch(remoteConcertDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return ConcertRepositoryImpl(
+    localDataSource,
+    remoteDataSource,
+    supabaseService,
+  );
 });
 
 /// Provider for the list of concerts

@@ -7,7 +7,13 @@ import 'package:repertoire_coach/data/datasources/local/local_concert_data_sourc
 import 'package:repertoire_coach/data/repositories/concert_repository_impl.dart';
 import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/widgets/create_concert_dialog.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 
+import 'create_concert_dialog_test.mocks.dart';
+
+@GenerateMocks([SupabaseService])
 void main() {
   group('CreateConcertDialog Widget', () {
     late db.AppDatabase database;
@@ -23,7 +29,13 @@ void main() {
     testWidgets('should display dialog with required fields', (tester) async {
       // Arrange
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Act
       await tester.pumpWidget(
@@ -67,7 +79,13 @@ void main() {
     testWidgets('should validate empty concert name', (tester) async {
       // Arrange
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Act
       await tester.pumpWidget(
@@ -110,7 +128,13 @@ void main() {
     testWidgets('should validate concert name length', (tester) async {
       // Arrange
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Act
       await tester.pumpWidget(
@@ -161,7 +185,13 @@ void main() {
         (tester) async {
       // Arrange
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Act
       await tester.pumpWidget(
@@ -204,7 +234,13 @@ void main() {
     testWidgets('should close dialog when Cancel is tapped', (tester) async {
       // Arrange
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Act
       await tester.pumpWidget(

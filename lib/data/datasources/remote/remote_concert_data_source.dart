@@ -42,7 +42,7 @@ class RemoteConcertDataSource {
             created_at,
             choirs!inner(name)
           ''')
-          .in_('choir_id', choirIds)
+          .inFilter('choir_id', choirIds)
           .order('concert_date', ascending: true);
 
       if (concertResponse == null) {

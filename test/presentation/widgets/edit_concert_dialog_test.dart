@@ -9,7 +9,13 @@ import 'package:repertoire_coach/data/repositories/concert_repository_impl.dart'
 import 'package:repertoire_coach/domain/entities/concert.dart';
 import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/widgets/edit_concert_dialog.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 
+import 'edit_concert_dialog_test.mocks.dart';
+
+@GenerateMocks([SupabaseService])
 void main() {
   group('EditConcertDialog Widget', () {
     late db.AppDatabase database;
@@ -35,7 +41,13 @@ void main() {
       );
 
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Seed the concert
       await dataSource.insertConcert(ConcertModel.fromEntity(concert));
@@ -87,7 +99,13 @@ void main() {
       );
 
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
       await dataSource.insertConcert(ConcertModel.fromEntity(concert));
 
       // Act
@@ -141,7 +159,13 @@ void main() {
       );
 
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
       await dataSource.insertConcert(ConcertModel.fromEntity(concert));
 
       // Act
@@ -199,7 +223,13 @@ void main() {
       );
 
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Act
       await tester.pumpWidget(
@@ -248,7 +278,13 @@ void main() {
       );
 
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Act
       await tester.pumpWidget(
@@ -300,7 +336,13 @@ void main() {
       );
 
       final dataSource = LocalConcertDataSource(database);
-      final repository = ConcertRepositoryImpl(dataSource);
+      final mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      final repository = ConcertRepositoryImpl(
+        dataSource,
+        null,
+        mockSupabaseService,
+      );
 
       // Act
       await tester.pumpWidget(

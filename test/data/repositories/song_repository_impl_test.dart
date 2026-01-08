@@ -1,22 +1,35 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_song_data_source.dart';
 import 'package:repertoire_coach/data/models/song_model.dart';
 import 'package:repertoire_coach/data/repositories/song_repository_impl.dart';
 import 'package:repertoire_coach/domain/repositories/song_repository.dart';
 
+import 'song_repository_impl_test.mocks.dart';
+
+@GenerateMocks([SupabaseService])
 void main() {
   group('SongRepositoryImpl', () {
     late db.AppDatabase database;
     late LocalSongDataSource dataSource;
+    late MockSupabaseService mockSupabaseService;
     late SongRepository repository;
 
     setUp(() async {
       // Create in-memory database for testing
       database = db.AppDatabase.forTesting(NativeDatabase.memory());
       dataSource = LocalSongDataSource(database);
-      repository = SongRepositoryImpl(dataSource);
+      mockSupabaseService = MockSupabaseService();
+      when(mockSupabaseService.isAuthenticated).thenReturn(false);
+      repository = SongRepositoryImpl(
+        dataSource,
+        null, // No remote data source for offline tests
+        mockSupabaseService,
+      );
 
       // Seed test data
       await _seedTestData(dataSource);
