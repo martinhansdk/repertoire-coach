@@ -12,16 +12,25 @@ DROP POLICY IF EXISTS "Choir members can delete audio files" ON storage.objects;
 -- This bypasses RLS and prevents infinite recursion
 CREATE OR REPLACE FUNCTION public.is_choir_member(p_choir_id text, p_user_id uuid)
 RETURNS boolean
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
-STABLE
+SET search_path = public
 AS $$
+DECLARE
+  result boolean;
+BEGIN
+  -- Temporarily disable RLS to prevent infinite recursion
+  -- SECURITY DEFINER runs with function owner privileges (postgres/service role)
+  -- which bypasses RLS policies
   SELECT EXISTS (
     SELECT 1
-    FROM choir_members
+    FROM public.choir_members
     WHERE choir_id = p_choir_id::uuid
     AND user_id = p_user_id
-  );
+  ) INTO result;
+
+  RETURN result;
+END;
 $$;
 
 -- Grant execute permission to authenticated users

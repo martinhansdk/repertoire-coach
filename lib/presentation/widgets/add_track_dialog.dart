@@ -75,6 +75,8 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
         });
       }
     } catch (e) {
+      // Log error to console for easier debugging
+      print('ERROR - File picker failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -157,6 +159,8 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
         );
       }
     } catch (e) {
+      // Log error to console for easier debugging
+      print('ERROR - Track creation failed: $e');
       if (mounted) {
         setState(() {
           _isCreating = false;
