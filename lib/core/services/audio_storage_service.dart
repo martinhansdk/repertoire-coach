@@ -26,8 +26,8 @@ class AudioUploadResult {
 /// Service for uploading and managing audio files in Supabase Storage
 ///
 /// Handles both mobile (file path) and web (bytes) uploads.
-/// Audio files are organized by choir and track ID:
-/// `audio_files/{choirId}/{trackId}.{extension}`
+/// Audio files are stored in the 'audio_files' bucket and organized by choir:
+/// `{choirId}/{trackId}.{extension}`
 class AudioStorageService {
   static const String _bucketName = 'audio_files';
 
@@ -117,8 +117,9 @@ class AudioStorageService {
     required String trackId,
     required String extension,
   }) async {
-    // Build storage path: audio_files/{choirId}/{trackId}.{extension}
-    final storagePath = 'audio_files/$choirId/$trackId$extension';
+    // Build storage path: {choirId}/{trackId}.{extension}
+    // Note: Bucket name is specified separately in .from(_bucketName)
+    final storagePath = '$choirId/$trackId$extension';
 
     try {
       // Upload to Supabase Storage
@@ -150,7 +151,7 @@ class AudioStorageService {
 
   /// Delete an audio file from Supabase Storage
   ///
-  /// [storagePath]: The storage path returned from upload (e.g., "audio/choir-id/track-id.mp3")
+  /// [storagePath]: The storage path returned from upload (e.g., "choir-id/track-id.mp3")
   ///
   /// Throws [Exception] if deletion fails
   Future<void> deleteAudio(String storagePath) async {
