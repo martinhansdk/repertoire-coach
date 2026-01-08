@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:path/path.dart' as path;
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'supabase_service.dart';
@@ -120,6 +120,8 @@ class AudioStorageService {
     // Build storage path: {choirId}/{trackId}.{extension}
     // Note: Bucket name is specified separately in .from(_bucketName)
     final storagePath = '$choirId/$trackId$extension';
+
+    debugPrint('DEBUG - Storage upload: bucket=$_bucketName, path=$storagePath');
 
     try {
       // Upload to Supabase Storage

@@ -112,6 +112,9 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
       final trackId = const Uuid().v4();
       final audioStorageService = ref.read(audioStorageServiceProvider);
 
+      // Debug: Log upload parameters
+      debugPrint('DEBUG - Uploading audio: choirId=${widget.choirId}, trackId=$trackId');
+
       // Upload audio file to Supabase Storage
       final uploadResult = kIsWeb
           ? await audioStorageService.uploadAudioFromBytes(
