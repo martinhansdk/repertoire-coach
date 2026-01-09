@@ -26,13 +26,13 @@ class RemoteChoirDataSource {
       final memberResponse = await _supabase
           .from('choir_members')
           .select('choir_id')
-          .eq('user_id', userId);
+          .eq('user_id', userId) as List;
 
-      if (memberResponse == null || (memberResponse as List).isEmpty) {
+      if (memberResponse.isEmpty) {
         return [];
       }
 
-      final choirIds = (memberResponse as List)
+      final choirIds = memberResponse
           .map((json) => json['choir_id'] as String)
           .toList();
 
@@ -45,13 +45,9 @@ class RemoteChoirDataSource {
             owner_id,
             created_at
           ''')
-          .inFilter('id', choirIds);
+          .inFilter('id', choirIds) as List;
 
-      if (choirResponse == null) {
-        return [];
-      }
-
-      final choirs = (choirResponse as List)
+      final choirs = choirResponse
           .map((json) => ChoirModel.fromJson(json as Map<String, dynamic>))
           .toList();
 
@@ -84,7 +80,7 @@ class RemoteChoirDataSource {
         return null;
       }
 
-      return ChoirModel.fromJson(response as Map<String, dynamic>);
+      return ChoirModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch choir from Supabase: ${e.message}');
     } catch (e) {
@@ -197,13 +193,9 @@ class RemoteChoirDataSource {
       final response = await _supabase
           .from('choir_members')
           .select('user_id')
-          .eq('choir_id', choirId);
+          .eq('choir_id', choirId) as List;
 
-      if (response == null) {
-        return [];
-      }
-
-      return (response as List)
+      return response
           .map((json) => json['user_id'] as String)
           .toList();
     } on PostgrestException catch (e) {

@@ -39,8 +39,7 @@ class RemoteUserPlaybackStateDataSource {
         return null;
       }
 
-      return UserPlaybackStateModel.fromJson(
-          response as Map<String, dynamic>);
+      return UserPlaybackStateModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw Exception(
           'Failed to fetch playback state from Supabase: ${e.message}');
@@ -65,15 +64,10 @@ class RemoteUserPlaybackStateDataSource {
             updated_at
           ''')
           .eq('user_id', userId)
-          .eq('song_id', songId);
+          .eq('song_id', songId) as List;
 
-      if (response == null) {
-        return [];
-      }
-
-      return (response as List)
-          .map((json) =>
-              UserPlaybackStateModel.fromJson(json as Map<String, dynamic>))
+      return response
+          .map((json) => UserPlaybackStateModel.fromJson(json))
           .toList();
     } on PostgrestException catch (e) {
       throw Exception(

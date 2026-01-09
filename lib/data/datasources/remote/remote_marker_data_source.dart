@@ -38,14 +38,10 @@ class RemoteMarkerDataSource {
           .eq('track_id', trackId)
           .or('is_shared.eq.true,created_by_user_id.eq.$userId')
           .order('is_shared', ascending: false)
-          .order('name', ascending: true);
+          .order('name', ascending: true) as List;
 
-      if (response == null) {
-        return [];
-      }
-
-      return (response as List)
-          .map((json) => MarkerSetModel.fromJson(json as Map<String, dynamic>))
+      return response
+          .map((json) => MarkerSetModel.fromJson(json))
           .toList();
     } on PostgrestException catch (e) {
       throw Exception(
@@ -76,7 +72,7 @@ class RemoteMarkerDataSource {
         return null;
       }
 
-      return MarkerSetModel.fromJson(response as Map<String, dynamic>);
+      return MarkerSetModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch marker set from Supabase: ${e.message}');
     } catch (e) {
@@ -142,14 +138,10 @@ class RemoteMarkerDataSource {
             created_at
           ''')
           .eq('marker_set_id', markerSetId)
-          .order('display_order', ascending: true);
+          .order('display_order', ascending: true) as List;
 
-      if (response == null) {
-        return [];
-      }
-
-      return (response as List)
-          .map((json) => MarkerModel.fromJson(json as Map<String, dynamic>))
+      return response
+          .map((json) => MarkerModel.fromJson(json))
           .toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch markers from Supabase: ${e.message}');
@@ -178,7 +170,7 @@ class RemoteMarkerDataSource {
         return null;
       }
 
-      return MarkerModel.fromJson(response as Map<String, dynamic>);
+      return MarkerModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch marker from Supabase: ${e.message}');
     } catch (e) {

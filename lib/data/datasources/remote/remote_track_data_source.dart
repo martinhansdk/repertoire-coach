@@ -26,13 +26,9 @@ class RemoteTrackDataSource {
             created_at
           ''')
           .eq('song_id', songId)
-          .order('name', ascending: true);
+          .order('name', ascending: true) as List;
 
-      if (response == null) {
-        return [];
-      }
-
-      return (response as List).map((json) {
+      return response.map((json) {
         final trackJson = Map<String, dynamic>.from(json);
         // Add updated_at field if not present (required by model)
         if (!trackJson.containsKey('updated_at')) {

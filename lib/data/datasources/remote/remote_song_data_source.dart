@@ -24,14 +24,10 @@ class RemoteSongDataSource {
             updated_at
           ''')
           .eq('concert_id', concertId)
-          .order('title', ascending: true);
+          .order('title', ascending: true) as List;
 
-      if (response == null) {
-        return [];
-      }
-
-      return (response as List)
-          .map((json) => SongModel.fromJson(json as Map<String, dynamic>))
+      return response
+          .map((json) => SongModel.fromJson(json))
           .toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch songs from Supabase: ${e.message}');
@@ -59,7 +55,7 @@ class RemoteSongDataSource {
         return null;
       }
 
-      return SongModel.fromJson(response as Map<String, dynamic>);
+      return SongModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch song from Supabase: ${e.message}');
     } catch (e) {

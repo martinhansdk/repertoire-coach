@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/services/supabase_service.dart';
@@ -64,14 +65,13 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Sync to remote if authenticated
     if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
       try {
-        await _remoteDataSource!.createChoir(choirModel, ownerId);
+        await _remoteDataSource.createChoir(choirModel, ownerId);
         // Mark as synced in local DB
         await _localDataSource.markChoirAsSynced(id);
         await _localDataSource.markMemberAsSynced(id, ownerId);
       } catch (e) {
         // Log error but don't fail the operation - will sync later
-        // In production, this should use proper logging
-        print('Failed to sync choir to remote: $e');
+        debugPrint('Failed to sync choir to remote: $e');
       }
     }
 
@@ -88,12 +88,12 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Sync to remote if authenticated
     if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
       try {
-        await _remoteDataSource!.updateChoir(choirModel);
+        await _remoteDataSource.updateChoir(choirModel);
         // Mark as synced in local DB
         await _localDataSource.markChoirAsSynced(choir.id);
       } catch (e) {
         // Log error but don't fail the operation - will sync later
-        print('Failed to sync choir update to remote: $e');
+        debugPrint('Failed to sync choir update to remote: $e');
       }
     }
   }
@@ -106,12 +106,12 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Sync to remote if authenticated
     if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
       try {
-        await _remoteDataSource!.deleteChoir(id);
+        await _remoteDataSource.deleteChoir(id);
         // Mark as synced in local DB
         await _localDataSource.markChoirAsSynced(id);
       } catch (e) {
         // Log error but don't fail the operation - will sync later
-        print('Failed to sync choir deletion to remote: $e');
+        debugPrint('Failed to sync choir deletion to remote: $e');
       }
     }
   }
@@ -128,12 +128,12 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Sync to remote if authenticated
     if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
       try {
-        await _remoteDataSource!.addMember(choirId, userId);
+        await _remoteDataSource.addMember(choirId, userId);
         // Mark as synced in local DB
         await _localDataSource.markMemberAsSynced(choirId, userId);
       } catch (e) {
         // Log error but don't fail the operation - will sync later
-        print('Failed to sync member addition to remote: $e');
+        debugPrint('Failed to sync member addition to remote: $e');
       }
     }
   }
@@ -154,10 +154,10 @@ class ChoirRepositoryImpl implements ChoirRepository {
         _supabaseService.isAuthenticated &&
         _remoteDataSource != null) {
       try {
-        await _remoteDataSource!.removeMember(choirId, userId);
+        await _remoteDataSource.removeMember(choirId, userId);
       } catch (e) {
         // Log error but don't fail the operation - will sync later
-        print('Failed to sync member removal to remote: $e');
+        debugPrint('Failed to sync member removal to remote: $e');
       }
     }
 

@@ -21,13 +21,13 @@ class RemoteConcertDataSource {
       final memberResponse = await _supabase
           .from('choir_members')
           .select('choir_id')
-          .eq('user_id', userId);
+          .eq('user_id', userId) as List;
 
-      if (memberResponse == null || (memberResponse as List).isEmpty) {
+      if (memberResponse.isEmpty) {
         return [];
       }
 
-      final choirIds = (memberResponse as List)
+      final choirIds = memberResponse
           .map((json) => json['choir_id'] as String)
           .toList();
 
@@ -43,13 +43,9 @@ class RemoteConcertDataSource {
             choirs!inner(name)
           ''')
           .inFilter('choir_id', choirIds)
-          .order('concert_date', ascending: true);
+          .order('concert_date', ascending: true) as List;
 
-      if (concertResponse == null) {
-        return [];
-      }
-
-      final concerts = (concertResponse as List).map((json) {
+      final concerts = concertResponse.map((json) {
         final concertJson = Map<String, dynamic>.from(json);
         // Extract choir name from nested choirs object
         concertJson['choir_name'] = json['choirs']['name'];

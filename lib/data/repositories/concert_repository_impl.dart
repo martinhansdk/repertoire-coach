@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../core/services/supabase_service.dart';
 import '../../domain/entities/concert.dart';
 import '../../domain/repositories/concert_repository.dart';
@@ -60,8 +61,7 @@ class ConcertRepositoryImpl implements ConcertRepository {
         await _localDataSource.markAsSynced(concert.id);
       } catch (e) {
         // Log error but don't fail the operation - will sync later
-        // ignore: avoid_print
-        print('Failed to sync concert to remote: $e');
+        debugPrint('Failed to sync concert to remote: $e');
       }
     }
   }
@@ -80,8 +80,7 @@ class ConcertRepositoryImpl implements ConcertRepository {
         await _localDataSource.markAsSynced(concert.id);
       } catch (e) {
         // Log error but don't fail the operation - will sync later
-        // ignore: avoid_print
-        print('Failed to sync concert update to remote: $e');
+        debugPrint('Failed to sync concert update to remote: $e');
       }
     }
 
@@ -99,8 +98,7 @@ class ConcertRepositoryImpl implements ConcertRepository {
         await _remoteDataSource.deleteConcert(concertId);
       } catch (e) {
         // Log error but don't fail the operation - will sync later
-        // ignore: avoid_print
-        print('Failed to sync concert deletion to remote: $e');
+        debugPrint('Failed to sync concert deletion to remote: $e');
       }
     }
   }
