@@ -430,21 +430,23 @@ class FlutterMCPServer:
         if not result:
             return {"error": "No test results found"}
 
-        original_count = len(result.failures) if result.failures else 0
+        # Work with a copy of failures to avoid modifying the cached object
+        failures = list(result.failures) if result.failures else []
+        original_count = len(failures)
 
-        # Apply filters
-        if result.failures:
+        # Apply filters to the copy
+        if failures:
             # File filter
             if file_filter:
-                result.failures = [
-                    f for f in result.failures
+                failures = [
+                    f for f in failures
                     if file_filter in f.file
                 ]
 
             # Search message filter
             if search_message:
-                result.failures = [
-                    f for f in result.failures
+                failures = [
+                    f for f in failures
                     if search_message.lower() in f.message.lower()
                 ]
 
@@ -452,18 +454,21 @@ class FlutterMCPServer:
             if exclude_pattern:
                 try:
                     pattern = re.compile(exclude_pattern)
-                    result.failures = [
-                        f for f in result.failures
+                    failures = [
+                        f for f in failures
                         if not pattern.search(f.message)
                     ]
                 except re.error:
                     return {"error": f"Invalid regex pattern: {exclude_pattern}"}
 
-        # Convert to dict and apply limit
+        # Convert to dict
         result_dict = asdict(result)
-        filtered_count = len(result_dict.get('failures', []))
+        # Replace failures with filtered list
+        result_dict['failures'] = [asdict(f) for f in failures]
+        filtered_count = len(failures)
 
-        if max_failures > 0 and result.failures and len(result.failures) > max_failures:
+        # Apply max_failures limit to the response
+        if max_failures > 0 and filtered_count > max_failures:
             result_dict['failures'] = result_dict['failures'][:max_failures]
             result_dict['truncated'] = True
             result_dict['total_failures'] = original_count
@@ -494,30 +499,32 @@ class FlutterMCPServer:
         if not result:
             return {"error": "No analyze results found"}
 
-        original_count = len(result.issues) if result.issues else 0
+        # Work with a copy of issues to avoid modifying the cached object
+        issues = list(result.issues) if result.issues else []
+        original_count = len(issues)
 
-        # Apply filters
-        if result.issues:
+        # Apply filters to the copy
+        if issues:
             # Severity filter
             if severity_filter:
                 severity_order = {"error": 3, "warning": 2, "info": 1, "hint": 0}
                 min_level = severity_order.get(severity_filter, 0)
-                result.issues = [
-                    issue for issue in result.issues
+                issues = [
+                    issue for issue in issues
                     if severity_order.get(issue.severity, 0) >= min_level
                 ]
 
             # File filter
             if file_filter:
-                result.issues = [
-                    issue for issue in result.issues
+                issues = [
+                    issue for issue in issues
                     if file_filter in issue.file
                 ]
 
             # Search message filter
             if search_message:
-                result.issues = [
-                    issue for issue in result.issues
+                issues = [
+                    issue for issue in issues
                     if search_message.lower() in issue.message.lower()
                 ]
 
@@ -525,8 +532,8 @@ class FlutterMCPServer:
             if exclude_pattern:
                 try:
                     pattern = re.compile(exclude_pattern)
-                    result.issues = [
-                        issue for issue in result.issues
+                    issues = [
+                        issue for issue in issues
                         if not pattern.search(issue.message)
                     ]
                 except re.error:
@@ -536,17 +543,20 @@ class FlutterMCPServer:
             if unique_types:
                 seen_types = set()
                 unique_issues = []
-                for issue in result.issues:
+                for issue in issues:
                     if issue.type not in seen_types:
                         seen_types.add(issue.type)
                         unique_issues.append(issue)
-                result.issues = unique_issues
+                issues = unique_issues
 
-        # Convert to dict and apply limit
+        # Convert to dict
         result_dict = asdict(result)
-        filtered_count = len(result_dict.get('issues', []))
+        # Replace issues with filtered list
+        result_dict['issues'] = [asdict(issue) for issue in issues]
+        filtered_count = len(issues)
 
-        if max_issues > 0 and result.issues and len(result.issues) > max_issues:
+        # Apply max_issues limit to the response
+        if max_issues > 0 and filtered_count > max_issues:
             result_dict['issues'] = result_dict['issues'][:max_issues]
             result_dict['truncated'] = True
             result_dict['total_issues'] = original_count
