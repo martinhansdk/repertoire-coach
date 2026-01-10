@@ -8,26 +8,54 @@ import 'package:repertoire_coach/domain/entities/concert.dart';
 import 'package:repertoire_coach/domain/repositories/concert_repository.dart';
 import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 
+import '../../helpers/test_database.dart';
 import 'concert_provider_test.mocks.dart';
 
 @GenerateMocks([ConcertRepository])
 void main() {
   group('Concert Providers', () {
     test('databaseProvider returns AppDatabase', () {
-      final container = ProviderContainer();
+      final testDb = createTestDatabase();
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(testDb),
+        ],
+      );
+
       expect(container.read(databaseProvider), isA<db.AppDatabase>());
+
+      container.dispose();
+      testDb.close();
     });
 
     test('localConcertDataSourceProvider returns LocalConcertDataSource', () {
-      final container = ProviderContainer();
+      final testDb = createTestDatabase();
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(testDb),
+        ],
+      );
+
       expect(container.read(localConcertDataSourceProvider),
           isA<LocalConcertDataSource>());
+
+      container.dispose();
+      testDb.close();
     });
 
     test('concertRepositoryProvider returns ConcertRepository', () {
-      final container = ProviderContainer();
+      final testDb = createTestDatabase();
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(testDb),
+        ],
+      );
+
       expect(
           container.read(concertRepositoryProvider), isA<ConcertRepository>());
+
+      container.dispose();
+      testDb.close();
     });
 
     group('concertsProvider', () {

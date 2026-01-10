@@ -5,23 +5,43 @@ import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/data/datasources/local/local_track_data_source.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/domain/repositories/track_repository.dart';
+import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/providers/track_provider.dart';
 
+import '../../helpers/test_database.dart';
 import 'track_provider_test.mocks.dart';
 
 @GenerateMocks([TrackRepository])
 void main() {
   group('Track Providers', () {
     test('localTrackDataSourceProvider returns LocalTrackDataSource', () {
-      final container = ProviderContainer();
+      final testDb = createTestDatabase();
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(testDb),
+        ],
+      );
+
       expect(container.read(localTrackDataSourceProvider),
           isA<LocalTrackDataSource>());
+
+      container.dispose();
+      testDb.close();
     });
 
     test('trackRepositoryProvider returns TrackRepository', () {
-      final container = ProviderContainer();
+      final testDb = createTestDatabase();
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(testDb),
+        ],
+      );
+
       expect(
           container.read(trackRepositoryProvider), isA<TrackRepository>());
+
+      container.dispose();
+      testDb.close();
     });
 
     group('tracksBySongProvider', () {

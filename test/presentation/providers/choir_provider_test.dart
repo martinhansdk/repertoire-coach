@@ -5,28 +5,49 @@ import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/data/datasources/local/local_choir_data_source.dart';
 import 'package:repertoire_coach/domain/entities/choir.dart';
 import 'package:repertoire_coach/domain/repositories/choir_repository.dart';
+import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/providers/choir_provider.dart';
 
+import '../../helpers/test_database.dart';
 import 'choir_provider_test.mocks.dart';
 
 @GenerateMocks([ChoirRepository])
 void main() {
   group('Choir Providers', () {
     test('localChoirDataSourceProvider returns LocalChoirDataSource', () {
-      final container = ProviderContainer();
+      final testDb = createTestDatabase();
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(testDb),
+        ],
+      );
+
       expect(container.read(localChoirDataSourceProvider),
           isA<LocalChoirDataSource>());
+
+      container.dispose();
+      testDb.close();
     });
 
     test('choirRepositoryProvider returns ChoirRepository', () {
-      final container = ProviderContainer();
+      final testDb = createTestDatabase();
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(testDb),
+        ],
+      );
+
       expect(
           container.read(choirRepositoryProvider), isA<ChoirRepository>());
+
+      container.dispose();
+      testDb.close();
     });
 
     test('currentUserIdProvider returns a default user ID', () {
       final container = ProviderContainer();
       expect(container.read(currentUserIdProvider), 'user1');
+      container.dispose();
     });
 
     group('choirsProvider', () {
