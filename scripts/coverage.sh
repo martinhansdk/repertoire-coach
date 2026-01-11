@@ -24,7 +24,10 @@ TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
 LOG_FILE="$PROJECT_DIR/logs/coverage-$TIMESTAMP.log"
 
 # Run tests with coverage (pub get is run automatically if needed)
+# Run as current user to avoid permission issues with .dart_tool
 docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -e HOME=/workspace/.cache \
   -v "$PROJECT_DIR":/workspace \
   -w /workspace \
   ghcr.io/cirruslabs/flutter:stable \

@@ -18,7 +18,10 @@ echo "Running flutter test..."
 
 # Run inside docker and capture all output to log file
 # Use cirruslabs/flutter image for consistent environment
+# Run as current user to avoid permission issues with .dart_tool
 docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -e HOME=/app/.cache \
   -v "${PROJECT_ROOT}":/app \
   -w /app \
   ghcr.io/cirruslabs/flutter:stable \

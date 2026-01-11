@@ -35,8 +35,10 @@ echo ""
 
 # Run Flutter web server and log output
 # First get dependencies, then run the web server
-# Use cirruslabs/flutter image which handles permissions correctly
+# Run as current user to avoid permission issues with .dart_tool
 docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -e HOME=/app/.cache \
   -v "${PROJECT_ROOT}":/app \
   -w /app \
   -p 8080:8080 \

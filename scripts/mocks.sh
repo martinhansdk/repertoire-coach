@@ -1,6 +1,6 @@
 #!/bin/bash
-# Run build_runner for code generation (e.g., mocks, database code)
-# Usage: scripts/build-runner.sh [--watch]
+# Generate/regenerate mock classes using build_runner
+# Usage: ./scripts/mocks.sh [--watch]
 
 set -o pipefail
 
@@ -18,9 +18,9 @@ mkdir -p "${PROJECT_ROOT}/logs"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
-LOGFILE="${PROJECT_ROOT}/logs/build-runner-${TIMESTAMP}.log"
+LOGFILE="${PROJECT_ROOT}/logs/mocks-${TIMESTAMP}.log"
 
-echo "Running build_runner..."
+echo "Generating mocks with build_runner..."
 
 if [ "$WATCH_MODE" = true ]; then
   echo "Starting in watch mode (Ctrl+C to stop)..."
@@ -33,7 +33,7 @@ if [ "$WATCH_MODE" = true ]; then
     ghcr.io/cirruslabs/flutter:stable \
     sh -c 'flutter pub get > /dev/null 2>&1 && flutter pub run build_runner watch --delete-conflicting-outputs'
 else
-  # Run build_runner in Docker
+  # Run build_runner for mockito code generation
   docker run --rm \
     -u "$(id -u):$(id -g)" \
     -e HOME=/app/.cache \
@@ -46,9 +46,9 @@ else
 
   # Show concise summary
   if [ $EXIT_CODE -eq 0 ]; then
-    echo "✓ Build runner completed successfully"
+    echo "✓ Mocks generated successfully"
   else
-    echo "✗ Build runner failed (exit code $EXIT_CODE)"
+    echo "✗ Mock generation failed (exit code $EXIT_CODE)"
     echo "Last 20 lines of output:"
     tail -20 "$LOGFILE"
   fi
