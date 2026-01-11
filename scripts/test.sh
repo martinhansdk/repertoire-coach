@@ -23,8 +23,6 @@ docker run --rm \
   -w /app \
   ghcr.io/cirruslabs/flutter:stable \
   sh -c '
-    # Clean up any existing build artifacts that might have wrong permissions
-    rm -rf .dart_tool build
     flutter pub get > /dev/null 2>&1
     flutter test "$@"
   ' sh "$@" > "$LOGFILE" 2>&1
