@@ -431,8 +431,8 @@ class FlutterMCPServer:
             return {"error": "No test results found"}
 
         # Work with a copy of failures to avoid modifying the cached object
-        failures = list(result.failures) if result.failures else []
-        original_count = len(failures)
+        failures = result.failures if isinstance(result.failures, list) else []
+        original_count = len(failures) if failures else 0
 
         # Apply filters to the copy
         if failures:
@@ -461,11 +461,24 @@ class FlutterMCPServer:
                 except re.error:
                     return {"error": f"Invalid regex pattern: {exclude_pattern}"}
 
-        # Convert to dict
-        result_dict = asdict(result)
-        # Replace failures with filtered list
-        result_dict['failures'] = [asdict(f) for f in failures]
-        filtered_count = len(failures)
+        # Build result dict manually, ensuring all lists are never None
+        result_dict = {
+            'success': result.success,
+            'summary': {
+                'passed': result.summary.passed,
+                'failed': result.summary.failed,
+                'skipped': result.summary.skipped,
+                'total': result.summary.total,
+                'duration': result.summary.duration,
+            },
+            'failures': [asdict(f) for f in (failures or [])] if failures else [],
+            'skipped': [asdict(s) for s in (result.skipped or [])] if result.skipped else [],
+            'warnings': result.warnings if isinstance(result.warnings, list) else [],
+            'coveragePercent': result.coveragePercent,
+            'runId': result.runId,
+            'timestamp': str(result.timestamp),
+        }
+        filtered_count = len(failures) if failures else 0
 
         # Apply max_failures limit to the response
         if max_failures > 0 and filtered_count > max_failures:
@@ -500,8 +513,8 @@ class FlutterMCPServer:
             return {"error": "No analyze results found"}
 
         # Work with a copy of issues to avoid modifying the cached object
-        issues = list(result.issues) if result.issues else []
-        original_count = len(issues)
+        issues = result.issues if isinstance(result.issues, list) else []
+        original_count = len(issues) if issues else 0
 
         # Apply filters to the copy
         if issues:
@@ -549,11 +562,20 @@ class FlutterMCPServer:
                         unique_issues.append(issue)
                 issues = unique_issues
 
-        # Convert to dict
-        result_dict = asdict(result)
-        # Replace issues with filtered list
-        result_dict['issues'] = [asdict(issue) for issue in issues]
-        filtered_count = len(issues)
+        # Build result dict manually, ensuring all lists are never None
+        result_dict = {
+            'success': result.success,
+            'summary': {
+                'errors': result.summary.errors,
+                'warnings': result.summary.warnings,
+                'infos': result.summary.infos,
+                'hints': result.summary.hints,
+            },
+            'issues': [asdict(issue) for issue in (issues or [])] if issues else [],
+            'runId': result.runId,
+            'timestamp': str(result.timestamp),
+        }
+        filtered_count = len(issues) if issues else 0
 
         # Apply max_issues limit to the response
         if max_issues > 0 and filtered_count > max_issues:
