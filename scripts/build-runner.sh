@@ -26,8 +26,6 @@ if [ "$WATCH_MODE" = true ]; then
   echo "Starting in watch mode (Ctrl+C to stop)..."
   # Watch mode - show output in terminal
   docker run --rm \
-    -u "$(id -u):$(id -g)" \
-    -e HOME=/app/.cache \
     -v "${PROJECT_ROOT}":/app \
     -w /app \
     ghcr.io/cirruslabs/flutter:stable \
@@ -35,8 +33,6 @@ if [ "$WATCH_MODE" = true ]; then
 else
   # Run build_runner in Docker
   docker run --rm \
-    -u "$(id -u):$(id -g)" \
-    -e HOME=/app/.cache \
     -v "${PROJECT_ROOT}":/app \
     -w /app \
     ghcr.io/cirruslabs/flutter:stable \

@@ -1,6 +1,5 @@
 """Flutter CLI wrapper for running Flutter commands."""
 
-import os
 import subprocess
 import time
 from pathlib import Path
@@ -28,23 +27,13 @@ class FlutterRunner:
         return shutil.which("docker") is not None
 
     def _build_docker_command(self, flutter_args: List[str], with_pub_get: bool = False) -> List[str]:
-        """Build Docker command to run Flutter.
-
-        Runs as the current user to avoid permission issues with mounted volumes.
-        This ensures .dart_tool and build artifacts use the host user's permissions.
-        """
-        # Get current user and group IDs to run container with same user
-        uid = os.getuid()
-        gid = os.getgid()
-
+        """Build Docker command to run Flutter."""
         if with_pub_get:
             # Run pub get first, then the command, all in the same container
             flutter_cmd = " ".join(["flutter"] + flutter_args)
             return [
                 "docker", "run",
                 "--rm",
-                "-u", f"{uid}:{gid}",
-                "-e", "HOME=/app/.cache",
                 "-v", f"{self.project_root.absolute()}:/app",
                 "-w", "/app",
                 self.docker_image,
@@ -55,8 +44,6 @@ class FlutterRunner:
             return [
                 "docker", "run",
                 "--rm",
-                "-u", f"{uid}:{gid}",
-                "-e", "HOME=/app/.cache",
                 "-v", f"{self.project_root.absolute()}:/app",
                 "-w", "/app",
                 self.docker_image,
