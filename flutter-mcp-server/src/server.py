@@ -28,8 +28,9 @@ class FlutterMCPServer:
         self.project_root = Path(project_root) if project_root else Path.cwd()
 
         # Initialize components
+        # Use cirruslabs Flutter image - runs as root for consistent file permissions
         self.runner = FlutterRunner(
-            docker_image="repertoire-coach-builder",
+            docker_image="ghcr.io/cirruslabs/flutter:stable",
             project_root=str(self.project_root)
         )
         self.cache = ResultCache()
