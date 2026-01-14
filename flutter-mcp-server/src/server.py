@@ -29,7 +29,6 @@ class FlutterMCPServer:
 
         # Initialize components
         self.runner = FlutterRunner(
-            docker_enabled=True,
             docker_image="repertoire-coach-builder",
             project_root=str(self.project_root)
         )
@@ -59,7 +58,6 @@ class FlutterMCPServer:
                             "failFast": {"type": "boolean", "description": "Stop on first failure"},
                             "coverage": {"type": "boolean", "description": "Generate coverage report"},
                             "verbose": {"type": "boolean", "description": "Include full output in cache"},
-                            "useDocker": {"type": "boolean", "description": "Run in Docker container"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
                             "timeout": {"type": "number", "description": "Timeout in seconds"}
                         }
@@ -74,7 +72,6 @@ class FlutterMCPServer:
                             "path": {"type": "string", "description": "Specific file/directory"},
                             "severity": {"type": "string", "enum": ["info", "warning", "error"], "description": "Minimum severity"},
                             "maxIssues": {"type": "number", "description": "Max issues to return (default: 50, 0 for all)"},
-                            "useDocker": {"type": "boolean", "description": "Run in Docker container"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
                             "timeout": {"type": "number", "description": "Timeout in seconds"}
                         }
@@ -91,7 +88,6 @@ class FlutterMCPServer:
                             "flavor": {"type": "string", "description": "Build flavor"},
                             "buildNumber": {"type": "string", "description": "Build number"},
                             "buildName": {"type": "string", "description": "Build name"},
-                            "useDocker": {"type": "boolean", "description": "Run in Docker container"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
                             "timeout": {"type": "number", "description": "Timeout in seconds"}
                         },
@@ -144,7 +140,6 @@ class FlutterMCPServer:
                                     "coverage": {"type": "boolean"}
                                 }
                             },
-                            "useDocker": {"type": "boolean", "description": "Run in Docker container"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"}
                         }
                     }
@@ -161,7 +156,6 @@ class FlutterMCPServer:
                         "type": "object",
                         "properties": {
                             "command": {"type": "string", "enum": ["get", "upgrade", "outdated"], "description": "Pub command to run"},
-                            "useDocker": {"type": "boolean", "description": "Run in Docker container"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
                             "timeout": {"type": "number", "description": "Timeout in seconds"}
                         },
@@ -295,7 +289,6 @@ class FlutterMCPServer:
         fail_fast = args.get("failFast", False)
         coverage = args.get("coverage", False)
         verbose = args.get("verbose", False)
-        use_docker = args.get("useDocker", True)
         timeout = args.get("timeout", 300)
 
         # Update Docker image if specified
@@ -309,7 +302,6 @@ class FlutterMCPServer:
             fail_fast=fail_fast,
             coverage=coverage,
             reporter="compact",
-            use_docker=use_docker,
             timeout=timeout
         )
 
@@ -330,7 +322,6 @@ class FlutterMCPServer:
         """Execute flutter analyze command."""
         # Extract parameters
         path = args.get("path")
-        use_docker = args.get("useDocker", True)
         timeout = args.get("timeout", 120)
         min_severity = args.get("severity", "info")
         max_issues = args.get("maxIssues", 50)
@@ -342,7 +333,6 @@ class FlutterMCPServer:
         # Run analyze (pub get is automatically run first in the same container)
         returncode, stdout, stderr = self.runner.analyze(
             path=path,
-            use_docker=use_docker,
             timeout=timeout
         )
 
@@ -385,7 +375,6 @@ class FlutterMCPServer:
         flavor = args.get("flavor")
         build_number = args.get("buildNumber")
         build_name = args.get("buildName")
-        use_docker = args.get("useDocker", True)
         timeout = args.get("timeout", 600)
 
         # Update Docker image if specified
@@ -399,7 +388,6 @@ class FlutterMCPServer:
             flavor=flavor,
             build_number=build_number,
             build_name=build_name,
-            use_docker=use_docker,
             timeout=timeout
         )
 
@@ -599,10 +587,9 @@ class FlutterMCPServer:
 
         stop_on_analyze_failure = args.get("stopOnAnalyzeFailure", True)
         test_options = args.get("testOptions", {})
-        use_docker = args.get("useDocker", True)
 
         # Run analyze
-        analyze_args = {"useDocker": use_docker}
+        analyze_args = {}
         if args.get("dockerImage"):
             analyze_args["dockerImage"] = args["dockerImage"]
 
@@ -612,7 +599,7 @@ class FlutterMCPServer:
         # Run tests if analyze passed or if we shouldn't stop
         test_result = None
         if not stop_on_analyze_failure or analyze_result.success:
-            test_args = {**test_options, "useDocker": use_docker}
+            test_args = {**test_options,}
             if args.get("dockerImage"):
                 test_args["dockerImage"] = args["dockerImage"]
 
@@ -634,7 +621,6 @@ class FlutterMCPServer:
     async def _flutter_pub(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Execute flutter pub command."""
         command = args["command"]
-        use_docker = args.get("useDocker", True)
         timeout = args.get("timeout", 120)
 
         # Update Docker image if specified
@@ -643,11 +629,11 @@ class FlutterMCPServer:
 
         # Run the appropriate pub command
         if command == "get":
-            returncode, stdout, stderr = self.runner.pub_get(use_docker=use_docker, timeout=timeout)
+            returncode, stdout, stderr = self.runner.pub_get(timeout=timeout)
         elif command == "upgrade":
-            returncode, stdout, stderr = self.runner.pub_upgrade(use_docker=use_docker, timeout=timeout)
+            returncode, stdout, stderr = self.runner.pub_upgrade(timeout=timeout)
         elif command == "outdated":
-            returncode, stdout, stderr = self.runner.pub_outdated(use_docker=use_docker, timeout=timeout)
+            returncode, stdout, stderr = self.runner.pub_outdated(timeout=timeout)
         else:
             return {"success": False, "error": f"Unknown pub command: {command}"}
 

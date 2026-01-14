@@ -13,12 +13,13 @@ class FlutterRunner:
     def __init__(
         self,
         flutter_path: str = "flutter",
-        docker_enabled: bool = True,
         docker_image: str = "ghcr.io/cirruslabs/flutter:stable",
         project_root: Optional[str] = None
     ):
+        # CRITICAL: Docker is REQUIRED - Flutter is not installed on host
+        # This parameter exists only for backward compatibility in config
         self.flutter_path = flutter_path
-        self.docker_enabled = docker_enabled
+        self.docker_enabled = True  # Force Docker, ignore parameter
         self.docker_image = docker_image
         self.project_root = Path(project_root) if project_root else Path.cwd()
 
@@ -86,31 +87,31 @@ class FlutterRunner:
     def run_flutter_command(
         self,
         args: List[str],
-        use_docker: Optional[bool] = None,
         with_pub_get: bool = False,
         timeout: int = 300
     ) -> Tuple[int, str, str]:
         """Run a Flutter command and return results.
 
+        CRITICAL: All Flutter commands MUST run in Docker.
+        Flutter is NOT installed on the host machine.
+
         Args:
             args: Flutter command arguments (e.g., ['test', '--reporter', 'compact'])
-            use_docker: Override docker setting for this command
             with_pub_get: If True, run 'flutter pub get' first in the same container
             timeout: Command timeout in seconds
 
         Returns:
             Tuple of (returncode, stdout, stderr)
         """
-        should_use_docker = use_docker if use_docker is not None else self.docker_enabled
+        # CRITICAL: Always use Docker - Flutter is not installed on host
+        if not self._check_docker_available():
+            raise RuntimeError(
+                "Docker is not available but is REQUIRED. "
+                "Flutter is not installed on this host. "
+                "Please install Docker to use this MCP server."
+            )
 
-        if should_use_docker:
-            if not self._check_docker_available():
-                raise RuntimeError("Docker is not available. Install Docker or set useDocker=false")
-
-            cmd = self._build_docker_command(args, with_pub_get=with_pub_get)
-        else:
-            cmd = [self.flutter_path] + args
-
+        cmd = self._build_docker_command(args, with_pub_get=with_pub_get)
         return self._run_command(cmd, timeout=timeout)
 
     def test(
@@ -120,10 +121,9 @@ class FlutterRunner:
         fail_fast: bool = False,
         coverage: bool = False,
         reporter: str = "compact",
-        use_docker: Optional[bool] = None,
         timeout: int = 300
     ) -> Tuple[int, str, str]:
-        """Run Flutter tests."""
+        """Run Flutter tests in Docker."""
         args = ["test"]
 
         if reporter:
@@ -141,21 +141,20 @@ class FlutterRunner:
         if coverage:
             args.append("--coverage")
 
-        return self.run_flutter_command(args, use_docker=use_docker, with_pub_get=True, timeout=timeout)
+        return self.run_flutter_command(args, with_pub_get=True, timeout=timeout)
 
     def analyze(
         self,
         path: Optional[str] = None,
-        use_docker: Optional[bool] = None,
         timeout: int = 120
     ) -> Tuple[int, str, str]:
-        """Run Flutter analyze."""
+        """Run Flutter analyze in Docker."""
         args = ["analyze"]
 
         if path:
             args.append(path)
 
-        return self.run_flutter_command(args, use_docker=use_docker, with_pub_get=True, timeout=timeout)
+        return self.run_flutter_command(args, with_pub_get=True, timeout=timeout)
 
     def build(
         self,
@@ -164,10 +163,9 @@ class FlutterRunner:
         flavor: Optional[str] = None,
         build_number: Optional[str] = None,
         build_name: Optional[str] = None,
-        use_docker: Optional[bool] = None,
         timeout: int = 600
     ) -> Tuple[int, str, str]:
-        """Run Flutter build."""
+        """Run Flutter build in Docker."""
         args = ["build", target]
 
         if mode != "debug":
@@ -182,44 +180,39 @@ class FlutterRunner:
         if build_name:
             args.extend(["--build-name", build_name])
 
-        return self.run_flutter_command(args, use_docker=use_docker, with_pub_get=True, timeout=timeout)
+        return self.run_flutter_command(args, with_pub_get=True, timeout=timeout)
 
     def pub_get(
         self,
-        use_docker: Optional[bool] = None,
         timeout: int = 120
     ) -> Tuple[int, str, str]:
-        """Run Flutter pub get."""
-        return self.run_flutter_command(["pub", "get"], use_docker=use_docker, timeout=timeout)
+        """Run Flutter pub get in Docker."""
+        return self.run_flutter_command(["pub", "get"], timeout=timeout)
 
     def pub_upgrade(
         self,
-        use_docker: Optional[bool] = None,
         timeout: int = 120
     ) -> Tuple[int, str, str]:
-        """Run Flutter pub upgrade."""
-        return self.run_flutter_command(["pub", "upgrade"], use_docker=use_docker, timeout=timeout)
+        """Run Flutter pub upgrade in Docker."""
+        return self.run_flutter_command(["pub", "upgrade"], timeout=timeout)
 
     def pub_outdated(
         self,
-        use_docker: Optional[bool] = None,
         timeout: int = 120
     ) -> Tuple[int, str, str]:
-        """Run Flutter pub outdated."""
-        return self.run_flutter_command(["pub", "outdated"], use_docker=use_docker, timeout=timeout)
+        """Run Flutter pub outdated in Docker."""
+        return self.run_flutter_command(["pub", "outdated"], timeout=timeout)
 
     def doctor(
         self,
-        use_docker: Optional[bool] = None,
         timeout: int = 60
     ) -> Tuple[int, str, str]:
-        """Run Flutter doctor."""
-        return self.run_flutter_command(["doctor"], use_docker=use_docker, timeout=timeout)
+        """Run Flutter doctor in Docker."""
+        return self.run_flutter_command(["doctor"], timeout=timeout)
 
     def clean(
         self,
-        use_docker: Optional[bool] = None,
         timeout: int = 60
     ) -> Tuple[int, str, str]:
-        """Run Flutter clean."""
-        return self.run_flutter_command(["clean"], use_docker=use_docker, timeout=timeout)
+        """Run Flutter clean in Docker."""
+        return self.run_flutter_command(["clean"], timeout=timeout)
