@@ -18,11 +18,8 @@ echo "Running flutter test..."
 
 # Run inside docker and capture all output to log file
 # Use cirruslabs/flutter image for consistent environment
-# Run as current user with writable cache to avoid permission issues
 docker run --rm \
-  -u "$(id -u):$(id -g)" \
   -e PUB_CACHE=/app/.pub-cache \
-  -e FLUTTER_ROOT=/sdks/flutter \
   -v "${PROJECT_ROOT}":/app \
   -v "${PROJECT_ROOT}/.pub-cache":/app/.pub-cache \
   -w /app \
