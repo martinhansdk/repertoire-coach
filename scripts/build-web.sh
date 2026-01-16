@@ -7,19 +7,16 @@ set -o pipefail
 # Get absolute path to project root
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Check if .env file exists
-if [ ! -f "${PROJECT_ROOT}/.env" ]; then
-  echo "Error: .env file not found"
-  echo "Please create .env with SUPABASE_URL and SUPABASE_ANON_KEY"
-  exit 1
+# Load environment variables from .env if it exists (local development)
+# In CI, these should already be set as environment variables
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+  export $(cat "${PROJECT_ROOT}/.env" | grep -v '^#' | xargs)
 fi
-
-# Load environment variables from .env
-export $(cat "${PROJECT_ROOT}/.env" | grep -v '^#' | xargs)
 
 # Validate required variables
 if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-  echo "Error: SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env"
+  echo "Error: SUPABASE_URL and SUPABASE_ANON_KEY must be set"
+  echo "Either create .env file or set environment variables"
   exit 1
 fi
 
