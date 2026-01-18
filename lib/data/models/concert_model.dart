@@ -86,7 +86,7 @@ class ConcertModel extends Concert {
     return {
       'id': id,
       'choir_id': choirId,
-      'choir_name': choirName,
+      // Note: choir_name is NOT included - it's derived from joining with choirs table
       'name': name,
       'concert_date': concertDate.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
