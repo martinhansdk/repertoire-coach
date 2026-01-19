@@ -6,30 +6,59 @@ This document provides context and guidelines for working with Claude Code (or a
 
 **NEVER run Flutter commands directly on the host machine. Flutter is NOT installed on the host.**
 
-All Flutter commands MUST be executed inside Docker containers. Use the provided scripts:
+All Flutter commands MUST be executed inside Docker containers. Use the **Flutter MCP Server** (preferred) or the provided scripts.
+
+### Primary Method: Flutter MCP Server (Preferred)
+
+This project includes a custom Flutter MCP server maintained in `flutter-mcp-server/`. Claude should use these MCP tools for all Flutter operations:
+
+```
+# Validation (analyze + test)
+mcp__flutter__run_validation
+
+# Individual operations
+mcp__flutter__flutter_analyze      # Run static analysis
+mcp__flutter__flutter_test         # Run tests
+mcp__flutter__flutter_build        # Build for platforms
+
+# Query cached results
+mcp__flutter__get_test_results     # Get test failures/details
+mcp__flutter__get_analyze_results  # Get analysis issues
+
+# Other operations
+mcp__flutter__flutter_pub          # Run pub commands (get, upgrade, outdated)
+mcp__flutter__get_raw_log          # Debug parser issues
+```
+
+**Why MCP over scripts:**
+- Structured output (JSON) that's easier for Claude to parse
+- Cached results for quick re-queries without re-running
+- Better error filtering and deduplication
+- No shell output parsing needed
+
+### Alternative: Shell Scripts
+
+Scripts exist in `scripts/` and should be maintained for CI and manual use:
 
 ```bash
-# WRONG - This will fail:
+scripts/validate.sh    # Runs analyze + test in Docker
+scripts/test.sh        # Runs tests in Docker
+scripts/analyze.sh     # Runs analyze in Docker
+scripts/build.sh       # Builds app in Docker
+scripts/mocks.sh       # Generates mockito mocks (build_runner)
+```
+
+### Never Do This
+
+```bash
+# WRONG - This will fail (Flutter not installed on host):
 flutter pub get
 flutter test
 flutter analyze
 flutter build
 
-# CORRECT - Use Docker:
-docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter pub get
-docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter test
-docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter analyze
-
-# BEST - Use the provided scripts:
-scripts/validate.sh    # Runs analyze + test in Docker
-scripts/test.sh        # Runs tests in Docker
-scripts/analyze.sh     # Runs analyze in Docker
-scripts/build.sh       # Builds app in Docker
-```
-
-**For build_runner (code generation):**
-```bash
-docker run --rm -v $(pwd):/workspace -w /workspace ghcr.io/cirruslabs/flutter:stable flutter pub run build_runner build --delete-conflicting-outputs
+# ALSO WRONG - Don't use raw docker commands when MCP/scripts exist:
+docker run --rm -v $(pwd):/workspace ... flutter test
 ```
 
 **Running the Web Server (for development/testing):**
@@ -149,16 +178,64 @@ A collaborative mobile/desktop app for choir members to practice their vocal par
 ## Project Structure
 
 ```
-choir-app/
+repertoire-coach/
 ├── REQUIREMENTS.md      # Detailed feature requirements and workflows
 ├── ARCHITECTURE.md      # Technical design, database schema, data models
 ├── TODO.md             # Development tasks organized by phase
 ├── DOCKER.md           # Docker setup for builds and Supabase
 ├── README.md           # Project overview
+├── flutter-mcp-server/ # Custom MCP server for Flutter operations (maintained by Claude)
+├── scripts/            # Shell scripts for CI and manual use
 ├── Dockerfile.build    # Flutter build container
 ├── docker-compose.supabase.yml  # Self-hosted Supabase stack
-└── lib/                # Flutter source (to be created)
+└── lib/                # Flutter source
 ```
+
+## Flutter MCP Server
+
+The project includes a custom MCP (Model Context Protocol) server in `flutter-mcp-server/` that Claude maintains. This server provides structured Flutter tooling that's easier to work with than parsing shell output.
+
+### Server Location
+```
+flutter-mcp-server/
+├── src/
+│   ├── server.py         # Main MCP server
+│   ├── cache.py          # Result caching
+│   └── parsers/          # Output parsers
+│       ├── test_parser.py
+│       └── analyze_parser.py
+├── README.md             # Server documentation
+└── pyproject.toml        # Python dependencies
+```
+
+### When to Update the MCP Server
+
+Claude should fix or improve the MCP server when:
+- A tool returns unexpected results or fails to parse output correctly
+- A useful operation isn't available as an MCP tool
+- The caching behavior needs adjustment
+- New Flutter features require new tooling
+
+### Available Tools
+
+| Tool | Purpose |
+|------|---------|
+| `flutter_test` | Run tests with structured output |
+| `flutter_analyze` | Run analysis with structured issues |
+| `flutter_build` | Build for platforms |
+| `flutter_pub` | Run pub commands |
+| `run_validation` | Combined analyze + test |
+| `get_test_results` | Query cached test results |
+| `get_analyze_results` | Query cached analysis results |
+| `list_test_runs` | List recent test runs |
+| `get_raw_log` | Debug parser issues |
+
+### Debugging MCP Issues
+
+If an MCP tool behaves unexpectedly:
+1. Use `get_raw_log` to see the actual Flutter output
+2. Check the parser in `flutter-mcp-server/src/parsers/`
+3. Fix the parser and test with the raw output
 
 ## Working with Claude on This Project
 
@@ -356,75 +433,43 @@ Ensure users can't access data outside their choirs.
 
 Before any commit, Claude MUST run validation to verify the code is correct.
 
-### Quick Validation (Recommended)
-Run both analyze and test with concise output:
+### Quick Validation with MCP (Recommended)
+
+Use the Flutter MCP server for validation:
+```
+mcp__flutter__run_validation
+```
+
+This returns structured JSON with:
+- `success`: Overall pass/fail
+- `analyze.summary`: Error/warning/info counts
+- `test.summary`: Passed/failed/skipped counts
+
+**If validation fails**, query details:
+```
+# Get test failures
+mcp__flutter__get_test_results  (with failedOnly: true)
+
+# Get analysis issues
+mcp__flutter__get_analyze_results  (filter by severity, file, etc.)
+```
+
+### Alternative: Shell Scripts
+
+For CI or manual validation, scripts are available:
 ```bash
-scripts/validate.sh
+scripts/validate.sh    # Runs analyze + test
+scripts/analyze.sh     # Analyze only
+scripts/test.sh        # Tests only (--verbose for details)
 ```
 
-**Output on success:**
-```
-Running flutter analyze...
-✓ Analysis complete - No issues found
-
-Running flutter test...
-✓ Tests complete - 82 passed, 3 skipped, 0 failed
-
-✓ Validation passed
-```
-
-**Output on failure:**
-```
-Running flutter analyze...
-✗ Analysis failed - 3 issues found
-  See logs/analyze-2025-11-22-183045.log for details
-
-✗ Validation failed
-```
-
-### Individual Scripts
-
-**Run analyze only:**
-```bash
-scripts/analyze.sh
-```
-
-**Run tests only:**
-```bash
-scripts/test.sh
-
-# Or with verbose output:
-scripts/test.sh --verbose
-```
-
-**Build for platforms:**
-```bash
-scripts/build.sh android --debug
-scripts/build.sh web --release
-scripts/build.sh ios --debug
-```
-
-### Log Files
-
-All scripts write detailed logs to `logs/` directory:
-- `logs/analyze-YYYY-MM-DD-HHMMSS.log` - Full analyze output
-- `logs/test-YYYY-MM-DD-HHMMSS.log` - Full test output
-- `logs/build-{platform}-{mode}-YYYY-MM-DD-HHMMSS.log` - Full build output
-
-**View log details:**
-```bash
-# Find latest log
-ls -t logs/analyze-*.log | head -1
-
-# View specific log
-cat logs/analyze-2025-11-22-183045.log
-```
+Scripts write detailed logs to `logs/` directory.
 
 ### Validation Workflow
 
 1. **Run validation:**
-   ```bash
-   scripts/validate.sh
+   ```
+   mcp__flutter__run_validation
    ```
 
 2. **If validation passes, commit:**
@@ -434,13 +479,10 @@ cat logs/analyze-2025-11-22-183045.log
    git push
    ```
 
-3. **If validation fails, check logs:**
-   ```bash
-   # Find the latest log file
-   ls -t logs/ | head -1
-
-   # View the log
-   cat logs/analyze-2025-11-22-183045.log
+3. **If validation fails, query details:**
+   ```
+   mcp__flutter__get_test_results (failedOnly: true)
+   mcp__flutter__get_analyze_results (severity: "error")
    ```
 
 **Why This Matters:**
@@ -448,8 +490,7 @@ cat logs/analyze-2025-11-22-183045.log
 - Multiple fix commits clutter the history
 - Shows proper software engineering discipline
 - Prevents breaking the build for other developers
-- Concise output saves tokens when working with LLMs
-- Detailed logs available when debugging needed
+- MCP structured output is easier to parse than script logs
 
 **Examples of Issues This Catches:**
 - Type errors (e.g., passing String to bool parameter)
@@ -542,10 +583,18 @@ The project includes a comprehensive deployment script (`scripts/deploy.py`) tha
 
 See DOCKER.md for complete deployment documentation.
 
+## What Claude Can Do
+
+- ✅ Run Flutter analyze, test, and build via MCP server
+- ✅ Query test failures and analysis issues
+- ✅ Generate mocks with `scripts/mocks.sh`
+- ✅ Deploy to connected devices via `scripts/deploy.py`
+- ✅ Maintain the Flutter MCP server (`flutter-mcp-server/`)
+
 ## What Claude Can't Do (Yet)
 
-- Run the Flutter app (can write code, can't execute)
-- Deploy to app stores (but can deploy to devices via deploy.py)
+- Run the Flutter app interactively (hot reload, debugging)
+- Deploy to app stores (Google Play, App Store)
 - Set up actual Supabase projects (can provide SQL and config)
 - Sign Android/iOS builds for production
 
@@ -590,10 +639,24 @@ For these, you'll need to follow the instructions Claude provides.
 - **Tasks**: See TODO.md
 - **Testing Guidelines**: See TESTING_GUIDELINES.md
 - **Docker & Deployment**: See DOCKER.md
+- **Flutter MCP Server**: `flutter-mcp-server/` (maintained by Claude)
+- **Shell Scripts**: `scripts/` (for CI and manual use)
 - **Deploy to Device**: `./scripts/deploy.py` (see DOCKER.md)
+- **Generate Mocks**: `scripts/mocks.sh`
 - **Database Schema**: ARCHITECTURE.md → Database Schema section
 - **Tech Stack**: ARCHITECTURE.md → Technology Stack section
 - **User Workflows**: REQUIREMENTS.md → User Workflows section
+
+### Key MCP Tools
+
+| Task | MCP Tool |
+|------|----------|
+| Full validation | `mcp__flutter__run_validation` |
+| Run tests | `mcp__flutter__flutter_test` |
+| Run analysis | `mcp__flutter__flutter_analyze` |
+| Get test failures | `mcp__flutter__get_test_results` |
+| Get analysis issues | `mcp__flutter__get_analyze_results` |
+| Build app | `mcp__flutter__flutter_build` |
 
 ## Example Session
 
