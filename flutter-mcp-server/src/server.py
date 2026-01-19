@@ -162,6 +162,18 @@ class FlutterMCPServer:
                         },
                         "required": ["command"]
                     }
+                ),
+                Tool(
+                    name="get_raw_log",
+                    description="Get the raw output log for a test/analyze/build run (for debugging parser issues)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "runId": {"type": "string", "description": "Run ID (e.g., test:20260115081506:44136fa3). If not specified, returns latest test run log."},
+                            "tail": {"type": "number", "description": "Only return last N lines (default: all)"},
+                            "head": {"type": "number", "description": "Only return first N lines (default: all)"}
+                        }
+                    }
                 )
             ]
 
@@ -186,6 +198,8 @@ class FlutterMCPServer:
                 result = self.cache.list_test_runs()
             elif name == "flutter_pub":
                 result = await self._flutter_pub(args)
+            elif name == "get_raw_log":
+                result = await self._get_raw_log(args)
             else:
                 raise ValueError(f"Unknown tool: {name}")
 
@@ -311,10 +325,9 @@ class FlutterMCPServer:
         result = self.test_parser.parse(output)
         result.summary.duration = time.time() - start_time
 
-        # Store in cache
+        # Store in cache (always store raw log for debugging)
         params = {k: v for k, v in args.items() if v is not None}
-        log_to_store = output if verbose or len(output) < 100000 else None
-        run_id = self.cache.store_test_result(result, params, log_to_store)
+        run_id = self.cache.store_test_result(result, params, output)
 
         # Convert to dict for JSON serialization
         return asdict(result)
@@ -646,6 +659,46 @@ class FlutterMCPServer:
             "command": f"flutter pub {command}",
             "returncode": returncode,
             "output": output
+        }
+
+    async def _get_raw_log(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Get raw log output for a run (for debugging parser issues)."""
+        run_id = args.get("runId")
+        tail_lines = args.get("tail")
+        head_lines = args.get("head")
+
+        # If no run_id specified, get the latest test run
+        if not run_id:
+            latest_test = self.cache.get_test_result()
+            if latest_test and latest_test.runId:
+                run_id = latest_test.runId
+            else:
+                return {"error": "No run ID specified and no cached test results found"}
+
+        # Get the log
+        log = self.cache.get_log(run_id)
+        if not log:
+            return {
+                "error": f"No log found for run ID: {run_id}",
+                "hint": "Logs are stored for recent runs. Use list_test_runs to see available runs."
+            }
+
+        # Apply head/tail filters
+        lines = log.split('\n')
+        total_lines = len(lines)
+
+        if head_lines and head_lines > 0:
+            lines = lines[:head_lines]
+        if tail_lines and tail_lines > 0:
+            lines = lines[-tail_lines:]
+
+        filtered_log = '\n'.join(lines)
+
+        return {
+            "runId": run_id,
+            "totalLines": total_lines,
+            "returnedLines": len(lines),
+            "log": filtered_log
         }
 
     async def run(self):

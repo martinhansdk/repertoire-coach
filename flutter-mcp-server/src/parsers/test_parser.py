@@ -101,24 +101,16 @@ class TestParser:
 
             # Collect error messages and stack traces
             if collecting_error:
-                # Look for file:line:column pattern (start of stack trace)
-                if 'package:' in line or '.dart:' in line:
-                    if not stack_trace_lines:
-                        # First stack trace line after error message
-                        pass
-                    stack_trace_lines.append(line.strip())
-                elif line.strip().startswith('Expected:') or line.strip().startswith('Actual:'):
-                    error_message_lines.append(line.strip())
-                elif line.strip() and not line.startswith(' ' * 10):  # End of error block
-                    # Finish collecting this error
+                stripped = line.strip()
+
+                # Check if this line starts a new test (ends error block)
+                if self.TEST_LINE_PATTERN.match(line):
+                    # Save current error before processing new test
                     if current_test_name and error_message_lines:
                         error_text = ' '.join(error_message_lines)
-
-                        # Determine error type
                         error_type = "assertion"
                         if "Exception" in error_text or "Error" in error_text:
                             error_type = "exception"
-
                         failures.append(TestFailure(
                             test=current_test_name,
                             file=current_test_file,
@@ -126,12 +118,37 @@ class TestParser:
                             stackTrace=stack_trace_lines if stack_trace_lines else None,
                             type=error_type
                         ))
-
                     collecting_error = False
                     error_message_lines = []
                     stack_trace_lines = []
-                elif line.strip():
-                    error_message_lines.append(line.strip())
+                    # Don't continue - let the test line be processed normally
+                # Look for stack trace lines (contain package: or file:line:col pattern)
+                elif 'package:' in line or (stripped and '.dart:' in stripped and ':' in stripped.split('.dart:')[-1]):
+                    stack_trace_lines.append(stripped)
+                # Capture error message lines (Expected:, Actual:, Which:, or other indented content)
+                elif stripped.startswith(('Expected:', 'Actual:', 'Which:')):
+                    error_message_lines.append(stripped)
+                # Empty line after collecting content - save the error
+                elif not stripped and error_message_lines:
+                    # Save collected error
+                    if current_test_name:
+                        error_text = ' '.join(error_message_lines)
+                        error_type = "assertion"
+                        if "Exception" in error_text or "Error" in error_text:
+                            error_type = "exception"
+                        failures.append(TestFailure(
+                            test=current_test_name,
+                            file=current_test_file,
+                            error=error_text,
+                            stackTrace=stack_trace_lines if stack_trace_lines else None,
+                            type=error_type
+                        ))
+                    collecting_error = False
+                    error_message_lines = []
+                    stack_trace_lines = []
+                # Other non-empty indented lines are part of error message
+                elif stripped and line.startswith(' '):
+                    error_message_lines.append(stripped)
 
             # Parse summary line
             summary_match = self.SUMMARY_PATTERN.search(line)
@@ -144,6 +161,20 @@ class TestParser:
             # Look for warnings
             if 'Warning:' in line:
                 warnings.append(line.strip())
+
+        # Save any remaining error that was being collected when output ended
+        if collecting_error and current_test_name and error_message_lines:
+            error_text = ' '.join(error_message_lines)
+            error_type = "assertion"
+            if "Exception" in error_text or "Error" in error_text:
+                error_type = "exception"
+            failures.append(TestFailure(
+                test=current_test_name,
+                file=current_test_file,
+                error=error_text,
+                stackTrace=stack_trace_lines if stack_trace_lines else None,
+                type=error_type
+            ))
 
         # If we didn't find a summary line, extract final counts from the last progress line
         # This handles the compact reporter format which doesn't have a summary line

@@ -1,15 +1,19 @@
 {
-    "mcpServers": {
-        "flutter": {
-        "command": "uv",
-        "args": [
-            "run",
-            "--directory",
-            "/home/martin/code/repertoire-coach/flutter-mcp-server",
-            "flutter-mcp-server",
-            "/home/martin/code/repertoire-coach"
-        ],
-        "env": {}
-        }
+  "mcpServers": {
+    "flutter": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/home/martin/code/repertoire-coach/flutter-mcp-server",
+        "flutter-mcp-server",
+        "/home/martin/code/repertoire-coach"
+      ],
+      "env": {}
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=riotwqypcjzxgzybxdwo&read_only=true"
     }
+  }
 }

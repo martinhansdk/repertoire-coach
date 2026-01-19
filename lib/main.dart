@@ -6,6 +6,7 @@ import 'core/config/environment.dart';
 import 'core/constants.dart';
 import 'core/services/supabase_service.dart';
 import 'core/theme.dart';
+import 'presentation/providers/sync_provider.dart';
 import 'presentation/screens/auth/auth_wrapper.dart';
 import 'presentation/screens/home_screen.dart';
 
@@ -41,11 +42,15 @@ void main() async {
 ///
 /// The root widget of the application, configured with theme
 /// and bottom navigation between choirs and concerts.
-class RepertoireCoachApp extends StatelessWidget {
+class RepertoireCoachApp extends ConsumerWidget {
   const RepertoireCoachApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Enable auto-sync when user signs in
+    // This provider watches auth state and triggers sync from remote
+    ref.watch(authSyncTriggerProvider);
+
     return MaterialApp(
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,

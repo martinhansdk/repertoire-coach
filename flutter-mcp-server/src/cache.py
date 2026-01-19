@@ -177,7 +177,9 @@ class ResultCache:
                         "failed": result.summary.failed,
                         "total": result.summary.total
                     },
-                    "params": json.loads(params)
+                    "params": json.loads(params),
+                    "hasLog": run_id in self.logs,
+                    "logSize": len(self.logs.get(run_id, "")) if run_id in self.logs else 0
                 })
         return runs
 

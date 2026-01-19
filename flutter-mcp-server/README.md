@@ -21,7 +21,7 @@ An MCP (Model Context Protocol) server that provides structured, token-efficient
 
 - Python 3.10 or higher
 - [uv](https://github.com/astral-sh/uv) - Fast Python package installer
-- Docker (optional, but recommended for consistent Flutter environment)
+- Docker
 
 ### Install with uv (Recommended)
 
@@ -87,7 +87,6 @@ Run Flutter tests with structured output.
 - `failFast` (boolean, optional): Stop on first failure
 - `coverage` (boolean, optional): Generate coverage report
 - `verbose` (boolean, optional): Include full output in cache
-- `useDocker` (boolean, optional): Run in Docker container (default: true)
 - `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
 
@@ -123,7 +122,6 @@ Run Flutter analysis with structured errors.
 - `path` (string, optional): Specific file/directory
 - `severity` (string, optional): Minimum severity ("info", "warning", "error")
 - `maxIssues` (number, optional): Max issues to return (default: 50, 0 for all)
-- `useDocker` (boolean, optional): Run in Docker container
 - `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
 
@@ -165,7 +163,6 @@ Run Flutter build with structured output.
 - `flavor` (string, optional): Build flavor
 - `buildNumber` (string, optional): Build number
 - `buildName` (string, optional): Build name
-- `useDocker` (boolean, optional): Run in Docker container
 - `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
 
@@ -175,7 +172,6 @@ Run Flutter pub commands for dependency management.
 
 **Parameters:**
 - `command` (string, required): Pub command to run ("get", "upgrade", "outdated")
-- `useDocker` (boolean, optional): Run in Docker container (default: true)
 - `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
 
@@ -280,7 +276,6 @@ Run both analyze and test (equivalent to `scripts/validate.sh`).
   - `path` (string, optional)
   - `failFast` (boolean, optional)
   - `coverage` (boolean, optional)
-- `useDocker` (boolean, optional): Run in Docker container
 - `dockerImage` (string, optional): Docker image to use
 
 **Returns:**
@@ -434,13 +429,6 @@ The server runs Flutter commands in Docker by default using the `repertoire-coac
 
 **Important:** The server automatically runs `flutter pub get` before each command (test, analyze, build) in the same Docker container to ensure dependencies are available. This matches the behavior of the validation scripts.
 
-To disable Docker and use local Flutter:
-```json
-{
-  "useDocker": false
-}
-```
-
 To use a different Docker image, modify `src/server.py` line 33:
 ```python
 docker_image="ghcr.io/cirruslabs/flutter:stable"  # or your preferred image
@@ -546,9 +534,7 @@ Contributions welcome! Please ensure tests pass and code is formatted before sub
 
 ### Docker not found
 
-If you get "Docker is not available", either:
-1. Install Docker
-2. Set `useDocker: false` to use local Flutter installation
+If you get "Docker is not available", install docker.
 
 ### Docker image not found
 
@@ -575,11 +561,3 @@ This was fixed in recent versions. Ensure you have the latest code where:
 - Dependencies are installed in the same Docker container as the command
 - Test parser extracts all status counts from compact reporter output
 
-## Future Enhancements
-
-- [ ] Incremental testing (only run affected tests)
-- [ ] Parallel test execution
-- [ ] Test flakiness tracking
-- [ ] Web dashboard for results
-- [ ] CI/CD integration formats
-- [ ] Smart issue grouping by root cause
