@@ -264,6 +264,51 @@ For Flutter web testing, consider:
 2. Using Playwright only for auth flows and navigation verification
 3. Relying on accessibility semantics where Flutter exposes them
 
+## Supabase MCP Server
+
+The Supabase MCP server provides direct access to inspect and manage the Supabase backend.
+
+### Available Tools
+
+| Tool | Purpose |
+|------|---------|
+| `mcp__supabase__list_tables` | List all tables in schemas |
+| `mcp__supabase__list_migrations` | List applied migrations |
+| `mcp__supabase__apply_migration` | Apply new DDL migrations |
+| `mcp__supabase__execute_sql` | Run SQL queries (read/write) |
+| `mcp__supabase__get_logs` | Get service logs (api, auth, postgres, etc.) |
+| `mcp__supabase__get_advisors` | Check security/performance advisories |
+| `mcp__supabase__search_docs` | Search Supabase documentation |
+| `mcp__supabase__generate_typescript_types` | Generate types from schema |
+| `mcp__supabase__list_edge_functions` | List Edge Functions |
+| `mcp__supabase__get_project_url` | Get API URL |
+| `mcp__supabase__get_publishable_keys` | Get API keys |
+
+### Common Uses
+
+```
+# Inspect current schema
+mcp__supabase__list_tables (schemas: ["public"])
+
+# Check RLS policies are working
+mcp__supabase__get_advisors (type: "security")
+
+# Debug auth issues
+mcp__supabase__get_logs (service: "auth")
+
+# Run a query
+mcp__supabase__execute_sql (query: "SELECT * FROM choirs LIMIT 5")
+
+# Apply schema changes
+mcp__supabase__apply_migration (name: "add_new_column", query: "ALTER TABLE...")
+```
+
+### Important Notes
+
+- Use `apply_migration` for DDL (schema changes), not `execute_sql`
+- `get_advisors` is useful after schema changes to catch missing RLS policies
+- The database schema is documented in ARCHITECTURE.md
+
 ## Working with Claude on This Project
 
 ### Starting a New Session
