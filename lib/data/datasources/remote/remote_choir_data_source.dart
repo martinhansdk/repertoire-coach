@@ -264,4 +264,49 @@ class RemoteChoirDataSource {
       throw Exception('Unexpected error getting member count: $e');
     }
   }
+
+  // ============================================================================
+  // SYNC OPERATIONS - Get all data for a user
+  // ============================================================================
+
+  /// Get all choir members from all choirs the user is a member of
+  ///
+  /// Returns ChoirMemberModel objects for all members in all user's choirs.
+  /// Used for sync operations to pull all choir membership data at once.
+  Future<List<ChoirMemberModel>> getChoirMembersForUser(String userId) async {
+    try {
+      // First get choir IDs where user is a member
+      final memberResponse = await _supabase
+          .from('choir_members')
+          .select('choir_id')
+          .eq('user_id', userId) as List;
+
+      if (memberResponse.isEmpty) {
+        return [];
+      }
+
+      final choirIds = memberResponse
+          .map((json) => json['choir_id'] as String)
+          .toList();
+
+      // Get all members for those choirs
+      final allMembersResponse = await _supabase
+          .from('choir_members')
+          .select('''
+            choir_id,
+            user_id,
+            joined_at
+          ''')
+          .inFilter('choir_id', choirIds) as List;
+
+      return allMembersResponse
+          .map((json) => ChoirMemberModel.fromJson(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception(
+          'Failed to fetch choir members for user from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching choir members for user: $e');
+    }
+  }
 }

@@ -134,4 +134,34 @@ class RemoteUserPlaybackStateDataSource {
       throw Exception('Unexpected error deleting playback states: $e');
     }
   }
+
+  /// Get all playback states for a user from Supabase
+  ///
+  /// Returns all playback states for the user across all songs and tracks.
+  /// Used for sync operations to pull all user's playback states at once.
+  Future<List<UserPlaybackStateModel>> getPlaybackStatesForUser(
+    String userId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('playback_states')
+          .select('''
+            user_id,
+            song_id,
+            track_id,
+            position_ms,
+            updated_at
+          ''')
+          .eq('user_id', userId) as List;
+
+      return response
+          .map((json) => UserPlaybackStateModel.fromJson(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception(
+          'Failed to fetch playback states for user from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching playback states for user: $e');
+    }
+  }
 }

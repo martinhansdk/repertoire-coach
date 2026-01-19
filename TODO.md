@@ -252,19 +252,19 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [ ] Determine sync mode based on auth state
 - [ ] Write tests for offline/online mode behavior
 
-### Step 5: Sync Engine
+### Step 5: Sync Engine (Partial - Remote-to-Local Complete)
 - [ ] Add SyncQueue table to database schema (for offline operations)
 - [ ] Create SyncOperation, SyncConflict, SyncStatus models
 - [ ] Create SyncQueue service for offline queue management
-- [ ] Create SyncService for bidirectional sync
+- [x] Create SyncService for remote-to-local sync (lib/core/services/sync_service.dart)
 - [ ] Implement syncToCloud() - upload local changes
-- [ ] Implement syncFromCloud() - download remote changes
+- [x] Implement syncFromCloud() - download remote changes (syncFromRemote method)
 - [ ] Implement conflict resolution (last write wins based on updated_at)
-- [ ] Create sync providers for UI integration
+- [x] Create sync providers for UI integration (lib/presentation/providers/sync_provider.dart)
 - [ ] Add periodic background sync (every 5 minutes)
 - [ ] Create sync status indicator widget
 - [ ] Handle network connectivity changes
-- [ ] Write comprehensive sync tests (unit + integration)
+- [x] Write comprehensive sync tests (unit + integration) - test/core/services/sync_service_test.dart
 
 ### Step 6: Storage Integration (Audio Files)
 - [x] Create CloudStorageService for Supabase Storage operations (AudioStorageService)

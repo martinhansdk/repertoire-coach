@@ -231,4 +231,139 @@ class RemoteMarkerDataSource {
       throw Exception('Unexpected error deleting markers: $e');
     }
   }
+
+  // ============================================================================
+  // SYNC OPERATIONS - Get all data for a user
+  // ============================================================================
+
+  /// Get all marker sets accessible to a user from Supabase
+  ///
+  /// Returns marker sets from all tracks in all songs in all concerts
+  /// in all choirs where the user is a member. Includes both shared
+  /// marker sets and private ones created by the user.
+  /// Used for sync operations to pull all accessible marker sets at once.
+  Future<List<MarkerSetModel>> getMarkerSetsForUser(String userId) async {
+    try {
+      // First get choir IDs where user is a member
+      final memberResponse = await _supabase
+          .from('choir_members')
+          .select('choir_id')
+          .eq('user_id', userId) as List;
+
+      if (memberResponse.isEmpty) {
+        return [];
+      }
+
+      final choirIds = memberResponse
+          .map((json) => json['choir_id'] as String)
+          .toList();
+
+      // Get concert IDs for those choirs
+      final concertResponse = await _supabase
+          .from('concerts')
+          .select('id')
+          .inFilter('choir_id', choirIds) as List;
+
+      if (concertResponse.isEmpty) {
+        return [];
+      }
+
+      final concertIds = concertResponse
+          .map((json) => json['id'] as String)
+          .toList();
+
+      // Get song IDs for those concerts
+      final songResponse = await _supabase
+          .from('songs')
+          .select('id')
+          .inFilter('concert_id', concertIds) as List;
+
+      if (songResponse.isEmpty) {
+        return [];
+      }
+
+      final songIds = songResponse
+          .map((json) => json['id'] as String)
+          .toList();
+
+      // Get track IDs for those songs
+      final trackResponse = await _supabase
+          .from('tracks')
+          .select('id')
+          .inFilter('song_id', songIds) as List;
+
+      if (trackResponse.isEmpty) {
+        return [];
+      }
+
+      final trackIds = trackResponse
+          .map((json) => json['id'] as String)
+          .toList();
+
+      // Get marker sets for those tracks (shared OR created by user)
+      final markerSetResponse = await _supabase
+          .from('marker_sets')
+          .select('''
+            id,
+            track_id,
+            name,
+            is_shared,
+            created_by_user_id,
+            created_at,
+            updated_at
+          ''')
+          .inFilter('track_id', trackIds)
+          .or('is_shared.eq.true,created_by_user_id.eq.$userId') as List;
+
+      return markerSetResponse
+          .map((json) => MarkerSetModel.fromJson(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception(
+          'Failed to fetch marker sets for user from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching marker sets for user: $e');
+    }
+  }
+
+  /// Get all markers accessible to a user from Supabase
+  ///
+  /// Returns markers from all marker sets that the user can access
+  /// (shared marker sets and private ones created by the user).
+  /// Used for sync operations to pull all accessible markers at once.
+  Future<List<MarkerModel>> getMarkersForUser(String userId) async {
+    try {
+      // Get all accessible marker sets first
+      final markerSets = await getMarkerSetsForUser(userId);
+
+      if (markerSets.isEmpty) {
+        return [];
+      }
+
+      final markerSetIds = markerSets.map((ms) => ms.id).toList();
+
+      // Get markers for those marker sets
+      final markerResponse = await _supabase
+          .from('markers')
+          .select('''
+            id,
+            marker_set_id,
+            label,
+            position_ms,
+            display_order,
+            created_at
+          ''')
+          .inFilter('marker_set_id', markerSetIds)
+          .order('display_order', ascending: true) as List;
+
+      return markerResponse
+          .map((json) => MarkerModel.fromJson(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception(
+          'Failed to fetch markers for user from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching markers for user: $e');
+    }
+  }
 }

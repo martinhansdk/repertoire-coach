@@ -67,10 +67,11 @@ void main() {
       // act
       final result = tConcertModel.toJson();
       // assert
+      // Note: choir_name is not included in toJson as it's a read-only
+      // computed field from a join with the choirs table
       final expectedMap = {
         'id': 'c1',
         'choir_id': 'choir1',
-        'choir_name': 'Test Choir',
         'name': 'Test Concert',
         'concert_date': now.toIso8601String(),
         'created_at': now.toIso8601String(),

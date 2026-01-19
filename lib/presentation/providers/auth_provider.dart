@@ -47,6 +47,10 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
 ///
 /// Provides methods to perform authentication operations.
 /// UI screens should handle loading/error states locally.
+///
+/// Note: After successful sign-in, the UI should trigger a sync from remote
+/// using the syncControllerProvider from sync_provider.dart to pull the
+/// user's data into the local database.
 final authActionsProvider = Provider<AuthActions>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   return AuthActions(authRepository);
@@ -72,6 +76,10 @@ class AuthActions {
   }
 
   /// Sign in an existing user.
+  ///
+  /// Note: After successful sign-in, the UI should trigger a sync from remote
+  /// using syncControllerProvider.notifier.syncFromRemote() to pull the
+  /// user's data into the local database.
   Future<User?> signIn({
     required String email,
     required String password,

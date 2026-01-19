@@ -101,4 +101,61 @@ class RemoteSongDataSource {
       throw Exception('Unexpected error deleting song: $e');
     }
   }
+
+  /// Get all songs for a user from Supabase
+  ///
+  /// Returns songs from all concerts in all choirs where the user is a member.
+  /// Used for sync operations to pull all accessible songs at once.
+  Future<List<SongModel>> getSongsForUser(String userId) async {
+    try {
+      // First get choir IDs where user is a member
+      final memberResponse = await _supabase
+          .from('choir_members')
+          .select('choir_id')
+          .eq('user_id', userId) as List;
+
+      if (memberResponse.isEmpty) {
+        return [];
+      }
+
+      final choirIds = memberResponse
+          .map((json) => json['choir_id'] as String)
+          .toList();
+
+      // Get concert IDs for those choirs
+      final concertResponse = await _supabase
+          .from('concerts')
+          .select('id')
+          .inFilter('choir_id', choirIds) as List;
+
+      if (concertResponse.isEmpty) {
+        return [];
+      }
+
+      final concertIds = concertResponse
+          .map((json) => json['id'] as String)
+          .toList();
+
+      // Get songs for those concerts
+      final songResponse = await _supabase
+          .from('songs')
+          .select('''
+            id,
+            concert_id,
+            title,
+            created_at,
+            updated_at
+          ''')
+          .inFilter('concert_id', concertIds)
+          .order('title', ascending: true) as List;
+
+      return songResponse
+          .map((json) => SongModel.fromJson(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch songs for user from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching songs for user: $e');
+    }
+  }
 }

@@ -116,6 +116,37 @@ class LocalChoirDataSource {
     return rowsAffected > 0;
   }
 
+  /// Insert or update a choir
+  ///
+  /// If a choir with the same ID exists, it will be updated.
+  /// Otherwise, a new choir is created.
+  /// Note: This does NOT automatically add the creator as a member.
+  /// Use this for sync operations where choir and membership are separate.
+  /// [markForSync] determines if this change should be synced to cloud (default: true)
+  Future<void> upsertChoir(
+    ChoirModel choir, {
+    bool markForSync = true,
+  }) async {
+    await _database.into(_database.choirs).insertOnConflictUpdate(
+          choir.toDriftCompanion(markForSync: markForSync),
+        );
+  }
+
+  /// Insert or update a choir member
+  ///
+  /// If the member already exists, it will be updated.
+  /// Otherwise, a new member is created.
+  /// Use this for sync operations.
+  /// [markForSync] determines if this change should be synced to cloud (default: true)
+  Future<void> upsertMember(
+    ChoirMemberModel member, {
+    bool markForSync = true,
+  }) async {
+    await _database.into(_database.choirMembers).insertOnConflictUpdate(
+          member.toDriftCompanion(markForSync: markForSync),
+        );
+  }
+
   /// Soft delete a choir
   ///
   /// Choir is marked as deleted but not removed from database.
