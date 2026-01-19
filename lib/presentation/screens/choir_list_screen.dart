@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
+import '../../core/services/sync_service.dart';
 import '../providers/choir_provider.dart';
+import '../providers/sync_provider.dart';
 import '../widgets/choir_card.dart';
 import '../widgets/create_choir_dialog.dart';
 import 'choir_detail_screen.dart';
@@ -15,21 +17,38 @@ class ChoirListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final choirsAsync = ref.watch(choirsProvider);
+    final syncState = ref.watch(syncControllerProvider);
+    final isSyncing = syncState.status == SyncStatus.syncing;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Choirs'),
+        actions: [
+          if (isSyncing)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+        ],
       ),
       body: choirsAsync.when(
         data: (choirs) {
           if (choirs.isEmpty) {
-            return const _EmptyState();
+            return _EmptyState(
+              onSync: () {
+                ref.read(syncControllerProvider.notifier).syncFromRemote();
+              },
+            );
           }
 
           return RefreshIndicator(
             onRefresh: () async {
-              // Refresh the choirs list
-              ref.invalidate(choirsProvider);
+              // Trigger full sync from remote instead of just invalidating
+              await ref.read(syncControllerProvider.notifier).syncFromRemote();
             },
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(
@@ -82,7 +101,9 @@ class ChoirListScreen extends ConsumerWidget {
 
 /// Empty state when no choirs are available
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final VoidCallback? onSync;
+
+  const _EmptyState({this.onSync});
 
   @override
   Widget build(BuildContext context) {
@@ -108,12 +129,20 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppConstants.paddingSmall),
             Text(
-              'Create a new choir to get started',
+              'Create a new choir or sync from cloud',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
+            if (onSync != null) ...[
+              const SizedBox(height: AppConstants.paddingMedium),
+              OutlinedButton.icon(
+                onPressed: onSync,
+                icon: const Icon(Icons.sync),
+                label: const Text('Sync from Cloud'),
+              ),
+            ],
           ],
         ),
       ),
