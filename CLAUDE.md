@@ -237,6 +237,33 @@ If an MCP tool behaves unexpectedly:
 2. Check the parser in `flutter-mcp-server/src/parsers/`
 3. Fix the parser and test with the raw output
 
+## Playwright MCP Server
+
+The Playwright MCP server is installed for browser automation and web testing. Test account credentials are stored in `email-credentials.txt`.
+
+### Available Tools
+
+| Tool | Purpose |
+|------|---------|
+| `mcp__playwright__browser_navigate` | Navigate to URL |
+| `mcp__playwright__browser_snapshot` | Get accessibility snapshot (preferred over screenshot) |
+| `mcp__playwright__browser_click` | Click elements |
+| `mcp__playwright__browser_type` | Type into fields |
+| `mcp__playwright__browser_take_screenshot` | Capture screenshots |
+
+### Limitations with Flutter Web
+
+**Important:** Flutter renders to a canvas element, not traditional DOM elements. This makes Playwright harder to use because:
+- Most elements aren't accessible as individual DOM nodes
+- `browser_snapshot` returns limited accessibility info
+- Click coordinates may be needed instead of element selectors
+- Text input may require focusing the canvas first
+
+For Flutter web testing, consider:
+1. Using Flutter's integration_test package instead
+2. Using Playwright only for auth flows and navigation verification
+3. Relying on accessibility semantics where Flutter exposes them
+
 ## Working with Claude on This Project
 
 ### Starting a New Session
