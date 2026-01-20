@@ -34,6 +34,14 @@ class Track extends Equatable {
     required this.updatedAt,
   });
 
+  /// Returns true if this track has an audio source available
+  /// (either a cloud URL or local file path)
+  bool get hasAudio => audioUrl != null || filePath != null;
+
+  /// Returns the best available audio source URL
+  /// Prefers audioUrl (cloud), falls back to filePath (local)
+  String? get audioSource => audioUrl ?? filePath;
+
   @override
   List<Object?> get props => [
         id,

@@ -3,10 +3,26 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:repertoire_coach/core/services/sync_service.dart';
 import 'package:repertoire_coach/domain/entities/choir.dart';
 import 'package:repertoire_coach/presentation/providers/choir_provider.dart';
+import 'package:repertoire_coach/presentation/providers/sync_provider.dart';
 import 'package:repertoire_coach/presentation/screens/choir_list_screen.dart';
 import 'package:repertoire_coach/presentation/widgets/create_choir_dialog.dart';
+
+/// Mock SyncController that does nothing for tests
+class MockSyncController extends SyncController {
+  int syncCallCount = 0;
+
+  @override
+  SyncState build() => SyncState.initial;
+
+  @override
+  Future<void> syncFromRemote() async {
+    syncCallCount++;
+    // Do nothing - just track calls
+  }
+}
 
 void main() {
   group('ChoirListScreen Widget', () {
@@ -55,6 +71,7 @@ void main() {
         ProviderScope(
           overrides: [
             choirsProvider.overrideWith((ref) => Future.value([])),
+            syncControllerProvider.overrideWith(MockSyncController.new),
           ],
           child: const MaterialApp(home: ChoirListScreen()),
         ),
@@ -64,7 +81,7 @@ void main() {
 
       // Assert
       expect(find.text('No Choirs Yet'), findsOneWidget);
-      expect(find.text('Create a new choir to get started'), findsOneWidget);
+      expect(find.text('Create a new choir or sync from cloud'), findsOneWidget);
       expect(find.byIcon(Icons.groups_outlined), findsOneWidget);
     });
 
@@ -243,6 +260,9 @@ void main() {
     testWidgets('should support pull-to-refresh', (tester) async {
       // Arrange
       var loadCount = 0;
+      var syncCallCount = 0;
+
+      // Create a custom sync controller that tracks calls and invalidates choirsProvider
       final container = ProviderContainer(
         overrides: [
           choirsProvider.overrideWith((ref) {
@@ -255,6 +275,13 @@ void main() {
                 createdAt: DateTime.now(),
               ),
             ]);
+          }),
+          syncControllerProvider.overrideWith(() {
+            return _TestSyncController(
+              onSync: () {
+                syncCallCount++;
+              },
+            );
           }),
         ],
       );
@@ -279,8 +306,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Assert - provider should reload
-      expect(loadCount, 2);
+      // Assert - sync should be called (which is now the pull-to-refresh action)
+      expect(syncCallCount, 1);
 
       container.dispose();
     });
@@ -321,4 +348,20 @@ void main() {
       expect(find.text('Choir 10', skipOffstage: false), findsOneWidget);
     });
   });
+}
+
+/// Test sync controller that tracks sync calls
+class _TestSyncController extends SyncController {
+  final VoidCallback? onSync;
+
+  _TestSyncController({this.onSync});
+
+  @override
+  SyncState build() => SyncState.initial;
+
+  @override
+  Future<void> syncFromRemote() async {
+    onSync?.call();
+    // Do nothing else - just track the call
+  }
 }

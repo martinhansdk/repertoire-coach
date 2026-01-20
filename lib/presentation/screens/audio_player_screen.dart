@@ -81,7 +81,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
                         return ListTile(
                           title: Text(track.name),
-                          subtitle: track.filePath != null
+                          subtitle: track.hasAudio
                               ? const Text('Audio file available')
                               : const Text('No audio file'),
                           leading: Icon(
@@ -108,7 +108,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                                 },
                               ),
                               // Play/pause button
-                              if (track.filePath != null)
+                              if (track.hasAudio)
                                 IconButton(
                                   icon: Icon(
                                     isCurrentTrack && playbackInfo.isPlaying

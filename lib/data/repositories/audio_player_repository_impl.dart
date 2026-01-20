@@ -140,7 +140,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> playTrack(Track track, {Duration startPosition = Duration.zero}) async {
-    if (track.filePath == null) {
+    if (!track.hasAudio) {
       final errorInfo = PlaybackInfo.error('Track has no audio file');
       _currentPlaybackInfo = errorInfo;
       _playbackController.add(errorInfo);
@@ -148,20 +148,24 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     }
 
     try {
-      // Check if file exists
-      final file = File(track.filePath!);
-      if (!await file.exists()) {
-        final errorInfo = PlaybackInfo.error('Audio file not found: ${track.filePath}');
-        _currentPlaybackInfo = errorInfo;
-        _playbackController.add(errorInfo);
-        throw Exception('Audio file not found');
-      }
-
       _currentTrack = track;
       _currentSongId = track.songId;
 
-      // Set audio source to file
-      await _player.setFilePath(track.filePath!);
+      // Set audio source - prefer cloud URL, fall back to local file
+      if (track.audioUrl != null) {
+        // Play from cloud URL
+        await _player.setUrl(track.audioUrl!);
+      } else if (track.filePath != null) {
+        // Play from local file
+        final file = File(track.filePath!);
+        if (!await file.exists()) {
+          final errorInfo = PlaybackInfo.error('Audio file not found: ${track.filePath}');
+          _currentPlaybackInfo = errorInfo;
+          _playbackController.add(errorInfo);
+          throw Exception('Audio file not found');
+        }
+        await _player.setFilePath(track.filePath!);
+      }
 
       // Load saved position if no start position specified
       Duration seekPosition = startPosition;
