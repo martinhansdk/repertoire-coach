@@ -28,7 +28,7 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   Stream<PlaybackInfo> get playbackStream => Stream.value(_currentPlayback);
 
   @override
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero}) async {}
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl}) async {}
 
   @override
   Future<void> resume() async {}

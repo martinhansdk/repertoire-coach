@@ -87,12 +87,16 @@ class MockAudioPlayerRepository extends _i1.Mock
   _i4.Future<void> playTrack(
     _i5.Track? track, {
     Duration? startPosition = Duration.zero,
+    String? audioUrl,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
           #playTrack,
           [track],
-          {#startPosition: startPosition},
+          {
+            #startPosition: startPosition,
+            #audioUrl: audioUrl,
+          },
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),

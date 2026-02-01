@@ -5,6 +5,7 @@ import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
+import 'auth_provider.dart'; // For supabaseServiceProvider
 import 'concert_provider.dart'; // For databaseProvider
 
 /// Provider for the user playback state data source
@@ -60,8 +61,28 @@ class AudioPlayerControls {
       _ref.read(audioPlayerRepositoryProvider);
 
   /// Play a track from the beginning or a specific position
+  ///
+  /// If the track has a cloud storage path, generates a signed URL for
+  /// authenticated access (valid for 24 hours).
   Future<void> playTrack(Track track, {Duration startPosition = Duration.zero}) async {
-    await _repository.playTrack(track, startPosition: startPosition);
+    String? signedUrl;
+
+    // Generate signed URL for cloud-stored audio files
+    if (track.storagePath != null) {
+      try {
+        final supabaseService = _ref.read(supabaseServiceProvider);
+        final response = await supabaseService.client.storage
+            .from('audio_files')
+            .createSignedUrl(track.storagePath!, 86400); // 24 hours
+        signedUrl = response;
+      } catch (e) {
+        // Log error but continue - will fall back to local file if available
+        // ignore: avoid_print
+        print('Failed to generate signed URL: $e');
+      }
+    }
+
+    await _repository.playTrack(track, startPosition: startPosition, audioUrl: signedUrl);
   }
 
   /// Resume playback if paused

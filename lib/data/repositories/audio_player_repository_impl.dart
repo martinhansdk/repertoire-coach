@@ -139,8 +139,11 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   PlaybackInfo get currentPlayback => _currentPlaybackInfo;
 
   @override
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero}) async {
-    if (!track.hasAudio) {
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl}) async {
+    // Use provided audioUrl (e.g., signed URL) or fall back to track's stored URL
+    final effectiveAudioUrl = audioUrl ?? track.audioUrl;
+
+    if (effectiveAudioUrl == null && track.filePath == null) {
       final errorInfo = PlaybackInfo.error('Track has no audio file');
       _currentPlaybackInfo = errorInfo;
       _playbackController.add(errorInfo);
@@ -151,10 +154,10 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       _currentTrack = track;
       _currentSongId = track.songId;
 
-      // Set audio source - prefer cloud URL, fall back to local file
-      if (track.audioUrl != null) {
-        // Play from cloud URL
-        await _player.setUrl(track.audioUrl!);
+      // Set audio source - prefer provided/cloud URL, fall back to local file
+      if (effectiveAudioUrl != null) {
+        // Play from URL (cloud or signed)
+        await _player.setUrl(effectiveAudioUrl);
       } else if (track.filePath != null) {
         // Play from local file
         final file = File(track.filePath!);

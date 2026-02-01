@@ -278,16 +278,65 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [ ] Implement cache management (delete old files if storage full)
 - [x] Write tests for storage service (589/590 tests passing)
 
-### Step 7: Real-time Subscriptions
-- [ ] Create RealtimeService for Supabase Realtime
-- [ ] Subscribe to concerts table changes
-- [ ] Subscribe to songs table changes
-- [ ] Subscribe to tracks table changes
-- [ ] Subscribe to shared marker_sets changes
-- [ ] Handle insert/update/delete events from realtime
-- [ ] Update local database when remote changes occur
-- [ ] Initialize/cleanup subscriptions based on auth state
-- [ ] Write tests for realtime event handling
+### Step 7: Real-time Subscriptions (Production-Ready)
+
+**Overview:** Push-based real-time updates via Supabase Realtime for multi-device and multi-user collaboration.
+
+**Architecture:**
+```
+Supabase Postgres → Realtime Channel → RealtimeService → Local DB → UI Refresh
+```
+
+**Components to Build:**
+
+1. **RealtimeService** (~200 lines)
+   - [ ] Create RealtimeService class with SupabaseClient dependency
+   - [ ] Implement subscribe(userId) to connect to realtime channel
+   - [ ] Implement unsubscribe() for cleanup
+   - [ ] Handle reconnection on network drops
+   - [ ] Handle app backgrounding/foregrounding
+
+2. **Table Subscriptions** (one subscription per table)
+   - [ ] Subscribe to `choirs` table (INSERT/UPDATE/DELETE)
+   - [ ] Subscribe to `choir_members` table (membership changes)
+   - [ ] Subscribe to `concerts` table
+   - [ ] Subscribe to `songs` table
+   - [ ] Subscribe to `tracks` table (including new audio uploads)
+   - [ ] Subscribe to `marker_sets` table (shared marker sets between users)
+   - [ ] Subscribe to `markers` table
+
+3. **Change Handlers** (apply individual changes to local DB)
+   - [ ] Handle INSERT: upsert new record to local database
+   - [ ] Handle UPDATE: upsert updated record to local database
+   - [ ] Handle DELETE: soft-delete or remove from local database
+   - [ ] Invalidate relevant Riverpod providers after changes
+
+4. **Provider Integration** (~50 lines)
+   - [ ] Create realtimeServiceProvider
+   - [ ] Create realtimeListenerProvider (watches auth, manages subscription lifecycle)
+   - [ ] Wire change handlers to invalidate choirsProvider, concertsProvider, etc.
+
+5. **Supabase Configuration** (migration)
+   - [ ] Enable Realtime on tables: `ALTER PUBLICATION supabase_realtime ADD TABLE songs;`
+   - [ ] Verify RLS policies work with Realtime (filters by user automatically)
+
+6. **Conflict Resolution**
+   - [ ] Implement last-write-wins based on updated_at timestamp
+   - [ ] Handle case where user edits locally while remote change arrives
+   - [ ] Queue local changes when offline, apply after reconnection
+
+7. **Testing**
+   - [ ] Unit tests for RealtimeService (mock Supabase channel)
+   - [ ] Integration tests for change handlers
+   - [ ] Manual test: two browsers, add song in one, appears in other
+   - [ ] Manual test: network disconnect/reconnect
+
+**Estimated Effort:** 40+ hours for production-ready implementation
+
+**Notes:**
+- Marker sets CAN be shared between users (not just private per-user)
+- RLS policies filter realtime events automatically per user
+- Consider starting with MVP (trigger full sync on any change) then optimize
 
 ### Step 8: User Management UI
 - [ ] Update ProfileScreen to display email and edit name

@@ -20,9 +20,10 @@ abstract class AudioPlayerRepository {
   ///
   /// [track] - The track to play
   /// [startPosition] - Optional position to start playback from
+  /// [audioUrl] - Optional URL to use instead of track's stored URL (e.g., signed URL)
   ///
-  /// Throws an exception if the track's file path is null or invalid
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero});
+  /// Throws an exception if the track has no audio source
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl});
 
   /// Resume playback if paused
   Future<void> resume();
