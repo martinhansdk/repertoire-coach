@@ -7,18 +7,34 @@ import 'package:drift/wasm.dart';
 /// compatibility on web platforms.
 LazyDatabase openDatabaseConnection() {
   return LazyDatabase(() async {
-    final result = await WasmDatabase.open(
-      databaseName: 'repertoire_coach_db',
-      sqlite3Uri: Uri.parse('sqlite3.wasm'),
-      driftWorkerUri: Uri.parse('drift_worker.dart.js'),
-    );
+    // ignore: avoid_print
+    print('DEBUG: Starting WASM database initialization...');
 
-    if (result.missingFeatures.isNotEmpty) {
+    try {
+      final result = await WasmDatabase.open(
+        databaseName: 'repertoire_coach_db',
+        sqlite3Uri: Uri.parse('sqlite3.wasm'),
+        driftWorkerUri: Uri.parse('drift_worker.dart.js'),
+      );
+
       // ignore: avoid_print
-      print('Using ${result.chosenImplementation} due to missing browser '
-          'features: ${result.missingFeatures}');
-    }
+      print('DEBUG: WASM database opened successfully');
+      // ignore: avoid_print
+      print('DEBUG: Implementation: ${result.chosenImplementation}');
 
-    return result.resolvedExecutor;
+      if (result.missingFeatures.isNotEmpty) {
+        // ignore: avoid_print
+        print('Using ${result.chosenImplementation} due to missing browser '
+            'features: ${result.missingFeatures}');
+      }
+
+      return result.resolvedExecutor;
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('DEBUG: WASM database initialization FAILED: $e');
+      // ignore: avoid_print
+      print('DEBUG: Stack trace: $st');
+      rethrow;
+    }
   });
 }

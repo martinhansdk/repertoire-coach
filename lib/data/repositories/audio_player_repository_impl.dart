@@ -154,10 +154,17 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       _currentTrack = track;
       _currentSongId = track.songId;
 
+      // ignore: avoid_print
+      print('DEBUG repository.playTrack: effectiveAudioUrl=$effectiveAudioUrl');
+
       // Set audio source - prefer provided/cloud URL, fall back to local file
       if (effectiveAudioUrl != null) {
         // Play from URL (cloud or signed)
+        // ignore: avoid_print
+        print('DEBUG repository.playTrack: calling setUrl...');
         await _player.setUrl(effectiveAudioUrl);
+        // ignore: avoid_print
+        print('DEBUG repository.playTrack: setUrl completed, duration=${_player.duration}');
       } else if (track.filePath != null) {
         // Play from local file
         final file = File(track.filePath!);
@@ -185,13 +192,19 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       await _updateMediaItem();
 
       // Start playback
+      // ignore: avoid_print
+      print('DEBUG repository.playTrack: calling play()...');
       await _player.play();
+      // ignore: avoid_print
+      print('DEBUG repository.playTrack: play() completed, playing=${_player.playing}');
 
       // Start auto-save timer (save position every 5 seconds while playing)
       _startAutoSaveTimer();
 
       _updatePlaybackInfo();
     } catch (e) {
+      // ignore: avoid_print
+      print('DEBUG repository.playTrack: ERROR - $e');
       final errorInfo = PlaybackInfo.error('Failed to play track: $e');
       _currentPlaybackInfo = errorInfo;
       _playbackController.add(errorInfo);

@@ -10,7 +10,6 @@
 /// Note: These tests require a real Supabase connection and are skipped by default.
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

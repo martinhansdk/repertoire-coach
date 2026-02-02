@@ -67,6 +67,9 @@ class AudioPlayerControls {
   Future<void> playTrack(Track track, {Duration startPosition = Duration.zero}) async {
     String? signedUrl;
 
+    // ignore: avoid_print
+    print('DEBUG playTrack: storagePath=${track.storagePath}, audioUrl=${track.audioUrl}, filePath=${track.filePath}');
+
     // Generate signed URL for cloud-stored audio files
     if (track.storagePath != null) {
       try {
@@ -75,13 +78,17 @@ class AudioPlayerControls {
             .from('audio_files')
             .createSignedUrl(track.storagePath!, 86400); // 24 hours
         signedUrl = response;
+        // ignore: avoid_print
+        print('DEBUG playTrack: signedUrl generated successfully: $signedUrl');
       } catch (e) {
         // Log error but continue - will fall back to local file if available
         // ignore: avoid_print
-        print('Failed to generate signed URL: $e');
+        print('DEBUG playTrack: Failed to generate signed URL: $e');
       }
     }
 
+    // ignore: avoid_print
+    print('DEBUG playTrack: calling repository.playTrack with audioUrl=${signedUrl ?? track.audioUrl}');
     await _repository.playTrack(track, startPosition: startPosition, audioUrl: signedUrl);
   }
 

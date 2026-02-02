@@ -13,10 +13,12 @@ import 'presentation/screens/home_screen.dart';
 void main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
+  developer.log('Flutter bindings initialized', name: 'main');
 
   // Initialize Supabase if credentials are configured
   if (Environment.isSupabaseConfigured) {
     try {
+      developer.log('Starting Supabase initialization...', name: 'main');
       await SupabaseService.initialize(
         url: Environment.supabaseUrl,
         anonKey: Environment.supabaseAnonKey,
@@ -30,12 +32,14 @@ void main() async {
     developer.log('Supabase credentials not configured - running in offline-only mode', name: 'main');
   }
 
+  developer.log('About to run app...', name: 'main');
   runApp(
     // Wrap the app in ProviderScope to enable Riverpod
     const ProviderScope(
       child: RepertoireCoachApp(),
     ),
   );
+  developer.log('App started', name: 'main');
 }
 
 /// Repertoire Coach Application

@@ -123,6 +123,42 @@ If you need to run Flutter commands, either:
 2. Run the command in a Docker container explicitly
 3. Ask the user to run the command if you're unsure
 
+## Troubleshooting Flutter Web Development Server
+
+### Blank Page / App Won't Load in Browser
+
+**Symptoms:**
+- Browser shows Flutter loading animation, then goes blank
+- Page stays white/blank even after waiting
+- Works in Playwright initially but fails after multiple reloads
+
+**Cause:**
+Flutter's development server hot reload state can become corrupted after multiple page reloads, navigations, or browser refreshes. This is especially common when testing with automation tools like Playwright.
+
+**Solution:**
+Fully restart the Docker container running the web server:
+
+```bash
+# 1. Find and kill the container
+docker ps --filter "publish=8080" --format "{{.ID}}" | xargs docker kill
+
+# 2. Restart the web server
+./scripts/run-web.sh
+
+# 3. Wait for server to be fully ready (shows "lib/main.dart is being served")
+# Then load http://localhost:8080 in a fresh browser tab
+```
+
+**Why this works:**
+- Hot reload can accumulate state corruption over time
+- Full container restart clears all cached state
+- Gives you a completely fresh development server instance
+
+**Prevention:**
+- Avoid excessive page reloads during development
+- Use hot reload (press 'r' in the server console) instead of browser refresh when possible
+- Restart the server if you notice any strange behavior
+
 ## Project Context Summary
 
 ### What This App Does
