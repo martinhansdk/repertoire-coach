@@ -23,11 +23,11 @@ Future<void> initializeTestApp() async {
     // Use environment variables or hardcoded test values
     const url = String.fromEnvironment(
       'SUPABASE_URL',
-      defaultValue: 'https://ndqkdnjgvmigleczcvqx.supabase.co',
+      defaultValue: 'https://riotwqypcjzxgzybxdwo.supabase.co',
     );
     const anonKey = String.fromEnvironment(
       'SUPABASE_ANON_KEY',
-      defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcWtkbmpndm1pZ2xlY3pjdnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU3MTk0NzcsImV4cCI6MjA1MTI5NTQ3N30.WGqNmh2_bQbILxqvkrmXoCA3r6_Hf-N2AgAQH8i3VrQ',
+      defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpb3R3cXlwY2p6eGd6eWJ4ZHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MDA0NTAsImV4cCI6MjA4MTQ3NjQ1MH0.WCYrCuHVhcJ1ZfwmdW-rvXgUVk3aTDQJmh2hO1IeAco',
     );
 
     await SupabaseService.initialize(

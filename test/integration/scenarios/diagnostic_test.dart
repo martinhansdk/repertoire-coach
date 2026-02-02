@@ -11,6 +11,7 @@ import '../helpers/helpers.dart';
 void main() {
   testWidgets(
     'diagnostic: app loads and shows UI',
+    skip: true, // Requires Supabase - run manually
     (tester) async {
       debugPrint('=== DIAGNOSTIC TEST START ===');
 

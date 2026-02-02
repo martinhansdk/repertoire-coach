@@ -54,18 +54,18 @@ void main() {
   testWidgets('shows loading indicator when tracks are loading', (tester) async {
     await tester.pumpWidget(createWidgetUnderTest(tracksFuture: Future.delayed(const Duration(seconds: 1), () => [])));
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets('shows empty state when there are no tracks', (tester) async {
     await tester.pumpWidget(createWidgetUnderTest(tracksFuture: Future.value([])));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('No tracks available for this song'), findsOneWidget);
   });
 
   testWidgets('displays list of tracks', (tester) async {
     await tester.pumpWidget(createWidgetUnderTest());
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Track 1'), findsOneWidget);
     expect(find.text('Track 2'), findsOneWidget);
   });
@@ -73,7 +73,7 @@ void main() {
   testWidgets('tapping play button calls playTrack', (tester) async {
     when(mockAudioPlayerRepository.playTrack(any)).thenAnswer((_) async {});
     await tester.pumpWidget(createWidgetUnderTest());
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
 
     await tester.tap(find.byIcon(Icons.play_arrow).first);
     await tester.pump();
@@ -91,7 +91,7 @@ void main() {
     await tester.pumpWidget(createWidgetUnderTest(
       playbackInfoStream: Stream.value(playbackInfo),
     ));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
 
     final playPauseIcon = tester.widget<Icon>(find.byIcon(Icons.pause));
     expect(playPauseIcon, isNotNull);
@@ -105,7 +105,7 @@ void main() {
     await tester.pumpWidget(createWidgetUnderTest(
       playbackInfoStream: Stream.value(playbackInfo),
     ));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
 
     await tester.tap(find.byIcon(Icons.pause));
     await tester.pump();
