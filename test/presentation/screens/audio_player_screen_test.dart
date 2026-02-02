@@ -65,9 +65,9 @@ void main() {
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    // Complete the future to clean up
+    // Complete the future and settle to ensure all async operations finish
     completer.complete([]);
-    await tester.pump();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('shows empty state when there are no tracks', (tester) async {
