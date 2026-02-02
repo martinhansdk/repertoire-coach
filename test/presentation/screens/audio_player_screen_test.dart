@@ -9,6 +9,8 @@ import 'package:repertoire_coach/domain/entities/playback_info.dart';
 import 'package:repertoire_coach/domain/entities/song.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
+import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
+import 'package:repertoire_coach/presentation/providers/selected_marker_set_provider.dart';
 import 'package:repertoire_coach/presentation/providers/track_provider.dart';
 import 'package:repertoire_coach/presentation/screens/audio_player_screen.dart';
 
@@ -44,6 +46,10 @@ void main() {
         tracksBySongProvider(tSong.id).overrideWith((ref) => tracksFuture ?? Future.value(tTracks)),
         playbackInfoProvider.overrideWith((ref) => playbackInfoStream ?? Stream.value(PlaybackInfo.idle())),
         audioPlayerRepositoryProvider.overrideWithValue(mockAudioPlayerRepository),
+        // Mock marker-related providers to prevent database access
+        markerSetsByTrackProvider(('t1', null)).overrideWith((ref) => Future.value([])),
+        selectedMarkerSetProvider.overrideWith((ref) => SelectedMarkerSetNotifier()),
+        markersByMarkerSetProvider('').overrideWith((ref) => Future.value([])),
       ],
       child: MaterialApp(
         home: AudioPlayerScreen(song: tSong),
@@ -52,9 +58,16 @@ void main() {
   }
 
   testWidgets('shows loading indicator when tracks are loading', (tester) async {
-    await tester.pumpWidget(createWidgetUnderTest(tracksFuture: Future.delayed(const Duration(seconds: 1), () => [])));
+    // Use a completer instead of Future.delayed to avoid pending timers
+    final completer = Completer<List<Track>>();
+    await tester.pumpWidget(createWidgetUnderTest(tracksFuture: completer.future));
+    await tester.pump();
+
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 100));
+
+    // Complete the future to clean up
+    completer.complete([]);
+    await tester.pump();
   });
 
   testWidgets('shows empty state when there are no tracks', (tester) async {
