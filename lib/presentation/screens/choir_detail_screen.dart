@@ -5,6 +5,7 @@ import '../providers/choir_provider.dart';
 import '../providers/concert_provider.dart';
 import '../widgets/concert_card.dart';
 import '../widgets/create_concert_dialog.dart';
+import 'choir_members_screen.dart';
 import 'song_list_screen.dart';
 
 /// Choir Detail Screen
@@ -89,7 +90,24 @@ class ChoirDetailScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: AppConstants.paddingSmall),
                         memberCountAsync.when(
-                          data: (count) => Text('$count members'),
+                          data: (count) => Row(
+                            children: [
+                              Text('$count members'),
+                              IconButton(
+                                icon: const Icon(Icons.arrow_forward),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          ChoirMembersScreen(choirId: choirId),
+                                    ),
+                                  );
+                                },
+                                tooltip: 'View members',
+                              ),
+                            ],
+                          ),
                           loading: () => const Text('Loading members...'),
                           error: (_, __) => const Text('Error loading members'),
                         ),

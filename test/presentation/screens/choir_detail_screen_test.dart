@@ -8,6 +8,7 @@ import 'package:repertoire_coach/domain/entities/concert.dart';
 import 'package:repertoire_coach/presentation/providers/choir_provider.dart';
 import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/screens/choir_detail_screen.dart';
+import 'package:repertoire_coach/presentation/screens/choir_members_screen.dart';
 import 'package:repertoire_coach/presentation/widgets/create_concert_dialog.dart';
 
 void main() {
@@ -463,6 +464,106 @@ void main() {
 
       // Assert
       expect(find.text('Loading members...'), findsOneWidget);
+    });
+
+    testWidgets('should display view members button with member count',
+        (tester) async {
+      // Arrange
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            choirByIdProvider('c1').overrideWith((ref) => Future.value(testChoir)),
+            choirMemberCountProvider('c1').overrideWith((ref) => Future.value(5)),
+            isChoirOwnerProvider('c1').overrideWith((ref) => Future.value(false)),
+            concertsByChoirProvider('c1').overrideWith((ref) => Future.value([])),
+          ],
+          child: const MaterialApp(
+            home: ChoirDetailScreen(choirId: 'c1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Assert - should show member count text
+      expect(find.text('5 members'), findsOneWidget);
+
+      // Assert - should show navigation button with tooltip
+      expect(find.byTooltip('View members'), findsOneWidget);
+
+      // Assert - button has the correct icon
+      final iconButtons = find.byType(IconButton);
+      expect(iconButtons, findsWidgets);
+
+      // Find the specific IconButton by searching for one with tooltip 'View members'
+      final viewMembersButton = find.byWidgetPredicate(
+        (widget) => widget is IconButton && widget.tooltip == 'View members',
+      );
+      expect(viewMembersButton, findsOneWidget);
+    });
+
+    testWidgets('should navigate to choir members screen when view button tapped',
+        (tester) async {
+      // Arrange
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            choirByIdProvider('c1').overrideWith((ref) => Future.value(testChoir)),
+            choirMemberCountProvider('c1').overrideWith((ref) => Future.value(5)),
+            isChoirOwnerProvider('c1').overrideWith((ref) => Future.value(false)),
+            concertsByChoirProvider('c1').overrideWith((ref) => Future.value([])),
+            // Add providers for ChoirMembersScreen
+            choirMembersProvider('c1').overrideWith((ref) => Future.value([])),
+          ],
+          child: const MaterialApp(
+            home: ChoirDetailScreen(choirId: 'c1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Act - tap the view members button
+      await tester.tap(find.byTooltip('View members'));
+      await tester.pumpAndSettle();
+
+      // Assert - should navigate to ChoirMembersScreen
+      expect(find.byType(ChoirMembersScreen), findsOneWidget);
+
+      // Assert - should show "Members" title in app bar
+      expect(find.text('Members'), findsOneWidget);
+    });
+
+    testWidgets('should pass correct choirId to members screen',
+        (tester) async {
+      // Arrange
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            choirByIdProvider('c1').overrideWith((ref) => Future.value(testChoir)),
+            choirMemberCountProvider('c1').overrideWith((ref) => Future.value(5)),
+            isChoirOwnerProvider('c1').overrideWith((ref) => Future.value(false)),
+            concertsByChoirProvider('c1').overrideWith((ref) => Future.value([])),
+            // Add providers for ChoirMembersScreen
+            choirMembersProvider('c1').overrideWith((ref) => Future.value([])),
+          ],
+          child: const MaterialApp(
+            home: ChoirDetailScreen(choirId: 'c1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Act - tap the view members button
+      await tester.tap(find.byTooltip('View members'));
+      await tester.pumpAndSettle();
+
+      // Assert - ChoirMembersScreen should be present with correct choirId
+      final membersScreen = tester.widget<ChoirMembersScreen>(
+        find.byType(ChoirMembersScreen),
+      );
+      expect(membersScreen.choirId, 'c1');
     });
   });
 }
