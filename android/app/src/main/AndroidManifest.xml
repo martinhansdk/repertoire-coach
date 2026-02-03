@@ -31,6 +31,18 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Intent filter for Supabase auth deep links (email
+                 confirmation and password reset redirects).
+                 autoVerify requires /.well-known/assetlinks.json hosted
+                 on the domain — see web/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"
+                      android:host="repertoire-coach.pages.dev"
+                      android:pathPrefix="/"/>
+            </intent-filter>
             <!-- Intent filter to receive shared audio files -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>

@@ -214,24 +214,26 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         },
                         enabled: !isLoading,
                       ),
+                      const SizedBox(height: 24),
+
+                      // Sign up button — inside AutofillGroup so the
+                      // platform password manager detects form submission
+                      // and offers to save the new password.
+                      ElevatedButton(
+                        onPressed: isLoading ? null : _signUp,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Sign Up'),
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
-
-                // Sign up button
-                ElevatedButton(
-                  onPressed: isLoading ? null : _signUp,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Sign Up'),
                 ),
                 const SizedBox(height: 16),
 

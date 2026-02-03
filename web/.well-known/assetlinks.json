@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_identity", "delegate_webcredentials"],
+    "target": {
+      "android": {
+        "package_name": "com.repertoirecoach.repertoire_coach",
+        "sha256_cert_fingerprints": [
+          "56:13:79:97:85:BC:C2:EB:41:C1:C3:8C:45:31:76:E5:77:3A:B8:F8:A2:B4:75:A9:A8:DB:E5:B1:77:99:11:FD"
+        ]
+      }
+    }
+  }
+]

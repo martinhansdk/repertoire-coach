@@ -14,15 +14,21 @@ class AuthRepositoryImpl implements AuthRepository {
 
   SupabaseClient get _client => _supabaseService.client;
 
-  /// Get the redirect URL for auth callbacks on web.
+  /// Get the redirect URL for auth callbacks (sign-up confirmation,
+  /// password reset).
   ///
-  /// On web, this returns the current origin (e.g., http://localhost:8080).
-  /// On other platforms, returns null (not needed for mobile).
+  /// On web, this returns the current origin so that local dev servers
+  /// (http://localhost:8080) work without hard-coding.
+  /// On mobile, returns the deployed site URL.  Supabase verifies and
+  /// redirects to this URL after email confirmation; without it the
+  /// redirect goes to a default Supabase page and the native app is
+  /// never notified.  The AndroidManifest intent filter captures the
+  /// link and routes it back into the app.
   String? get _redirectUrl {
     if (kIsWeb) {
       return html.window.location.origin;
     }
-    return null;
+    return 'https://repertoire-coach.pages.dev';
   }
 
   @override
