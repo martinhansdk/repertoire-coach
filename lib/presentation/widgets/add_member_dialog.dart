@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 import '../providers/choir_provider.dart';
 
-/// Dialog for adding a member to a choir
+/// Dialog for adding a member to a choir by email.
 ///
-/// PHASE 1: Simple user ID input for testing
-/// PHASE 2: Will add email lookup with Supabase Auth
+/// Looks up the user ID from the entered email via the users table,
+/// then adds that user to the choir.
 class AddMemberDialog extends ConsumerStatefulWidget {
   final String choirId;
 
@@ -20,12 +21,14 @@ class AddMemberDialog extends ConsumerStatefulWidget {
 
 class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _userIdController = TextEditingController();
+  final _emailController = TextEditingController();
   bool _isAdding = false;
+  /// Inline error shown below the text field (distinct from SnackBar errors).
+  String? _lookupError;
 
   @override
   void dispose() {
-    _userIdController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -36,18 +39,33 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
 
     setState(() {
       _isAdding = true;
+      _lookupError = null;
     });
 
+    final email = _emailController.text.trim();
+
     try {
+      // 1. Resolve email → user ID
+      final lookup = ref.read(userLookupProvider);
+      final userId = await lookup.findUserIdByEmail(email);
+
+      if (userId == null) {
+        if (mounted) {
+          setState(() {
+            _isAdding = false;
+            _lookupError = 'No account found for this email';
+          });
+        }
+        return;
+      }
+
+      // 2. Add member to choir
       final repository = ref.read(choirRepositoryProvider);
-      await repository.addMember(
-        widget.choirId,
-        _userIdController.text.trim(),
-      );
+      await repository.addMember(widget.choirId, userId);
 
       if (mounted) {
-        // Invalidate providers to refresh data
         ref.invalidate(choirMembersProvider(widget.choirId));
+        ref.invalidate(choirMemberProfilesProvider(widget.choirId));
         ref.invalidate(choirMemberCountProvider(widget.choirId));
 
         Navigator.of(context).pop(true);
@@ -63,22 +81,17 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       if (mounted) {
         setState(() {
           _isAdding = false;
+          _lookupError = _formatError(e);
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding member: ${_formatError(e)}'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }
 
   String _formatError(dynamic e) {
     final errorStr = e.toString();
-    if (errorStr.contains('UNIQUE constraint failed')) {
-      return 'This user is already a member of the choir';
+    if (errorStr.contains('UNIQUE constraint failed') ||
+        errorStr.contains('duplicate key')) {
+      return 'This person is already a member of the choir';
     }
     return errorStr;
   }
@@ -94,32 +107,30 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Phase 1: Enter user ID directly',
+              'Enter the email of the person you want to add.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Phase 2 will support email lookup',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
                   ),
             ),
             const SizedBox(height: 16),
             TextFormField(
-              controller: _userIdController,
-              decoration: const InputDecoration(
-                labelText: 'User ID',
-                hintText: 'e.g., user2, user3',
-                border: OutlineInputBorder(),
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                hintText: 'member@example.com',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.email),
+                errorText: _lookupError,
               ),
+              keyboardType: TextInputType.emailAddress,
               autofocus: true,
               enabled: !_isAdding,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a user ID';
+                  return 'Please enter an email';
+                }
+                if (!value.contains('@')) {
+                  return 'Please enter a valid email';
                 }
                 return null;
               },

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
+import '../providers/auth_provider.dart';
 import '../providers/choir_provider.dart';
 import '../widgets/add_member_dialog.dart';
 
 /// Choir Members Screen
 ///
-/// Shows list of members. Owner can add/remove members.
+/// Shows list of members with display names and emails.
+/// Owner can add/remove members.
 class ChoirMembersScreen extends ConsumerWidget {
   final String choirId;
 
@@ -18,44 +20,47 @@ class ChoirMembersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final choirAsync = ref.watch(choirByIdProvider(choirId));
-    final membersAsync = ref.watch(choirMembersProvider(choirId));
+    final profilesAsync = ref.watch(choirMemberProfilesProvider(choirId));
     final isOwnerAsync = ref.watch(isChoirOwnerProvider(choirId));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Members'),
       ),
-      body: membersAsync.when(
-        data: (members) {
-          if (members.isEmpty) {
+      body: profilesAsync.when(
+        data: (profiles) {
+          if (profiles.isEmpty) {
             return const Center(child: Text('No members'));
           }
 
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(choirMembersProvider(choirId));
+              ref.invalidate(choirMemberProfilesProvider(choirId));
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(AppConstants.paddingSmall),
-              itemCount: members.length,
+              itemCount: profiles.length,
               itemBuilder: (context, index) {
-                final userId = members[index];
-                final isOwner = choirAsync.value?.ownerId == userId;
+                final profile = profiles[index];
+                final isOwner = choirAsync.value?.ownerId == profile.userId;
 
                 return Card(
                   child: ListTile(
                     leading: CircleAvatar(
-                      child: Text(userId[0].toUpperCase()),
+                      child: Text(profile.displayLabel[0].toUpperCase()),
                     ),
-                    title: Text(userId),
-                    subtitle: isOwner ? const Text('Owner') : null,
+                    title: Text(profile.displayLabel),
+                    subtitle: Text(
+                      isOwner ? 'Owner · ${profile.email}' : profile.email,
+                    ),
                     trailing: isOwnerAsync.when(
                       data: (currentUserIsOwner) =>
                           currentUserIsOwner && !isOwner
                               ? IconButton(
                                   icon: const Icon(Icons.remove_circle_outline),
                                   onPressed: () =>
-                                      _removeMember(context, ref, userId),
+                                      _removeMember(context, ref, profile),
                                 )
                               : null,
                       loading: () => null,
@@ -94,13 +99,13 @@ class ChoirMembersScreen extends ConsumerWidget {
   Future<void> _removeMember(
     BuildContext context,
     WidgetRef ref,
-    String userId,
+    MemberProfile profile,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Member'),
-        content: Text('Remove $userId from this choir?'),
+        content: Text('Remove ${profile.displayLabel} (${profile.email}) from this choir?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -118,10 +123,11 @@ class ChoirMembersScreen extends ConsumerWidget {
 
     try {
       final repository = ref.read(choirRepositoryProvider);
-      await repository.removeMember(choirId, userId);
+      await repository.removeMember(choirId, profile.userId);
 
       if (context.mounted) {
         ref.invalidate(choirMembersProvider(choirId));
+        ref.invalidate(choirMemberProfilesProvider(choirId));
         ref.invalidate(choirMemberCountProvider(choirId));
 
         ScaffoldMessenger.of(context).showSnackBar(

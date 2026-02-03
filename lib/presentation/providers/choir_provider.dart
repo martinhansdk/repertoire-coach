@@ -111,3 +111,28 @@ final choirMemberCountProvider =
   final repository = ref.watch(choirRepositoryProvider);
   return await repository.getMemberCount(choirId);
 });
+
+/// Provider for choir member profiles (display name + email).
+///
+/// Depends on choirMembersProvider; for any member whose profile cannot be
+/// fetched (e.g. offline or missing user record) the userId is used as
+/// a fallback for both email and display label.
+///
+/// Usage: ref.watch(choirMemberProfilesProvider('choir-id'))
+final choirMemberProfilesProvider =
+    FutureProvider.family<List<MemberProfile>, String>((ref, choirId) async {
+  final memberIds = await ref.watch(choirMembersProvider(choirId).future);
+  final lookup = ref.watch(userLookupProvider);
+
+  List<MemberProfile> profiles;
+  try {
+    profiles = await lookup.fetchProfiles(memberIds);
+  } catch (_) {
+    profiles = [];
+  }
+
+  final profileMap = {for (final p in profiles) p.userId: p};
+  return memberIds
+      .map((id) => profileMap[id] ?? MemberProfile(userId: id, email: id))
+      .toList();
+});

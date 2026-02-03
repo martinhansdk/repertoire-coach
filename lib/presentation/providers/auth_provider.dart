@@ -4,6 +4,22 @@ import 'package:repertoire_coach/data/repositories/auth_repository_impl.dart';
 import 'package:repertoire_coach/domain/repositories/auth_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Lightweight user profile used for displaying choir members.
+class MemberProfile {
+  final String userId;
+  final String email;
+  final String? displayName;
+
+  const MemberProfile({
+    required this.userId,
+    required this.email,
+    this.displayName,
+  });
+
+  /// Preferred display label: displayName if available, otherwise email.
+  String get displayLabel => displayName ?? email;
+}
+
 /// Provider for the SupabaseService singleton.
 final supabaseServiceProvider = Provider<SupabaseService>((ref) {
   if (!SupabaseService.isInitialized) {
@@ -98,5 +114,53 @@ class AuthActions {
   /// Send a password reset email.
   Future<void> resetPassword(String email) async {
     await _authRepository.resetPassword(email);
+  }
+}
+
+/// Provider for user lookup operations (find by email, fetch profiles).
+final userLookupProvider = Provider<UserLookup>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return UserLookup(supabaseService.client);
+});
+
+/// Performs user-discovery queries against the public users table.
+class UserLookup {
+  final SupabaseClient _client;
+
+  UserLookup(this._client);
+
+  /// Returns the user ID for the given email, or null if no account exists.
+  Future<String?> findUserIdByEmail(String email) async {
+    try {
+      final response = await _client
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+      return response?['id'] as String?;
+    } on PostgrestException catch (e) {
+      throw Exception('User lookup failed: ${e.message}');
+    }
+  }
+
+  /// Fetches profiles for the given user IDs.
+  /// Returns only the rows that exist; missing IDs are silently omitted.
+  Future<List<MemberProfile>> fetchProfiles(List<String> userIds) async {
+    if (userIds.isEmpty) return [];
+    try {
+      final response = await _client
+          .from('users')
+          .select('id, email, display_name')
+          .inFilter('id', userIds) as List;
+      return response
+          .map((json) => MemberProfile(
+                userId: json['id'] as String,
+                email: json['email'] as String,
+                displayName: json['display_name'] as String?,
+              ))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch user profiles: ${e.message}');
+    }
   }
 }
