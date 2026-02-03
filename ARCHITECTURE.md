@@ -383,6 +383,12 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY users_select_own ON users
   FOR SELECT USING (auth.uid() = id);
 
+-- Any authenticated user can look up other users by email (needed for
+-- the "add choir member" flow and for displaying member profiles).
+-- The table only exposes non-sensitive columns (id, email, display_name).
+CREATE POLICY users_select_for_member_lookup ON users
+  FOR SELECT TO authenticated USING (true);
+
 -- Users can update their own profile
 CREATE POLICY users_update_own ON users
   FOR UPDATE USING (auth.uid() = id);
@@ -881,6 +887,16 @@ MaterialApp(
 - Target SDK: Latest stable (34+)
 - Min SDK: 24 (Android 7.0) for broad compatibility
 - Build: `flutter build apk` or `flutter build appbundle`
+- **App Links (Supabase auth deep links):** The email-confirmation and
+  password-reset redirects from Supabase land on
+  `https://repertoire-coach.pages.dev`.  An intent filter in
+  `AndroidManifest.xml` (`autoVerify=true`) captures these URLs so they
+  open the app directly instead of staying in the browser.  Android
+  verifies ownership of the domain by fetching
+  `https://repertoire-coach.pages.dev/.well-known/assetlinks.json`
+  (served from `web/.well-known/assetlinks.json`).  If you change the
+  signing key or the deployment domain, both the manifest filter and
+  the assetlinks file must be updated.
 
 ### iOS
 - Target: iOS 13+

@@ -193,6 +193,10 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [ ] Create Supabase project (manual step - documented in plan)
 - [ ] Setup PostgreSQL database schema (SQL provided in ARCHITECTURE.md lines 200-324)
 - [ ] Implement Row Level Security policies (SQL provided in ARCHITECTURE.md lines 376-578)
+  - ⚠️ **PENDING (2026-02-03):** `users_select_for_member_lookup` policy has NOT been applied yet.
+    Run in Supabase SQL editor:
+    `CREATE POLICY "users_select_for_member_lookup" ON users FOR SELECT TO authenticated USING (true);`
+    Without this, adding choir members by email always returns "No account found".
 - [ ] Setup Supabase Storage buckets with policies (SQL provided in plan)
 - [ ] Enable Email/Password authentication
 
