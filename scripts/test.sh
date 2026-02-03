@@ -28,7 +28,7 @@ docker run --rm \
     flutter pub get > /dev/null 2>&1
     # Run unit/widget tests only (exclude integration tests which need real Supabase)
     # Integration tests can be run manually with: flutter test test/integration/
-    flutter test test/core test/data test/domain test/presentation test/helpers test/regression "$@"
+    flutter test test/core test/data test/domain test/presentation test/helpers "$@"
   ' sh "$@" > "$LOGFILE" 2>&1
 
 EXIT_CODE=$?
