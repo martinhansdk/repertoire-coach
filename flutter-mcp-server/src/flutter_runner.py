@@ -3,7 +3,9 @@
 import subprocess
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
+import os
+import tempfile
+from typing import List, Optional, Tuple, Union
 import shutil
 
 
@@ -51,38 +53,84 @@ class FlutterRunner:
                 "flutter"
             ] + flutter_args
 
+    def _kill_container(self, cidfile: str) -> None:
+        """Kill and remove a Docker container identified by a cidfile."""
+        try:
+            with open(cidfile, 'r') as f:
+                container_id = f.read().strip()
+            if container_id:
+                subprocess.run(
+                    ['docker', 'kill', container_id],
+                    capture_output=True, timeout=10
+                )
+                subprocess.run(
+                    ['docker', 'rm', container_id],
+                    capture_output=True, timeout=10
+                )
+        except (FileNotFoundError, IOError, subprocess.TimeoutExpired):
+            pass
+
     def _run_command(
         self,
         cmd: List[str],
         timeout: int = 300,
         capture_output: bool = True
     ) -> Tuple[int, str, str]:
-        """Run a command and return (returncode, stdout, stderr)."""
+        """Run a command and return (returncode, stdout, stderr).
+
+        For docker run commands, uses --cidfile so the container can be
+        explicitly killed if the timeout fires (docker --rm alone does not
+        kill a running container when the host process is interrupted).
+        """
+        # Track the container ID so we can kill it on timeout
+        cidfile: Optional[str] = None
+        if cmd and cmd[0] == 'docker' and 'run' in cmd:
+            cidfile = tempfile.mktemp(prefix='flutter_mcp_')
+            run_idx = cmd.index('run')
+            cmd = cmd[:run_idx + 1] + ['--cidfile', cidfile] + cmd[run_idx + 1:]
+
+        proc: Optional[subprocess.Popen] = None
         try:
             if capture_output:
-                result = subprocess.run(
+                proc = subprocess.Popen(
                     cmd,
                     cwd=self.project_root,
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
                 )
-                return result.returncode, result.stdout, result.stderr
+                stdout_bytes, stderr_bytes = proc.communicate(timeout=timeout)
+                return proc.returncode, stdout_bytes.decode(), stderr_bytes.decode()
             else:
-                # For streaming/interactive mode
-                result = subprocess.run(
-                    cmd,
-                    cwd=self.project_root,
-                    timeout=timeout
-                )
-                return result.returncode, "", ""
+                proc = subprocess.Popen(cmd, cwd=self.project_root)
+                proc.wait(timeout=timeout)
+                return proc.returncode, "", ""
 
-        except subprocess.TimeoutExpired as e:
-            output = e.stdout.decode() if e.stdout else ""
-            error = e.stderr.decode() if e.stderr else ""
-            return -1, output, f"Command timed out after {timeout}s\n{error}"
+        except subprocess.TimeoutExpired:
+            # Kill the host-side process first
+            if proc:
+                proc.kill()
+                stdout_bytes, stderr_bytes = proc.communicate()
+                stdout_str = stdout_bytes.decode() if stdout_bytes else ""
+                stderr_str = stderr_bytes.decode() if stderr_bytes else ""
+            else:
+                stdout_str, stderr_str = "", ""
+
+            # Kill the Docker container so it doesn't linger
+            if cidfile:
+                self._kill_container(cidfile)
+
+            return -1, stdout_str, f"Command timed out after {timeout}s\n{stderr_str}"
         except Exception as e:
+            if proc and proc.poll() is None:
+                proc.kill()
+                proc.communicate()
             return -1, "", str(e)
+        finally:
+            if cidfile:
+                try:
+                    os.unlink(cidfile)
+                except OSError:
+                    pass
 
     def run_flutter_command(
         self,
@@ -116,7 +164,7 @@ class FlutterRunner:
 
     def test(
         self,
-        path: Optional[str] = None,
+        path: Optional[Union[str, List[str]]] = None,
         name: Optional[str] = None,
         fail_fast: bool = False,
         coverage: bool = False,
@@ -130,7 +178,10 @@ class FlutterRunner:
             args.extend(["--reporter", reporter])
 
         if path:
-            args.append(path)
+            if isinstance(path, list):
+                args.extend(path)
+            else:
+                args.append(path)
 
         if name:
             args.extend(["--name", name])

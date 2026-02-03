@@ -613,9 +613,17 @@ class FlutterMCPServer:
         # Run tests if analyze passed or if we shouldn't stop
         test_result = None
         if not stop_on_analyze_failure or analyze_result.success:
-            test_args = {**test_options,}
+            test_args = {**test_options}
             if args.get("dockerImage"):
                 test_args["dockerImage"] = args["dockerImage"]
+
+            # Default to the same directories CI uses (excludes test/integration
+            # which contains tests that may hang in the Docker environment)
+            if 'path' not in test_args or test_args.get('path') is None:
+                test_args['path'] = [
+                    'test/core', 'test/data', 'test/domain',
+                    'test/presentation', 'test/helpers'
+                ]
 
             test_result_dict = await self._flutter_test(test_args)
             test_result = TestResult(**test_result_dict)

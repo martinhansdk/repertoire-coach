@@ -342,7 +342,7 @@ Supabase Postgres → Realtime Channel → RealtimeService → Local DB → UI R
 - [ ] Update ProfileScreen to display email and edit name
 - [ ] Add SettingsScreen with sync settings (auto-sync, WiFi-only)
 - [ ] Add cache management UI (clear cached audio files)
-- [ ] Update ChoirMembersScreen with email lookup
+- [x] Update ChoirMembersScreen with email lookup (2026-02-03: member names/emails displayed, add-by-email with inline lookup errors, password-manager autofill on sign-in/sign-up)
 - [ ] Add "Leave choir" button for non-owners
 - [ ] Create ConnectionStatusBanner widget (online/offline/syncing)
 - [ ] Add manual sync button in settings
