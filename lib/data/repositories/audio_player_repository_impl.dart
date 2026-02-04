@@ -30,37 +30,54 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   LoopRange? _loopRange;
   StreamSubscription<Duration>? _loopSubscription;
 
+  /// Resolves once audio_session and audio_service are both ready.
+  /// Every public playback method awaits this before touching the player,
+  /// so the notification foreground service and MediaItem are guaranteed
+  /// to be initialised before the first play() call.
+  late final Future<void> _initFuture;
+
   AudioPlayerRepositoryImpl(this._playbackStateDataSource)
       : _player = ja.AudioPlayer(),
         _playbackController = StreamController<PlaybackInfo>.broadcast(),
         _currentPlaybackInfo = const PlaybackInfo.idle() {
     _initializePlayerListeners();
-    _configureAudioSession();
-    _initializeAudioService();
+    _initFuture = _initialize();
   }
 
+  /// Run audio_session and audio_service initialisation concurrently.
+  /// Neither future rejects: each wraps its own errors so that a failure
+  /// in one (e.g. desktop platform with no audio service) does not prevent
+  /// the other from completing.
+  Future<void> _initialize() => Future.wait([
+    _configureAudioSession(),
+    _initializeAudioService(),
+  ]);
+
   /// Configure audio session for background playback
-  void _configureAudioSession() async {
-    // Configure the audio session to continue playing in background
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration(
-      avAudioSessionCategory: AVAudioSessionCategory.playback,
-      avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
-      avAudioSessionMode: AVAudioSessionMode.defaultMode,
-      avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
-      avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
-      androidAudioAttributes: AndroidAudioAttributes(
-        contentType: AndroidAudioContentType.music,
-        flags: AndroidAudioFlags.none,
-        usage: AndroidAudioUsage.media,
-      ),
-      androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-      androidWillPauseWhenDucked: true,
-    ));
+  Future<void> _configureAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playback,
+        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
+        avAudioSessionMode: AVAudioSessionMode.defaultMode,
+        avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
+        avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.music,
+          flags: AndroidAudioFlags.none,
+          usage: AndroidAudioUsage.media,
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+        androidWillPauseWhenDucked: true,
+      ));
+    } catch (e) {
+      // audio_session may not be available on all platforms; continue without it.
+    }
   }
 
   /// Initialize audio service for background playback with media notifications
-  void _initializeAudioService() async {
+  Future<void> _initializeAudioService() async {
     try {
       _audioHandler = await AudioService.init(
         builder: () => _AudioPlayerHandler(_player),
@@ -100,6 +117,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     // Listen to duration changes
     _player.durationStream.listen((duration) {
       _updatePlaybackInfo();
+      _updateMediaItem(); // refresh notification with actual duration
     });
   }
 
@@ -148,6 +166,8 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl}) async {
+    await _initFuture; // ensure audio_service & audio_session are ready
+
     // Use provided audioUrl (e.g., signed URL) or fall back to track's stored URL
     final effectiveAudioUrl = audioUrl ?? track.audioUrl;
 
@@ -223,6 +243,8 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> resume() async {
+    await _initFuture; // ensure audio_service & audio_session are ready
+
     if (_player.playerState.processingState == ja.ProcessingState.completed) {
       await _player.seek(Duration.zero);
     }
@@ -384,32 +406,38 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   StreamSubscription<ja.PlayerState>? _playerStateSubscription;
 
   _AudioPlayerHandler(this._player) {
-    // Sync player state to audio service
-    _playerStateSubscription = _player.playerStateStream.listen((playerState) {
-      final playing = playerState.playing;
-      final processingState = _mapProcessingState(playerState.processingState);
-
-      playbackState.add(PlaybackState(
-        controls: [
-          MediaControl.rewind,
-          if (playing) MediaControl.pause else MediaControl.play,
-          MediaControl.fastForward,
-        ],
-        systemActions: const {
-          MediaAction.seek,
-          MediaAction.play,
-          MediaAction.pause,
-          MediaAction.stop,
-          MediaAction.rewind,
-          MediaAction.fastForward,
-        },
-        playing: playing,
-        processingState: processingState,
-        updatePosition: _player.position,
-        bufferedPosition: _player.bufferedPosition,
-        speed: _player.speed,
-      ));
+    // Sync player state to audio service whenever just_audio fires a state event.
+    _playerStateSubscription = _player.playerStateStream.listen((_) {
+      _broadcastState();
     });
+  }
+
+  /// Push the current player state to the audio_service notification.
+  /// Called automatically on every playerStateStream event, and explicitly
+  /// after rewind/fastForward so the notification progress bar jumps
+  /// immediately (playerStateStream doesn't fire on a seek-only event).
+  void _broadcastState() {
+    final playing = _player.playing;
+    playbackState.add(PlaybackState(
+      controls: [
+        MediaControl.rewind,
+        if (playing) MediaControl.pause else MediaControl.play,
+        MediaControl.fastForward,
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.play,
+        MediaAction.pause,
+        MediaAction.stop,
+        MediaAction.rewind,
+        MediaAction.fastForward,
+      },
+      playing: playing,
+      processingState: _mapProcessingState(_player.playerState.processingState),
+      updatePosition: _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+    ));
   }
 
   /// Map just_audio processing state to audio_service processing state
@@ -448,6 +476,7 @@ class _AudioPlayerHandler extends BaseAudioHandler {
     final currentPosition = _player.position;
     final newPosition = currentPosition - const Duration(seconds: 10);
     await _player.seek(newPosition < Duration.zero ? Duration.zero : newPosition);
+    _broadcastState();
   }
 
   @override
@@ -460,6 +489,7 @@ class _AudioPlayerHandler extends BaseAudioHandler {
     } else {
       await _player.seek(newPosition);
     }
+    _broadcastState();
   }
 
   /// Cleanup subscriptions

@@ -51,7 +51,7 @@ dependencies:
   path: any
 
   # Audio playback
-  just_audio: ^0.9.42
+  just_audio: ^0.10.5
   audio_session: ^0.1.21
   audio_service: ^0.18.17
 
