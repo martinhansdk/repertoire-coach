@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/song.dart';
 import '../../domain/entities/track.dart';
 import '../providers/audio_player_provider.dart';
 import '../providers/marker_provider.dart';
 import '../providers/selected_marker_set_provider.dart';
-import '../providers/track_provider.dart';
 import '../widgets/loop_control_buttons.dart';
 import '../widgets/marker_list.dart';
 import '../widgets/marker_progress_bar.dart';
@@ -15,11 +13,12 @@ import 'marker_manager_screen.dart';
 /// Hardcoded user ID for local-first mode
 const String _currentUserId = 'local-user-1';
 
-/// Audio player screen for playing tracks from a song
+/// Audio player screen for playing a single track
 class AudioPlayerScreen extends ConsumerStatefulWidget {
-  final Song song;
+  final Track track;
+  final String songTitle;
 
-  const AudioPlayerScreen({super.key, required this.song});
+  const AudioPlayerScreen({super.key, required this.track, required this.songTitle});
 
   @override
   ConsumerState<AudioPlayerScreen> createState() => _AudioPlayerScreenState();
@@ -33,137 +32,50 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   void initState() {
     super.initState();
 
-    // Stop playback when switching to a different song
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final playbackInfo = ref.read(audioPlayerRepositoryProvider).currentPlayback;
-      final currentTrack = playbackInfo.currentTrack;
-
-      if (currentTrack != null && currentTrack.songId != widget.song.id) {
-        // Currently playing track is from a different song, stop it
-        ref.read(audioPlayerControlsProvider).stop();
+      if (mounted) {
+        ref.read(audioPlayerControlsProvider).playTrack(widget.track);
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final tracksAsync = ref.watch(tracksBySongProvider(widget.song.id));
     final playbackInfoAsync = ref.watch(playbackInfoProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.song.title),
-      ),
-      body: tracksAsync.when(
-        data: (tracks) {
-          if (tracks.isEmpty) {
-            return const Center(
-              child: Text('No tracks available for this song'),
-            );
-          }
-
-          return playbackInfoAsync.when(
-            data: (playbackInfo) {
-              // Check if the currently playing track belongs to this song
-              final isPlayingTrackFromThisSong =
-                  playbackInfo.currentTrack?.songId == widget.song.id;
-
-              return Column(
-                children: [
-                  // Track selector
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: tracks.length,
-                      itemBuilder: (context, index) {
-                        final track = tracks[index];
-                        final isCurrentTrack = isPlayingTrackFromThisSong &&
-                            playbackInfo.currentTrack?.id == track.id;
-
-                        return ListTile(
-                          title: Text(track.name),
-                          subtitle: track.hasAudio
-                              ? const Text('Audio file available')
-                              : const Text('No audio file'),
-                          leading: Icon(
-                            isCurrentTrack ? Icons.music_note : Icons.audiotrack,
-                            color: isCurrentTrack ? Theme.of(context).colorScheme.primary : null,
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Markers button
-                              IconButton(
-                                icon: const Icon(Icons.bookmarks),
-                                tooltip: 'Manage Markers',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => MarkerManagerScreen(
-                                        trackId: track.id,
-                                        trackName: track.name,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              // Play/pause button
-                              if (track.hasAudio)
-                                IconButton(
-                                  icon: Icon(
-                                    isCurrentTrack && playbackInfo.isPlaying
-                                        ? Icons.pause
-                                        : Icons.play_arrow,
-                                  ),
-                                  onPressed: () {
-                                    if (isCurrentTrack && playbackInfo.isPlaying) {
-                                      ref
-                                          .read(audioPlayerControlsProvider)
-                                          .pause();
-                                    } else {
-                                      ref
-                                          .read(audioPlayerControlsProvider)
-                                          .playTrack(track);
-                                    }
-                                  },
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Playback controls section (only show if playing a track from this song)
-                  if (playbackInfo.hasTrack && isPlayingTrackFromThisSong) ...[
-                    const Divider(),
-                    Flexible(
-                      child: _buildPlaybackControls(playbackInfo, tracks),
-                    ),
-                  ],
-                ],
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => Center(
-              child: Text('Error: $error'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.songTitle,
+              style: const TextStyle(fontSize: 18),
             ),
-          );
+            Text(
+              widget.track.name,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: playbackInfoAsync.when(
+        data: (playbackInfo) {
+          return _buildPlaybackControls(playbackInfo);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
-          child: Text('Error loading tracks: $error'),
+          child: Text('Error: $error'),
         ),
       ),
     );
   }
 
-  Widget _buildPlaybackControls(
-    playbackInfo,
-    List<Track> tracks,
-  ) {
-    final currentTrack = playbackInfo.currentTrack;
-    if (currentTrack == null) return const SizedBox.shrink();
+  Widget _buildPlaybackControls(playbackInfo) {
+    final currentTrack = playbackInfo.currentTrack ?? widget.track;
 
     final markerSetsAsync = ref.watch(
       markerSetsByTrackProvider((currentTrack.id, _currentUserId)),
@@ -185,26 +97,6 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             // Marker set selector
             markerSetsAsync.when(
               data: (markerSets) {
-                if (markerSets.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: MarkerSetSelector(
-                      markerSets: const [],
-                      onManageMarkers: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MarkerManagerScreen(
-                              trackId: currentTrack.id,
-                              trackName: currentTrack.name,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                }
-
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: MarkerSetSelector(
@@ -250,24 +142,6 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Previous track
-                IconButton(
-                  icon: const Icon(Icons.skip_previous),
-                  iconSize: 36,
-                  onPressed: () {
-                    final currentIndex = tracks.indexWhere(
-                      (t) => t.id == playbackInfo.currentTrack?.id,
-                    );
-                    if (currentIndex > 0) {
-                      ref
-                          .read(audioPlayerControlsProvider)
-                          .playTrack(tracks[currentIndex - 1]);
-                    }
-                  },
-                ),
-
-                const SizedBox(width: 8),
-
                 // Rewind 10 seconds
                 IconButton(
                   icon: const Icon(Icons.replay_10),
@@ -299,21 +173,19 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                   },
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
 
-                // Next track
+                // Forward 10 seconds
                 IconButton(
-                  icon: const Icon(Icons.skip_next),
+                  icon: const Icon(Icons.forward_10),
                   iconSize: 36,
                   onPressed: () {
-                    final currentIndex = tracks.indexWhere(
-                      (t) => t.id == playbackInfo.currentTrack?.id,
-                    );
-                    if (currentIndex < tracks.length - 1) {
-                      ref
-                          .read(audioPlayerControlsProvider)
-                          .playTrack(tracks[currentIndex + 1]);
-                    }
+                    final currentPosition = playbackInfo.position;
+                    final newPosition = currentPosition + const Duration(seconds: 10);
+                    final seekPosition = newPosition > playbackInfo.duration
+                        ? playbackInfo.duration
+                        : newPosition;
+                    ref.read(audioPlayerControlsProvider).seek(seekPosition);
                   },
                 ),
               ],
@@ -321,13 +193,34 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
             const SizedBox(height: 8),
 
-            // Stop button
-            TextButton.icon(
-              onPressed: () {
-                ref.read(audioPlayerControlsProvider).stop();
-              },
-              icon: const Icon(Icons.stop),
-              label: const Text('Stop'),
+            // Stop and loop toggle row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton.icon(
+                  onPressed: () {
+                    ref.read(audioPlayerControlsProvider).stop();
+                  },
+                  icon: const Icon(Icons.stop),
+                  label: const Text('Stop'),
+                ),
+
+                const SizedBox(width: 16),
+
+                // Loop toggle button
+                IconButton(
+                  icon: Icon(
+                    playbackInfo.isTrackLooping ? Icons.repeat : Icons.repeat_one,
+                  ),
+                  tooltip: playbackInfo.isTrackLooping ? 'Loop on' : 'Loop off',
+                  color: playbackInfo.isTrackLooping
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                  onPressed: () {
+                    ref.read(audioPlayerControlsProvider).toggleTrackLoop();
+                  },
+                ),
+              ],
             ),
 
             const SizedBox(height: 16),

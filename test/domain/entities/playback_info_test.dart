@@ -225,6 +225,57 @@ void main() {
       expect(playbackInfo1, isNot(equals(playbackInfo2)));
     });
 
+    test('isTrackLooping defaults to false', () {
+      final playbackInfo = PlaybackInfo(
+        currentTrack: track,
+        state: AudioPlayerState.playing,
+        position: const Duration(seconds: 30),
+        duration: const Duration(seconds: 180),
+      );
+
+      expect(playbackInfo.isTrackLooping, isFalse);
+    });
+
+    test('isTrackLooping is included in equality', () {
+      final playbackInfo1 = PlaybackInfo(
+        currentTrack: track,
+        state: AudioPlayerState.playing,
+        position: const Duration(seconds: 30),
+        duration: const Duration(seconds: 180),
+        isTrackLooping: false,
+      );
+
+      final playbackInfo2 = PlaybackInfo(
+        currentTrack: track,
+        state: AudioPlayerState.playing,
+        position: const Duration(seconds: 30),
+        duration: const Duration(seconds: 180),
+        isTrackLooping: true,
+      );
+
+      expect(playbackInfo1, isNot(equals(playbackInfo2)));
+    });
+
+    test('copyWith updates isTrackLooping', () {
+      const original = PlaybackInfo.idle();
+
+      final updated = original.copyWith(isTrackLooping: true);
+
+      expect(updated.isTrackLooping, isTrue);
+    });
+
+    test('idle() sets isTrackLooping to false', () {
+      const playbackInfo = PlaybackInfo.idle();
+
+      expect(playbackInfo.isTrackLooping, isFalse);
+    });
+
+    test('error() sets isTrackLooping to false', () {
+      const playbackInfo = PlaybackInfo.error('Some error');
+
+      expect(playbackInfo.isTrackLooping, isFalse);
+    });
+
     test('toString should contain relevant information', () {
       final playbackInfo = PlaybackInfo(
         currentTrack: track,

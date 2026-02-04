@@ -122,6 +122,11 @@ class AudioPlayerControls {
     }
   }
 
+  /// Toggle full-track loop on/off
+  Future<void> toggleTrackLoop() async {
+    await _repository.setLoopMode(!_repository.isLooping);
+  }
+
   /// Save the current playback position
   Future<void> savePosition() async {
     await _repository.savePlaybackPosition();

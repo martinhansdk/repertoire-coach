@@ -131,6 +131,18 @@ void main() {
         await controls.loadPosition(trackId);
         verify(mockRepository.loadPlaybackPosition(trackId)).called(1);
       });
+
+      test('toggleTrackLoop calls setLoopMode(true) when not looping', () async {
+        when(mockRepository.isLooping).thenReturn(false);
+        await controls.toggleTrackLoop();
+        verify(mockRepository.setLoopMode(true)).called(1);
+      });
+
+      test('toggleTrackLoop calls setLoopMode(false) when looping', () async {
+        when(mockRepository.isLooping).thenReturn(true);
+        await controls.toggleTrackLoop();
+        verify(mockRepository.setLoopMode(false)).called(1);
+      });
     });
   });
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
-import '../../domain/entities/song.dart';
 import '../providers/track_provider.dart';
 import '../widgets/add_track_dialog.dart';
 import '../widgets/track_card.dart';
@@ -83,18 +82,13 @@ class SongDetailScreen extends ConsumerWidget {
                 return TrackCard(
                   track: track,
                   onTap: () {
-                    // Navigate to audio player screen
-                    final song = Song(
-                      id: songId,
-                      title: songTitle,
-                      concertId: track.songId, // Using track's songId which should match
-                      createdAt: DateTime.now(), // Placeholder
-                      updatedAt: DateTime.now(), // Placeholder
-                    );
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => AudioPlayerScreen(song: song),
+                        builder: (context) => AudioPlayerScreen(
+                          track: track,
+                          songTitle: songTitle,
+                        ),
                       ),
                     );
                   },

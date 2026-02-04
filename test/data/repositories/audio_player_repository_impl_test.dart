@@ -260,6 +260,36 @@ void main() {
       await repository.setLoopMode(false);
       expect(repository.isLooping, isFalse);
     });
+
+    test('setLoopMode(true) causes playback stream to emit isTrackLooping: true', () async {
+      // Listen to playback stream before enabling loop
+      final events = <bool>[];
+      final subscription = repository.playbackStream.listen((info) {
+        events.add(info.isTrackLooping);
+      });
+
+      // Enable loop mode — this updates _isLooping but doesn't trigger a stream event by itself.
+      // A subsequent playback update (e.g., from a player state change) will broadcast
+      // the new isTrackLooping value. Verify that currentPlayback reflects the state correctly.
+      await repository.setLoopMode(true);
+
+      // Force a playback update by seeking (triggers positionStream → _updatePlaybackInfo)
+      await repository.seek(Duration.zero);
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // The stream should have emitted at least one event with isTrackLooping: true
+      expect(events, contains(true));
+
+      await subscription.cancel();
+    });
+
+    test('resume after completion seeks to zero', () async {
+      // Note: Testing resume-after-completion against real just_audio requires a real
+      // audio file to reach the completed processing state. The seek-to-zero logic
+      // in resume() is covered by code review; a full integration test would require
+      // a valid audio file on the test system.
+    }, skip: 'Requires valid audio file to reach completed state');
   });
 
   group('AudioPlayerRepositoryImpl - Error Handling', () {

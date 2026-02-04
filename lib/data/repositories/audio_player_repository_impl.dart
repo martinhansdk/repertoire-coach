@@ -108,6 +108,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       position: position,
       duration: duration,
       loopRange: _loopRange,
+      isTrackLooping: _isLooping,
     );
 
     _playbackController.add(_currentPlaybackInfo);
@@ -214,6 +215,9 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> resume() async {
+    if (_player.playerState.processingState == ja.ProcessingState.completed) {
+      await _player.seek(Duration.zero);
+    }
     await _player.play();
     _startAutoSaveTimer();
     _updatePlaybackInfo();
@@ -379,14 +383,17 @@ class _AudioPlayerHandler extends BaseAudioHandler {
 
       playbackState.add(PlaybackState(
         controls: [
+          MediaControl.rewind,
           if (playing) MediaControl.pause else MediaControl.play,
-          MediaControl.stop,
+          MediaControl.fastForward,
         ],
         systemActions: const {
           MediaAction.seek,
           MediaAction.play,
           MediaAction.pause,
           MediaAction.stop,
+          MediaAction.rewind,
+          MediaAction.fastForward,
         },
         playing: playing,
         processingState: processingState,
@@ -427,6 +434,25 @@ class _AudioPlayerHandler extends BaseAudioHandler {
 
   @override
   Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> rewind() async {
+    final currentPosition = _player.position;
+    final newPosition = currentPosition - const Duration(seconds: 10);
+    await _player.seek(newPosition < Duration.zero ? Duration.zero : newPosition);
+  }
+
+  @override
+  Future<void> fastForward() async {
+    final currentPosition = _player.position;
+    final newPosition = currentPosition + const Duration(seconds: 10);
+    final duration = _player.duration;
+    if (duration != null && newPosition > duration) {
+      await _player.seek(duration);
+    } else {
+      await _player.seek(newPosition);
+    }
+  }
 
   /// Cleanup subscriptions
   Future<void> cleanup() async {
