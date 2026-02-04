@@ -441,6 +441,8 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   /// immediately (playerStateStream doesn't fire on a seek-only event).
   void _broadcastState() {
     final playing = _player.playing;
+    // ignore: avoid_print
+    print('DEBUG _broadcastState: playing=$playing processing=${_player.playerState.processingState} pos=${_player.position}');
     playbackState.add(PlaybackState(
       controls: [
         MediaControl.rewind,
