@@ -30,11 +30,18 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   LoopRange? _loopRange;
   StreamSubscription<Duration>? _loopSubscription;
 
-  /// Resolves once audio_session and audio_service are both ready.
-  /// Every public playback method awaits this before touching the player,
-  /// so the notification foreground service and MediaItem are guaranteed
-  /// to be initialised before the first play() call.
-  late final Future<void> _initFuture;
+  /// Lazily-initialised future: created on the first playback call, not in
+  /// the constructor.  AudioService.init() requires the Android Activity /
+  /// FlutterEngine to be fully ready, which is not guaranteed when Riverpod
+  /// creates the provider (often before the widget tree is built).
+  Future<void>? _initFuture;
+
+  /// Returns (and caches) the init future.  Idempotent — subsequent calls
+  /// return the same future without re-running initialisation.
+  Future<void> _ensureInitialized() {
+    _initFuture ??= _initialize();
+    return _initFuture!;
+  }
 
   AudioPlayerRepositoryImpl(this._playbackStateDataSource)
       : _player = ja.AudioPlayer(
@@ -49,7 +56,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
         _playbackController = StreamController<PlaybackInfo>.broadcast(),
         _currentPlaybackInfo = const PlaybackInfo.idle() {
     _initializePlayerListeners();
-    _initFuture = _initialize();
   }
 
   /// audio_service MUST be initialised before audio_session is configured.
@@ -188,7 +194,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl}) async {
-    await _initFuture; // ensure audio_service & audio_session are ready
+    await _ensureInitialized(); // ensure audio_service & audio_session are ready
     // ignore: avoid_print
     print('DEBUG playTrack: _audioHandler is ${_audioHandler == null ? "NULL" : "set"}');
 
@@ -267,7 +273,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> resume() async {
-    await _initFuture; // ensure audio_service & audio_session are ready
+    await _ensureInitialized(); // ensure audio_service & audio_session are ready
 
     if (_player.playerState.processingState == ja.ProcessingState.completed) {
       await _player.seek(Duration.zero);
