@@ -54,6 +54,8 @@ jobs:
   build-android-debug:
     needs: build-docker
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout code
@@ -110,6 +112,24 @@ jobs:
         name: android-debug-apk
         path: build/app/outputs/flutter-apk/app-debug.apk
         retention-days: 7
+
+    - name: Publish debug APK as "latest" GitHub Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: Latest Debug Build
+        body: |
+          Debug APK built from `${{ github.sha }}` on ${{ github.event.head_commit.message }}
+
+          **Install on Android:**
+          1. Download `app-debug.apk` below
+          2. Enable *Install unknown apps* for your browser / file manager
+          3. Tap the downloaded file to install
+        files: build/app/outputs/flutter-apk/app-debug.apk
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-android-release:
     needs: build-docker
