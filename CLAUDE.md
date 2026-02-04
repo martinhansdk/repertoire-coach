@@ -341,7 +341,9 @@ mcp__supabase__apply_migration (name: "add_new_column", query: "ALTER TABLE...")
 
 ### Important Notes
 
-- Use `apply_migration` for DDL (schema changes), not `execute_sql`
+- **The Supabase MCP is read-only.** `apply_migration` and `execute_sql` will fail with
+  "read-only mode".  Write migrations as `.sql` files in `supabase/migrations/` and note
+  in the commit message that they must be run manually in the Supabase dashboard.
 - `get_advisors` is useful after schema changes to catch missing RLS policies
 - The database schema is documented in ARCHITECTURE.md
 
