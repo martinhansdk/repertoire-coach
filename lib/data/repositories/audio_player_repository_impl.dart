@@ -8,6 +8,7 @@ import '../../domain/entities/loop_range.dart';
 import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
+import '../../core/services/error_reporter.dart';
 import '../datasources/local/local_user_playback_state_data_source.dart';
 import '../models/user_playback_state_model.dart';
 
@@ -209,7 +210,8 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       _startAutoSaveTimer();
 
       _updatePlaybackInfo();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorReporter.report(e, stackTrace: stackTrace, screen: 'audio_player');
       // ignore: avoid_print
       print('DEBUG repository.playTrack: ERROR - $e');
       final errorInfo = PlaybackInfo.error('Failed to play track: $e');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:repertoire_coach/core/services/error_reporter.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/screens/auth/forgot_password_screen.dart';
 import 'package:repertoire_coach/presentation/screens/auth/sign_up_screen.dart';
@@ -40,7 +41,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             password: _passwordController.text,
           );
       // Sign in successful - AuthWrapper will handle navigation
-    } catch (error) {
+    } catch (error, stackTrace) {
+      ErrorReporter.report(error, stackTrace: stackTrace, screen: 'sign_in');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

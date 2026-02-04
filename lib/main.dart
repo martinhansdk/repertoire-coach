@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/config/environment.dart';
 import 'core/constants.dart';
+import 'core/services/error_reporter.dart';
 import 'core/services/supabase_service.dart';
 import 'core/theme.dart';
 import 'presentation/providers/sync_provider.dart';
@@ -32,14 +35,27 @@ void main() async {
     developer.log('Supabase credentials not configured - running in offline-only mode', name: 'main');
   }
 
+  // Report uncaught Flutter framework errors (widget tree, layout, …)
+  FlutterError.onError = (details) {
+    ErrorReporter.report(
+      details.exception,
+      stackTrace: details.stack,
+      screen: 'flutter_framework',
+    );
+  };
+
   developer.log('About to run app...', name: 'main');
-  runApp(
-    // Wrap the app in ProviderScope to enable Riverpod
-    const ProviderScope(
-      child: RepertoireCoachApp(),
+  // Wrap in runZonedGuarded so uncaught async errors are reported too.
+  runZonedGuarded(
+    () => runApp(
+      const ProviderScope(
+        child: RepertoireCoachApp(),
+      ),
     ),
+    (error, stackTrace) {
+      ErrorReporter.report(error, stackTrace: stackTrace, screen: 'async_zone');
+    },
   );
-  developer.log('App started', name: 'main');
 }
 
 /// Repertoire Coach Application

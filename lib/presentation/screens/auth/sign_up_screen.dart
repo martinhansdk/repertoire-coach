@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:repertoire_coach/core/services/error_reporter.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 
 /// Screen for user sign up (registration).
@@ -56,7 +57,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           ),
         );
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      ErrorReporter.report(error, stackTrace: stackTrace, screen: 'sign_up');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

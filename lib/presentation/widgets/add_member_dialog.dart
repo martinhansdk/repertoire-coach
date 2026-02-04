@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/error_reporter.dart';
 import '../providers/auth_provider.dart';
 import '../providers/choir_provider.dart';
 
@@ -77,7 +78,8 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorReporter.report(e, stackTrace: stackTrace, screen: 'add_member');
       if (mounted) {
         setState(() {
           _isAdding = false;

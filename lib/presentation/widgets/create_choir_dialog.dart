@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/error_reporter.dart';
 import '../providers/choir_provider.dart';
 
 /// Dialog for creating a new choir
@@ -56,7 +57,8 @@ class _CreateChoirDialogState extends ConsumerState<CreateChoirDialog> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorReporter.report(e, stackTrace: stackTrace, screen: 'create_choir');
       if (mounted) {
         setState(() {
           _isCreating = false;
