@@ -1,9 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:repertoire_coach/data/datasources/local/local_user_playback_state_data_source.dart';
 import 'package:repertoire_coach/data/repositories/audio_player_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/data/models/user_playback_state_model.dart';
+
+/// Minimal mock so that flutter_cache_manager (used internally by
+/// audio_service) can resolve all path_provider calls without a real platform.
+class _MockPathProviderPlatform extends PathProviderPlatform {
+  @override
+  Future<String?> getTemporaryPath({String? prefix}) async => '/tmp';
+
+  @override
+  Future<String?> getApplicationSupportPath() async => '/tmp/support';
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => '/tmp/documents';
+
+  @override
+  Future<String?> getDownloadsPath() async => '/tmp/downloads';
+}
 
 /// Mock implementation of LocalUserPlaybackStateDataSource for testing
 class MockPlaybackStateDataSource implements LocalUserPlaybackStateDataSource {
@@ -47,6 +64,7 @@ void main() {
 
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
+      PathProviderPlatform.instance = _MockPathProviderPlatform();
       mockDataSource = MockPlaybackStateDataSource();
       repository = AudioPlayerRepositoryImpl(mockDataSource);
     });
@@ -311,6 +329,7 @@ void main() {
 
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
+      PathProviderPlatform.instance = _MockPathProviderPlatform();
       mockDataSource = MockPlaybackStateDataSource();
       repository = AudioPlayerRepositoryImpl(mockDataSource);
     });

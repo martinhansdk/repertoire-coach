@@ -100,7 +100,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
           androidNotificationChannelName: 'Repertoire Coach Audio',
           androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
-          androidStopForegroundOnPause: false,
+          androidStopForegroundOnPause: true,
         ),
       );
       // ignore: avoid_print
