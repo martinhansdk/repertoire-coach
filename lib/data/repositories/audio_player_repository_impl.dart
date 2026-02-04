@@ -82,7 +82,13 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   void _initializePlayerListeners() {
     // Listen to player state changes
     _player.playerStateStream.listen((playerState) {
-      _updatePlaybackInfo();
+      if (playerState.processingState == ja.ProcessingState.completed &&
+          !_isLooping) {
+        // Track finished without loop — stop and clear state
+        stop();
+      } else {
+        _updatePlaybackInfo();
+      }
     });
 
     // Listen to position changes

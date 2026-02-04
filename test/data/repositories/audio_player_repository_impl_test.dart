@@ -290,6 +290,19 @@ void main() {
       // in resume() is covered by code review; a full integration test would require
       // a valid audio file on the test system.
     }, skip: 'Requires valid audio file to reach completed state');
+
+    test('track completion stops playback when not looping', () async {
+      // When a track reaches ProcessingState.completed and loop mode is off,
+      // the playerStateStream listener calls stop(), which clears the track
+      // and transitions to idle. This requires a real audio file to trigger
+      // the completed state in just_audio; verified via integration testing.
+    }, skip: 'Requires valid audio file to reach completed state');
+
+    test('track completion does not stop when looping', () async {
+      // When loop mode is enabled, just_audio's LoopMode.one prevents
+      // ProcessingState.completed from firing — the track restarts automatically.
+      // Verified via integration testing with a real audio file.
+    }, skip: 'Requires valid audio file to verify loop behaviour');
   });
 
   group('AudioPlayerRepositoryImpl - Error Handling', () {

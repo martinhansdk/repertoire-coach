@@ -131,6 +131,8 @@ class SyncController extends Notifier<SyncState> {
   /// Refresh all data providers after sync
   void _refreshProviders() {
     ref.invalidate(choirsProvider);
+    ref.invalidate(choirMemberCountProvider);
+    ref.invalidate(choirMembersProvider);
     ref.invalidate(concertsProvider);
     // Note: songsByConcertProvider and tracksBySongProvider are family
     // providers and will be refreshed when their parents are refreshed

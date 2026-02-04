@@ -115,6 +115,19 @@ void main() {
     expect(find.byIcon(Icons.repeat), findsOneWidget);
   });
 
+  testWidgets('stop button is not present', (tester) async {
+    final playbackInfo = PlaybackInfo.idle().copyWith(
+      currentTrack: tTrack1,
+      state: AudioPlayerState.playing,
+    );
+    await tester.pumpWidget(createWidgetUnderTest(
+      playbackInfoStream: Stream.value(playbackInfo),
+    ));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byIcon(Icons.stop), findsNothing);
+    expect(find.text('Stop'), findsNothing);
+  });
+
   testWidgets('auto-play calls playTrack on initState', (tester) async {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();

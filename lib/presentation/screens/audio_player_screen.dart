@@ -188,24 +188,8 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                     ref.read(audioPlayerControlsProvider).seek(seekPosition);
                   },
                 ),
-              ],
-            ),
 
-            const SizedBox(height: 8),
-
-            // Stop and loop toggle row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextButton.icon(
-                  onPressed: () {
-                    ref.read(audioPlayerControlsProvider).stop();
-                  },
-                  icon: const Icon(Icons.stop),
-                  label: const Text('Stop'),
-                ),
-
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
 
                 // Loop toggle button
                 IconButton(
