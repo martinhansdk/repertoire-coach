@@ -342,6 +342,19 @@ Supabase Postgres → Realtime Channel → RealtimeService → Local DB → UI R
 - RLS policies filter realtime events automatically per user
 - Consider starting with MVP (trigger full sync on any change) then optimize
 
+### Error Reporting ✅ COMPLETE (2026-02-04)
+- [x] Created `error_logs` table with INSERT-only RLS (`user_id` defaults to `auth.uid()`)
+- [x] Created `ErrorReporter` service (fire-and-forget, silently drops when offline)
+- [x] Hooked `FlutterError.onError` and `runZonedGuarded` for uncaught errors
+- [x] Instrumented sign_in, sign_up, create_choir, add_member, audio_player catch blocks
+- [x] Added unit tests (`test/core/services/error_reporter_test.dart`)
+- ⚠️ **Migration `006_create_error_logs.sql` must be run manually** — Supabase MCP is read-only
+
+**Query errors on the dashboard:**
+```sql
+SELECT * FROM error_logs ORDER BY created_at DESC;
+```
+
 ### Step 8: User Management UI
 - [ ] Update ProfileScreen to display email and edit name
 - [ ] Add SettingsScreen with sync settings (auto-sync, WiFi-only)
