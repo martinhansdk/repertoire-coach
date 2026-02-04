@@ -37,21 +37,32 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   late final Future<void> _initFuture;
 
   AudioPlayerRepositoryImpl(this._playbackStateDataSource)
-      : _player = ja.AudioPlayer(),
+      : _player = ja.AudioPlayer(
+          // Explicitly disable audio offload.  just_audio 0.10.5 defaults to
+          // disabled, but be explicit: offload hands the DSP off to a
+          // hardware processor that loses contact with the Flutter engine
+          // when the CPU sleeps (screen lock), killing playback after ~60 s.
+          androidAudioOffloadPreferences: const ja.AndroidAudioOffloadPreferences(
+            audioOffloadMode: ja.AndroidAudioOffloadMode.disabled,
+          ),
+        ),
         _playbackController = StreamController<PlaybackInfo>.broadcast(),
         _currentPlaybackInfo = const PlaybackInfo.idle() {
     _initializePlayerListeners();
     _initFuture = _initialize();
   }
 
-  /// Run audio_session and audio_service initialisation concurrently.
+  /// audio_service MUST be initialised before audio_session is configured.
+  /// audio_session docs state: "configure after audio_service is init'd".
+  /// Running them in parallel (Future.wait) was a race that left the
+  /// MediaSession unaware of the audio focus configuration.
   /// Neither future rejects: each wraps its own errors so that a failure
   /// in one (e.g. desktop platform with no audio service) does not prevent
   /// the other from completing.
-  Future<void> _initialize() => Future.wait([
-    _configureAudioSession(),
-    _initializeAudioService(),
-  ]);
+  Future<void> _initialize() async {
+    await _initializeAudioService();
+    await _configureAudioSession();
+  }
 
   /// Configure audio session for background playback
   Future<void> _configureAudioSession() async {
@@ -71,8 +82,9 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
         androidWillPauseWhenDucked: true,
       ));
-    } catch (e) {
+    } catch (e, stackTrace) {
       // audio_session may not be available on all platforms; continue without it.
+      ErrorReporter.report(e, stackTrace: stackTrace, screen: 'audio_session_init');
     }
   }
 
@@ -89,10 +101,14 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
           androidStopForegroundOnPause: false,
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       // If audio service fails to initialize (e.g., on desktop platforms),
       // continue without it. Background playback will still work on iOS/Android
       // via audio_session configuration alone.
+      // NOTE: On Android this MUST succeed — if it fails, there will be no
+      // foreground service, no lock-screen controls, and the system will
+      // kill the app after a short idle period.
+      ErrorReporter.report(e, stackTrace: stackTrace, screen: 'audio_service_init');
     }
   }
 
@@ -404,10 +420,17 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 class _AudioPlayerHandler extends BaseAudioHandler {
   final ja.AudioPlayer _player;
   StreamSubscription<ja.PlayerState>? _playerStateSubscription;
+  StreamSubscription<Duration>? _positionSubscription;
 
   _AudioPlayerHandler(this._player) {
     // Sync player state to audio service whenever just_audio fires a state event.
     _playerStateSubscription = _player.playerStateStream.listen((_) {
+      _broadcastState();
+    });
+    // Sync position so the notification progress bar updates continuously.
+    // audio_service extrapolates position from updatePosition + elapsed time,
+    // but periodic corrections prevent drift.
+    _positionSubscription = _player.positionStream.listen((_) {
       _broadcastState();
     });
   }
@@ -457,10 +480,16 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> play() => _player.play();
+  Future<void> play() async {
+    await _player.play();
+    _broadcastState();
+  }
 
   @override
-  Future<void> pause() => _player.pause();
+  Future<void> pause() async {
+    await _player.pause();
+    _broadcastState();
+  }
 
   @override
   Future<void> stop() async {
@@ -495,5 +524,6 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   /// Cleanup subscriptions
   Future<void> cleanup() async {
     await _playerStateSubscription?.cancel();
+    await _positionSubscription?.cancel();
   }
 }
