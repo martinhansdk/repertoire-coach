@@ -24,6 +24,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   Track? _currentTrack;
   String? _currentSongId;
+  String? _currentSongName;
   PlaybackInfo _currentPlaybackInfo;
   Timer? _autoSaveTimer;
   bool _isLooping = false;
@@ -190,7 +191,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   PlaybackInfo get currentPlayback => _currentPlaybackInfo;
 
   @override
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl}) async {
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl, String? songName}) async {
     await _ensureInitialized(); // ensure audio_service & audio_session are ready
 
     // Use provided audioUrl (e.g., signed URL) or fall back to track's stored URL
@@ -206,6 +207,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     try {
       _currentTrack = track;
       _currentSongId = track.songId;
+      _currentSongName = songName;
 
       // Set audio source - prefer provided/cloud URL, fall back to local file
       if (effectiveAudioUrl != null) {
@@ -300,6 +302,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     await _audioHandler?.stop();
     _currentTrack = null;
     _currentSongId = null;
+    _currentSongName = null;
     _updatePlaybackInfo();
   }
 
@@ -375,8 +378,8 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
     final mediaItem = MediaItem(
       id: _currentTrack!.id,
-      title: _currentTrack!.name,
-      artist: 'Repertoire Coach', // Generic artist name
+      title: _currentSongName ?? _currentTrack!.name, // Song name, fallback to track name
+      artist: _currentTrack!.name, // Track name (voice part: Soprano, Alto, etc.)
       duration: _player.duration ?? Duration.zero,
       artUri: null, // No album art for now
     );
@@ -461,9 +464,13 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   Future<void> updateMediaItem(MediaItem item) async {
     // ignore: avoid_print
     print('DEBUG _AudioPlayerHandler.updateMediaItem: received title="${item.title}", artist="${item.artist}"');
-    await super.updateMediaItem(item);
+    // Directly set mediaItem — super.updateMediaItem() in audio_service 0.18.17
+    // doesn't actually update the BehaviorSubject (mediaItem.value stays null).
+    // Setting it directly ensures the platform listener receives the update.
+    mediaItem.add(item);
     // ignore: avoid_print
-    print('DEBUG _AudioPlayerHandler.updateMediaItem: super.updateMediaItem completed, mediaItem.value=${mediaItem.value?.title}');
+    print('DEBUG _AudioPlayerHandler.updateMediaItem: after mediaItem.add(), value=${mediaItem.value?.title}');
+    await super.updateMediaItem(item);
   }
 
   /// Push the current player state to the audio_service notification.

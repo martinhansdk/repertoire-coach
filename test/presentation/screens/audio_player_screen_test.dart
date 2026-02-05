@@ -132,7 +132,7 @@ void main() {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 
-    verify(mockAudioPlayerRepository.playTrack(captureAny)).called(1);
+    verify(mockAudioPlayerRepository.playTrack(captureAny, songName: anyNamed('songName'))).called(1);
   });
 
   testWidgets('shows pause button when playing', (tester) async {

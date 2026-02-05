@@ -64,7 +64,7 @@ class AudioPlayerControls {
   ///
   /// If the track has a cloud storage path, generates a signed URL for
   /// authenticated access (valid for 24 hours).
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero}) async {
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? songName}) async {
     String? signedUrl;
 
     // ignore: avoid_print
@@ -89,7 +89,7 @@ class AudioPlayerControls {
 
     // ignore: avoid_print
     print('DEBUG playTrack: calling repository.playTrack with audioUrl=${signedUrl ?? track.audioUrl}');
-    await _repository.playTrack(track, startPosition: startPosition, audioUrl: signedUrl);
+    await _repository.playTrack(track, startPosition: startPosition, audioUrl: signedUrl, songName: songName);
   }
 
   /// Resume playback if paused

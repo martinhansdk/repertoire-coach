@@ -34,7 +34,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(audioPlayerControlsProvider).playTrack(widget.track);
+        ref.read(audioPlayerControlsProvider).playTrack(widget.track, songName: widget.songTitle);
       }
     });
   }

@@ -21,9 +21,10 @@ abstract class AudioPlayerRepository {
   /// [track] - The track to play
   /// [startPosition] - Optional position to start playback from
   /// [audioUrl] - Optional URL to use instead of track's stored URL (e.g., signed URL)
+  /// [songName] - Optional song name to display in notification (title field)
   ///
   /// Throws an exception if the track has no audio source
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl});
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl, String? songName});
 
   /// Resume playback if paused
   Future<void> resume();
