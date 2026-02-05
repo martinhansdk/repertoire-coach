@@ -97,8 +97,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   /// Initialize audio service for background playback with media notifications
   Future<void> _initializeAudioService() async {
     try {
-      // ignore: avoid_print
-      print('DEBUG _initializeAudioService: calling AudioService.init...');
       _audioHandler = await AudioService.init(
         builder: () => _AudioPlayerHandler(_player),
         config: AudioServiceConfig(
@@ -106,11 +104,12 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
           androidNotificationChannelName: 'Repertoire Coach Audio',
           androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
+          // androidNotificationOngoing: true requires this to be true;
+          // the assertion !androidNotificationOngoing || androidStopForegroundOnPause
+          // would otherwise fire inside AudioService.init().
           androidStopForegroundOnPause: true,
         ),
       );
-      // ignore: avoid_print
-      print('DEBUG _initializeAudioService: SUCCESS, _audioHandler=${_audioHandler != null}');
     } catch (e, stackTrace) {
       // If audio service fails to initialize (e.g., on desktop platforms),
       // continue without it. Background playback will still work on iOS/Android
@@ -118,8 +117,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       // NOTE: On Android this MUST succeed — if it fails, there will be no
       // foreground service, no lock-screen controls, and the system will
       // kill the app after a short idle period.
-      // ignore: avoid_print
-      print('DEBUG _initializeAudioService: FAILED with error: $e');
       ErrorReporter.report(e, stackTrace: stackTrace, screen: 'audio_service_init');
     }
   }
@@ -195,8 +192,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   @override
   Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl}) async {
     await _ensureInitialized(); // ensure audio_service & audio_session are ready
-    // ignore: avoid_print
-    print('DEBUG playTrack: _audioHandler is ${_audioHandler == null ? "NULL" : "set"}');
 
     // Use provided audioUrl (e.g., signed URL) or fall back to track's stored URL
     final effectiveAudioUrl = audioUrl ?? track.audioUrl;
@@ -212,17 +207,9 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       _currentTrack = track;
       _currentSongId = track.songId;
 
-      // ignore: avoid_print
-      print('DEBUG repository.playTrack: effectiveAudioUrl=$effectiveAudioUrl');
-
       // Set audio source - prefer provided/cloud URL, fall back to local file
       if (effectiveAudioUrl != null) {
-        // Play from URL (cloud or signed)
-        // ignore: avoid_print
-        print('DEBUG repository.playTrack: calling setUrl...');
         await _player.setUrl(effectiveAudioUrl);
-        // ignore: avoid_print
-        print('DEBUG repository.playTrack: setUrl completed, duration=${_player.duration}');
       } else if (track.filePath != null) {
         // Play from local file
         final file = File(track.filePath!);
@@ -250,11 +237,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       await _updateMediaItem();
 
       // Start playback
-      // ignore: avoid_print
-      print('DEBUG repository.playTrack: calling play()...');
       await _player.play();
-      // ignore: avoid_print
-      print('DEBUG repository.playTrack: play() completed, playing=${_player.playing}');
 
       // Start auto-save timer (save position every 5 seconds while playing)
       _startAutoSaveTimer();
@@ -262,8 +245,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       _updatePlaybackInfo();
     } catch (e, stackTrace) {
       ErrorReporter.report(e, stackTrace: stackTrace, screen: 'audio_player');
-      // ignore: avoid_print
-      print('DEBUG repository.playTrack: ERROR - $e');
       final errorInfo = PlaybackInfo.error('Failed to play track: $e');
       _currentPlaybackInfo = errorInfo;
       _playbackController.add(errorInfo);
@@ -455,8 +436,6 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   /// immediately (playerStateStream doesn't fire on a seek-only event).
   void _broadcastState() {
     final playing = _player.playing;
-    // ignore: avoid_print
-    print('DEBUG _broadcastState: playing=$playing processing=${_player.playerState.processingState} pos=${_player.position}');
     playbackState.add(PlaybackState(
       controls: [
         MediaControl.rewind,

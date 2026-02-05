@@ -749,6 +749,7 @@ For these, you'll need to follow the instructions Claude provides.
 - **Tasks**: See TODO.md
 - **Testing Guidelines**: See TESTING_GUIDELINES.md
 - **Docker & Deployment**: See DOCKER.md
+- **Android Device Debugging**: See DEVICE_DEBUGGING.md
 - **Flutter MCP Server**: `flutter-mcp-server/` (maintained by Claude)
 - **Shell Scripts**: `scripts/` (for CI and manual use)
 - **Deploy to Device**: `./scripts/deploy.py` (see DOCKER.md)
