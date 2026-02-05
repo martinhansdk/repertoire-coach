@@ -88,6 +88,7 @@ class SongDetailScreen extends ConsumerWidget {
                         builder: (context) => AudioPlayerScreen(
                           track: track,
                           songTitle: songTitle,
+                          concertName: concertName,
                         ),
                       ),
                     );

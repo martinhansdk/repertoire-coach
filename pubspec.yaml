@@ -85,6 +85,9 @@ dev_dependencies:
   # SQLite for tests (provides libsqlite3.so)
   sqlite3: ^2.9.4
 
+  # Launcher icon generator
+  flutter_launcher_icons: ^0.14.4
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -126,3 +129,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Launcher icon configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#2C3E50"  # Dark blue-grey matching the icon
+  adaptive_icon_foreground: "assets/icon/icon.png"

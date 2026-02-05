@@ -47,7 +47,7 @@ void main() {
         markersByMarkerSetProvider('').overrideWith((ref) => Future.value([])),
       ],
       child: MaterialApp(
-        home: AudioPlayerScreen(track: tTrack1, songTitle: 'Test Song'),
+        home: AudioPlayerScreen(track: tTrack1, songTitle: 'Test Song', concertName: 'Test Concert'),
       ),
     );
   }
@@ -132,7 +132,7 @@ void main() {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 
-    verify(mockAudioPlayerRepository.playTrack(captureAny, songName: anyNamed('songName'))).called(1);
+    verify(mockAudioPlayerRepository.playTrack(captureAny, songName: anyNamed('songName'), albumName: anyNamed('albumName'))).called(1);
   });
 
   testWidgets('shows pause button when playing', (tester) async {

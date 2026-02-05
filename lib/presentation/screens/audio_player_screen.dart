@@ -17,8 +17,9 @@ const String _currentUserId = 'local-user-1';
 class AudioPlayerScreen extends ConsumerStatefulWidget {
   final Track track;
   final String songTitle;
+  final String concertName;
 
-  const AudioPlayerScreen({super.key, required this.track, required this.songTitle});
+  const AudioPlayerScreen({super.key, required this.track, required this.songTitle, required this.concertName});
 
   @override
   ConsumerState<AudioPlayerScreen> createState() => _AudioPlayerScreenState();
@@ -34,7 +35,11 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(audioPlayerControlsProvider).playTrack(widget.track, songName: widget.songTitle);
+        ref.read(audioPlayerControlsProvider).playTrack(
+          widget.track,
+          songName: widget.songTitle,
+          albumName: widget.concertName,
+        );
       }
     });
   }

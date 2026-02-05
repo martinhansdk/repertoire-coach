@@ -25,6 +25,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   Track? _currentTrack;
   String? _currentSongId;
   String? _currentSongName;
+  String? _currentAlbumName;
   PlaybackInfo _currentPlaybackInfo;
   Timer? _autoSaveTimer;
   bool _isLooping = false;
@@ -191,7 +192,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   PlaybackInfo get currentPlayback => _currentPlaybackInfo;
 
   @override
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl, String? songName}) async {
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl, String? songName, String? albumName}) async {
     await _ensureInitialized(); // ensure audio_service & audio_session are ready
 
     // Use provided audioUrl (e.g., signed URL) or fall back to track's stored URL
@@ -208,6 +209,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       _currentTrack = track;
       _currentSongId = track.songId;
       _currentSongName = songName;
+      _currentAlbumName = albumName;
 
       // Set audio source - prefer provided/cloud URL, fall back to local file
       if (effectiveAudioUrl != null) {
@@ -303,6 +305,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     _currentTrack = null;
     _currentSongId = null;
     _currentSongName = null;
+    _currentAlbumName = null;
     _updatePlaybackInfo();
   }
 
@@ -380,6 +383,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       id: _currentTrack!.id,
       title: _currentSongName ?? _currentTrack!.name, // Song name, fallback to track name
       artist: _currentTrack!.name, // Track name (voice part: Soprano, Alto, etc.)
+      album: _currentAlbumName, // Concert name
       duration: _player.duration ?? Duration.zero,
       artUri: null, // No album art for now
     );

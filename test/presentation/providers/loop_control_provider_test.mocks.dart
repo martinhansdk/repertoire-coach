@@ -89,6 +89,7 @@ class MockAudioPlayerRepository extends _i1.Mock
     Duration? startPosition = Duration.zero,
     String? audioUrl,
     String? songName,
+    String? albumName,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -98,6 +99,7 @@ class MockAudioPlayerRepository extends _i1.Mock
             #startPosition: startPosition,
             #audioUrl: audioUrl,
             #songName: songName,
+            #albumName: albumName,
           },
         ),
         returnValue: _i4.Future<void>.value(),
