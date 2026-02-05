@@ -368,6 +368,8 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   /// Update the media item shown in the notification
   Future<void> _updateMediaItem() async {
     if (_audioHandler == null || _currentTrack == null) {
+      // ignore: avoid_print
+      print('DEBUG _updateMediaItem: skipped (_audioHandler=${_audioHandler != null}, _currentTrack=${_currentTrack != null})');
       return;
     }
 
@@ -379,7 +381,11 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       artUri: null, // No album art for now
     );
 
+    // ignore: avoid_print
+    print('DEBUG _updateMediaItem: calling updateMediaItem with title="${mediaItem.title}", artist="${mediaItem.artist}", duration=${mediaItem.duration}');
     await _audioHandler!.updateMediaItem(mediaItem);
+    // ignore: avoid_print
+    print('DEBUG _updateMediaItem: updateMediaItem returned');
   }
 
   @override
@@ -449,6 +455,15 @@ class _AudioPlayerHandler extends BaseAudioHandler {
     _positionSubscription = _player.positionStream.listen((_) {
       _broadcastState();
     });
+  }
+
+  @override
+  Future<void> updateMediaItem(MediaItem item) async {
+    // ignore: avoid_print
+    print('DEBUG _AudioPlayerHandler.updateMediaItem: received title="${item.title}", artist="${item.artist}"');
+    await super.updateMediaItem(item);
+    // ignore: avoid_print
+    print('DEBUG _AudioPlayerHandler.updateMediaItem: super.updateMediaItem completed, mediaItem.value=${mediaItem.value?.title}');
   }
 
   /// Push the current player state to the audio_service notification.
