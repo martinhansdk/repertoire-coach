@@ -1,5 +1,19 @@
 package com.repertoirecoach.repertoire_coach
 
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.FlutterEngineCache
 
-class MainActivity: FlutterActivity()
+class MainActivity: FlutterActivity() {
+    override fun createFlutterEngine(): FlutterEngine {
+        val engine = super.createFlutterEngine()
+        // audio_service's AudioServicePlugin.getFlutterEngine() looks up
+        // FlutterEngineCache under the key "audio_service_engine".  If it
+        // doesn't find one it creates a SECOND engine, which causes the
+        // "wrong engine detected" assertion and breaks AudioService.init().
+        // Caching the main engine here makes both the app and the
+        // background AudioService share the same FlutterEngine.
+        FlutterEngineCache.getInstance().put("audio_service_engine", engine)
+        return engine
+    }
+}
