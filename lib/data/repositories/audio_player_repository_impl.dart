@@ -228,16 +228,31 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
         seekPosition = await loadPlaybackPosition(track.id);
       }
 
+      // If the saved position is at or past the end of the track the previous
+      // session finished playing it — start from the beginning instead of
+      // immediately hitting ProcessingState.completed again.
+      if (_player.duration != null && seekPosition >= _player.duration!) {
+        seekPosition = Duration.zero;
+      }
+
       // Seek to position if needed
       if (seekPosition > Duration.zero) {
         await _player.seek(seekPosition);
       }
 
-      // Update media item for notification
+      // Set the MediaItem before play() so the notification has a title.
       await _updateMediaItem();
 
       // Start playback
       await _player.play();
+
+      // On Android play() triggers startForeground(), which posts the
+      // notification.  The MediaItem set above travels over a separate
+      // platform channel; if the notification is posted before that call
+      // lands the lock-screen control shows song=null / artist=null.
+      // A second update after play() guarantees the MediaSession is
+      // populated once the notification becomes visible.
+      await _updateMediaItem();
 
       // Start auto-save timer (save position every 5 seconds while playing)
       _startAutoSaveTimer();
@@ -277,6 +292,12 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     await _player.stop();
     _stopAutoSaveTimer();
     await savePlaybackPosition(); // Save position on stop
+    // Tell audio_service to stop the foreground service so the notification
+    // is dismissed.  Without this the notification lingers after the track
+    // finishes, showing a stale play button.  The handler's stop() calls
+    // super.stop() which does the actual service teardown.  It also calls
+    // _player.stop() again — that second call is a harmless no-op.
+    await _audioHandler?.stop();
     _currentTrack = null;
     _currentSongId = null;
     _updatePlaybackInfo();
