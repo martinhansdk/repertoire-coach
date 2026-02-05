@@ -53,12 +53,16 @@ final trackRepositoryProvider = Provider<TrackRepository>((ref) {
 
 /// Provider for tracks filtered by a specific song
 ///
+/// Returns tracks sorted alphabetically by name.
 /// Usage: ref.watch(tracksBySongProvider('song-id'))
 final tracksBySongProvider =
     FutureProvider.family<List<Track>, String>((ref, songId) async {
   try {
     final repository = ref.watch(trackRepositoryProvider);
-    return await repository.getTracksBySong(songId);
+    final tracks = await repository.getTracksBySong(songId);
+    // Sort alphabetically by name
+    tracks.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return tracks;
   } catch (e) {
     // On web, database might fail without sql.js setup
     // Return empty list (Phase 2 will use Supabase which works on all platforms)
