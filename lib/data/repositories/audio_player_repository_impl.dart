@@ -275,17 +275,18 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   Future<void> resume() async {
     await _ensureInitialized(); // ensure audio_service & audio_session are ready
 
-    // ignore: avoid_print
-    print('DEBUG resume: processingState=${_player.playerState.processingState}, playing=${_player.playerState.playing}, position=${_player.position}');
+    // If we're at or near the end of the track, restart from the beginning.
+    // Check position instead of processingState because just_audio transitions
+    // from completed -> idle, so processingState.completed is fleeting.
+    final duration = _player.duration ?? Duration.zero;
+    final position = _player.position;
 
-    if (_player.playerState.processingState == ja.ProcessingState.completed) {
+    if (duration > Duration.zero && position >= duration - const Duration(milliseconds: 100)) {
       // ignore: avoid_print
-      print('DEBUG resume: seeking to zero from completed state');
+      print('DEBUG resume: at end (position=$position, duration=$duration), seeking to zero');
       await _player.seek(Duration.zero);
     }
 
-    // ignore: avoid_print
-    print('DEBUG resume: calling play()');
     await _player.play();
     _startAutoSaveTimer();
     _updatePlaybackInfo();
