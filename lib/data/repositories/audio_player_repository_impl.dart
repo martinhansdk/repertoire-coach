@@ -282,8 +282,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     final position = _player.position;
 
     if (duration > Duration.zero && position >= duration - const Duration(milliseconds: 100)) {
-      // ignore: avoid_print
-      print('DEBUG resume: at end (position=$position, duration=$duration), seeking to zero');
       await _player.seek(Duration.zero);
     }
 
@@ -383,8 +381,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   /// Update the media item shown in the notification
   Future<void> _updateMediaItem() async {
     if (_audioHandler == null || _currentTrack == null) {
-      // ignore: avoid_print
-      print('DEBUG _updateMediaItem: skipped (_audioHandler=${_audioHandler != null}, _currentTrack=${_currentTrack != null})');
       return;
     }
 
@@ -397,11 +393,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       artUri: null, // No album art for now
     );
 
-    // ignore: avoid_print
-    print('DEBUG _updateMediaItem: calling updateMediaItem with title="${mediaItem.title}", artist="${mediaItem.artist}", duration=${mediaItem.duration}');
     await _audioHandler!.updateMediaItem(mediaItem);
-    // ignore: avoid_print
-    print('DEBUG _updateMediaItem: updateMediaItem returned');
   }
 
   @override
@@ -475,14 +467,10 @@ class _AudioPlayerHandler extends BaseAudioHandler {
 
   @override
   Future<void> updateMediaItem(MediaItem item) async {
-    // ignore: avoid_print
-    print('DEBUG _AudioPlayerHandler.updateMediaItem: received title="${item.title}", artist="${item.artist}"');
     // Directly set mediaItem — super.updateMediaItem() in audio_service 0.18.17
     // doesn't actually update the BehaviorSubject (mediaItem.value stays null).
     // Setting it directly ensures the platform listener receives the update.
     mediaItem.add(item);
-    // ignore: avoid_print
-    print('DEBUG _AudioPlayerHandler.updateMediaItem: after mediaItem.add(), value=${mediaItem.value?.title}');
     await super.updateMediaItem(item);
   }
 
