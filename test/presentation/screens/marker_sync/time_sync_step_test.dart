@@ -1,0 +1,674 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/domain/entities/loop_range.dart';
+import 'package:repertoire_coach/domain/entities/playback_info.dart';
+import 'package:repertoire_coach/domain/entities/track.dart';
+import 'package:repertoire_coach/domain/repositories/audio_player_repository.dart';
+import 'package:repertoire_coach/domain/repositories/marker_repository.dart';
+import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
+import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
+import 'package:repertoire_coach/presentation/providers/marker_sync_provider.dart';
+import 'package:repertoire_coach/presentation/screens/marker_sync/time_sync_step.dart';
+
+import 'time_sync_step_test.mocks.dart';
+
+class FakeAudioPlayerRepository implements AudioPlayerRepository {
+  PlaybackInfo _currentPlayback;
+
+  FakeAudioPlayerRepository([PlaybackInfo? initialPlayback])
+      : _currentPlayback = initialPlayback ?? PlaybackInfo.idle();
+
+  @override
+  PlaybackInfo get currentPlayback => _currentPlayback;
+
+  @override
+  Stream<PlaybackInfo> get playbackStream => Stream.value(_currentPlayback);
+
+  void updatePosition(Duration position) {
+    _currentPlayback = _currentPlayback.copyWith(position: position);
+  }
+
+  @override
+  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl, String? songName, String? albumName}) async {}
+
+  @override
+  Future<void> resume() async {}
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> stop() async {}
+
+  @override
+  Future<Duration> seek(Duration position) async {
+    updatePosition(position);
+    return position;
+  }
+
+  @override
+  Future<void> savePlaybackPosition() async {}
+
+  @override
+  Future<Duration> loadPlaybackPosition(String trackId) async => Duration.zero;
+
+  @override
+  Future<void> setLoopMode(bool enabled) async {}
+
+  @override
+  bool get isLooping => false;
+
+  @override
+  Future<void> setLoopRange(LoopRange? loopRange) async {}
+
+  @override
+  LoopRange? get currentLoopRange => null;
+
+  @override
+  bool get isRangeLooping => false;
+
+  @override
+  Future<void> dispose() async {}
+}
+
+@GenerateMocks([MarkerRepository])
+void main() {
+  group('TimeSyncStep Widget', () {
+    late MockMarkerRepository mockMarkerRepository;
+    late FakeAudioPlayerRepository fakeAudioRepository;
+    late MarkerSyncNotifier notifier;
+
+    setUp(() {
+      mockMarkerRepository = MockMarkerRepository();
+      fakeAudioRepository = FakeAudioPlayerRepository(
+        PlaybackInfo.idle().copyWith(
+          position: Duration.zero,
+          duration: const Duration(minutes: 3),
+        ),
+      );
+    });
+
+    Future<Widget> createWidgetUnderTest({
+      List<String>? labels,
+      PlaybackInfo? playbackInfo,
+    }) async {
+      final container = ProviderContainer(
+        overrides: [
+          markerRepositoryProvider.overrideWithValue(mockMarkerRepository),
+          audioPlayerRepositoryProvider.overrideWithValue(fakeAudioRepository),
+          playbackInfoProvider.overrideWith((ref) => Stream.value(playbackInfo ?? fakeAudioRepository.currentPlayback)),
+        ],
+      );
+
+      // Always initialize notifier so tests can access it
+      notifier = container.read(
+        markerSyncNotifierProvider(
+          const MarkerSyncParams(trackId: 'track-1', markerSetId: 'set-1'),
+        ).notifier,
+      );
+
+      // Set labels BEFORE building widget if provided
+      if (labels != null) {
+        notifier.setLabels(labels.join('\n'));
+      }
+
+      return UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Scaffold(
+            body: TimeSyncStep(
+              params: MarkerSyncParams(
+                trackId: 'track-1',
+                markerSetId: 'set-1',
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    group('UI Rendering', () {
+      testWidgets('displays audio controls', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Should show playback position
+        expect(find.textContaining('0:00'), findsAtLeastNWidgets(1));
+
+        // Should show play/pause button
+        expect(find.byIcon(Icons.play_circle), findsOneWidget);
+
+        // Should show rewind/forward buttons
+        expect(find.byIcon(Icons.replay_10), findsOneWidget);
+        expect(find.byIcon(Icons.forward_10), findsOneWidget);
+
+        // Should show restart button
+        expect(find.byIcon(Icons.restart_alt), findsOneWidget);
+      });
+
+      testWidgets('displays progress slider', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Slider), findsOneWidget);
+      });
+
+      testWidgets('displays marker list with "..." marker', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Should show "..." marker at 0:00.000
+        expect(find.text('...'), findsOneWidget);
+        expect(find.text('0:00.000'), findsOneWidget);
+
+        // Should show check icon for "..." marker (always synced)
+        expect(find.byIcon(Icons.check), findsAtLeastNWidgets(1));
+      });
+
+      testWidgets('displays all marker labels', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus', 'bridge']));
+        await tester.pumpAndSettle();
+
+        expect(find.text('verse'), findsOneWidget);
+        expect(find.text('chorus'), findsOneWidget);
+        expect(find.text('bridge'), findsOneWidget);
+      });
+
+      testWidgets('renders empty lines as spacing', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', '', 'chorus']));
+        await tester.pumpAndSettle();
+
+        expect(find.text('verse'), findsOneWidget);
+        expect(find.text('chorus'), findsOneWidget);
+
+        // Empty line should be rendered as SizedBox with height
+        expect(find.byType(SizedBox), findsWidgets);
+      });
+
+      testWidgets('displays sync button', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        expect(find.widgetWithText(FilledButton, 'Mark Here (Space)'), findsOneWidget);
+      });
+
+      testWidgets('displays save and discard buttons', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        expect(find.widgetWithText(FilledButton, 'Save'), findsOneWidget);
+        expect(find.widgetWithText(OutlinedButton, 'Discard'), findsOneWidget);
+      });
+    });
+
+    group('Marker List State', () {
+      testWidgets('shows pending icon for unsynced markers', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.pending), findsAtLeastNWidgets(2));
+      });
+
+      testWidgets('shows check icon for synced markers', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Sync first marker
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // "..." and "verse" should both have check icons
+        expect(find.byIcon(Icons.check), findsAtLeastNWidgets(2));
+      });
+
+      testWidgets('shows "not synced" for unsynced markers', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        expect(find.text('not synced'), findsAtLeastNWidgets(2));
+      });
+
+      testWidgets('shows position for synced markers', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Advance playback position
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+
+        // Sync marker
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Should show position (format: M:SS.mmm)
+        expect(find.textContaining('0:05.'), findsOneWidget);
+      });
+
+      testWidgets('highlights current marker', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync first marker
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Current marker should be highlighted (selectedTileColor applied)
+        final listTiles = tester.widgetList<ListTile>(find.byType(ListTile)).toList();
+        final selectedTiles = listTiles.where((tile) => tile.selected == true).toList();
+
+        expect(selectedTiles.length, 1);
+        expect(selectedTiles.first.title, isA<Text>());
+      });
+    });
+
+    group('Sync Button State', () {
+      testWidgets('sync button is enabled at position 0', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Mark Here (Space)'),
+        );
+        expect(button.onPressed, isNotNull);
+      });
+
+      testWidgets('sync button is disabled when position < last synced position', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync first marker at 10s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 10));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Move back to 5s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+
+        // Button should be disabled
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Mark Here (Space)'),
+        );
+        expect(button.onPressed, isNull);
+      });
+
+      testWidgets('sync button is enabled when position >= last synced position', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync first marker at 5s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Move to 10s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 10));
+        await tester.pumpAndSettle();
+
+        // Button should be enabled
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Mark Here (Space)'),
+        );
+        expect(button.onPressed, isNotNull);
+      });
+
+      testWidgets('sync button is enabled when position equals last synced position', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync first marker at 5s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Stay at 5s
+        await tester.pumpAndSettle();
+
+        // Button should be enabled (equal is allowed)
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Mark Here (Space)'),
+        );
+        expect(button.onPressed, isNotNull);
+      });
+
+      testWidgets('sync button is disabled when all markers synced', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Sync the only marker
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Try to sync again (should fail - no more markers)
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Button should be disabled
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Mark Here (Space)'),
+        );
+        expect(button.onPressed, isNull);
+      });
+
+      testWidgets('shows helper text when sync button disabled', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync at 10s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 10));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Move back to 5s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Move forward in time to sync the next marker'), findsOneWidget);
+      });
+    });
+
+    group('Syncing Markers', () {
+      testWidgets('syncs marker to current playback position', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Move to 5s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+
+        // Sync
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Should show position
+        expect(find.textContaining('0:05.'), findsOneWidget);
+      });
+
+      testWidgets('advances to next non-empty marker after sync', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', '', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync verse
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Sync should skip empty line and highlight chorus
+        // (Current index should be 2, not 1)
+        expect(notifier.state.currentIndex, 2);
+      });
+
+      testWidgets('syncs multiple markers in sequence', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus', 'bridge']));
+        await tester.pumpAndSettle();
+
+        // Sync verse
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Move forward
+        fakeAudioRepository.updatePosition(const Duration(seconds: 10));
+        await tester.pumpAndSettle();
+
+        // Sync chorus
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Move forward
+        fakeAudioRepository.updatePosition(const Duration(seconds: 20));
+        await tester.pumpAndSettle();
+
+        // Sync bridge
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // All should be synced
+        expect(find.text('not synced'), findsNothing);
+      });
+    });
+
+    group('Keyboard Shortcuts', () {
+      testWidgets('Space key syncs next marker', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Press space
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Should sync marker
+        expect(notifier.state.currentIndex, 0);
+        expect(notifier.state.syncedPositions[0], isNotNull);
+      });
+
+      testWidgets('Space key respects monotonic invariant', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync at 10s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 10));
+        await tester.pumpAndSettle();
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Move back to 5s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+
+        // Try to sync (should fail)
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Should still be at verse
+        expect(notifier.state.currentIndex, 0);
+      });
+
+      testWidgets('Down arrow navigates to next marker', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus', 'bridge']));
+        await tester.pumpAndSettle();
+
+        // Initially at "..." (-1)
+        expect(notifier.state.currentIndex, -1);
+
+        // Press down
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+
+        expect(notifier.state.currentIndex, 0); // verse
+      });
+
+      testWidgets('Down arrow skips empty lines', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', '', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Press down
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+
+        expect(notifier.state.currentIndex, 0); // verse
+
+        // Press down again
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+
+        expect(notifier.state.currentIndex, 2); // chorus (skipped index 1)
+      });
+
+      testWidgets('Up arrow navigates to previous marker', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Jump to chorus
+        notifier.jumpToMarker(1);
+        await tester.pumpAndSettle();
+
+        // Press up
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pumpAndSettle();
+
+        expect(notifier.state.currentIndex, 0); // verse
+      });
+
+      testWidgets('Up arrow skips empty lines', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', '', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Jump to chorus
+        notifier.jumpToMarker(2);
+        await tester.pumpAndSettle();
+
+        // Press up
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pumpAndSettle();
+
+        expect(notifier.state.currentIndex, 0); // verse (skipped index 1)
+      });
+
+      testWidgets('R key shows restart confirmation', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Press R
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
+        await tester.pumpAndSettle();
+
+        // Should show confirmation dialog
+        expect(find.text('Restart sync?'), findsOneWidget);
+      });
+    });
+
+    group('Restart Functionality', () {
+      testWidgets('restart button shows confirmation dialog', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.restart_alt));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Restart sync?'), findsOneWidget);
+        expect(find.text('This will clear all synced positions and start from the beginning.'), findsOneWidget);
+      });
+
+      testWidgets('restart confirmation can be cancelled', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Sync marker
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+        final positionsBefore = notifier.state.syncedPositions;
+
+        // Show restart dialog
+        await tester.tap(find.byIcon(Icons.restart_alt));
+        await tester.pumpAndSettle();
+
+        // Cancel
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+
+        // Positions should be unchanged
+        expect(notifier.state.syncedPositions, positionsBefore);
+      });
+
+      testWidgets('restart confirmation clears positions', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync markers
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+        fakeAudioRepository.updatePosition(const Duration(seconds: 10));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Restart
+        await tester.tap(find.byIcon(Icons.restart_alt));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Restart'));
+        await tester.pumpAndSettle();
+
+        // Should only have "..." marker
+        expect(notifier.state.syncedPositions, {-1: 0});
+        expect(notifier.state.currentIndex, -1);
+      });
+    });
+
+    group('Save and Discard', () {
+      testWidgets('save button calls save and closes screen', (tester) async {
+        when(mockMarkerRepository.createMarker(any)).thenAnswer((_) async {});
+
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Sync a marker
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Save
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // Should call repository
+        verify(mockMarkerRepository.createMarker(any)).called(1);
+      });
+
+      testWidgets('discard button closes screen without saving', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Sync a marker
+        await tester.tap(find.widgetWithText(FilledButton, 'Mark Here (Space)'));
+        await tester.pumpAndSettle();
+
+        // Discard
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Discard'));
+        await tester.pumpAndSettle();
+
+        // Should NOT call repository
+        verifyNever(mockMarkerRepository.createMarker(any));
+      });
+    });
+
+    group('Edge Cases', () {
+      testWidgets('handles no labels', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: []));
+        await tester.pumpAndSettle();
+
+        // Should show "..." marker only
+        expect(find.text('...'), findsOneWidget);
+      });
+
+      testWidgets('handles single label', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['intro']));
+        await tester.pumpAndSettle();
+
+        expect(find.text('intro'), findsOneWidget);
+      });
+
+      testWidgets('handles many labels', (tester) async {
+        final manyLabels = List.generate(50, (i) => 'label-$i');
+        await tester.pumpWidget(await createWidgetUnderTest(labels: manyLabels));
+        await tester.pumpAndSettle();
+
+        // Should render scrollable list
+        expect(find.byType(ListView), findsOneWidget);
+      });
+
+      testWidgets('handles all empty lines', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['', '', '']));
+        await tester.pumpAndSettle();
+
+        // Should only show "..." marker (no non-empty markers to sync)
+        expect(find.text('not synced'), findsNothing);
+      });
+    });
+  });
+}

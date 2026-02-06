@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/constants.dart';
+import '../../domain/entities/marker_set.dart';
 import '../providers/marker_provider.dart';
 import '../widgets/marker_dialog.dart';
-import '../widgets/marker_set_dialog.dart';
+import 'marker_sync/marker_sync_screen.dart';
 
 /// Hardcoded user ID for local-first mode
 const String _currentUserId = 'local-user-1';
@@ -22,11 +24,37 @@ class MarkerManagerScreen extends ConsumerWidget {
     required this.trackName,
   });
 
-  Future<void> _showCreateMarkerSetDialog(BuildContext context) async {
-    await showDialog(
-      context: context,
-      builder: (context) => MarkerSetDialog(trackId: trackId),
+  Future<void> _navigateToMarkerSync(BuildContext context, WidgetRef ref) async {
+    // Create a new marker set
+    final markerSet = MarkerSet(
+      id: const Uuid().v4(),
+      trackId: trackId,
+      name: 'New Marker Set', // Placeholder name - will be replaced when user adds markers
+      isShared: false,
+      createdByUserId: _currentUserId,
+      createdAt: DateTime.now().toUtc(),
+      updatedAt: DateTime.now().toUtc(),
     );
+
+    // Create the marker set in repository
+    final repository = ref.read(markerRepositoryProvider);
+    await repository.createMarkerSet(markerSet);
+
+    // Navigate to sync screen
+    if (context.mounted) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MarkerSyncScreen(
+            trackId: trackId,
+            markerSetId: markerSet.id,
+          ),
+        ),
+      );
+
+      // Refresh marker sets after returning
+      ref.invalidate(markerSetsByTrackProvider);
+    }
   }
 
   Future<void> _deleteMarkerSet(
@@ -112,7 +140,7 @@ class MarkerManagerScreen extends ConsumerWidget {
         data: (markerSets) {
           if (markerSets.isEmpty) {
             return _EmptyState(
-              onCreateMarkerSet: () => _showCreateMarkerSetDialog(context),
+              onCreateMarkerSet: () => _navigateToMarkerSync(context, ref),
             );
           }
 
@@ -152,7 +180,7 @@ class MarkerManagerScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateMarkerSetDialog(context),
+        onPressed: () => _navigateToMarkerSync(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('New Set'),
       ),
@@ -172,14 +200,68 @@ class _MarkerSetCard extends ConsumerWidget {
     required this.onDelete,
   });
 
-  Future<void> _showEditMarkerSetDialog(BuildContext context) async {
-    await showDialog(
+  Future<void> _editMarkerSetName(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(text: markerSet.name);
+
+    final newName = await showDialog<String>(
       context: context,
-      builder: (context) => MarkerSetDialog(
-        trackId: trackId,
-        markerSet: markerSet,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Marker Set Name'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
+
+    if (newName != null && newName.isNotEmpty && newName != markerSet.name && context.mounted) {
+      try {
+        final repository = ref.read(markerRepositoryProvider);
+        final updatedMarkerSet = MarkerSet(
+          id: markerSet.id,
+          trackId: markerSet.trackId,
+          name: newName,
+          isShared: markerSet.isShared,
+          createdByUserId: markerSet.createdByUserId,
+          createdAt: markerSet.createdAt,
+          updatedAt: DateTime.now().toUtc(),
+        );
+        await repository.updateMarkerSet(updatedMarkerSet);
+
+        if (context.mounted) {
+          ref.invalidate(markerSetsByTrackProvider);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Marker set renamed successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error renaming marker set: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _showCreateMarkerDialog(BuildContext context) async {
@@ -294,7 +376,7 @@ class _MarkerSetCard extends ConsumerWidget {
           ],
           onSelected: (value) {
             if (value == 'edit') {
-              _showEditMarkerSetDialog(context);
+              _editMarkerSetName(context, ref);
             } else if (value == 'delete') {
               onDelete();
             }
