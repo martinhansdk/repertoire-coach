@@ -330,6 +330,8 @@ jobs:
         retention-days: 7
 
   coverage:
+    # disable for now, we rarely look at the results and this is the longest job of the CI run
+    if: false
     runs-on: ubuntu-latest
 
     steps:
