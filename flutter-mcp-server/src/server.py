@@ -3,6 +3,8 @@
 import json
 import asyncio
 import time
+import os
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, Optional
 from dataclasses import asdict
@@ -26,6 +28,8 @@ class FlutterMCPServer:
     def __init__(self, project_root: Optional[str] = None):
         self.server = Server("flutter-mcp-server")
         self.project_root = Path(project_root) if project_root else Path.cwd()
+        self.running_procs: Dict[str, Any] = {}
+        self.cancelled_runs: set[str] = set()
 
         # Initialize components
         # Use cirruslabs Flutter image - runs as root for consistent file permissions
@@ -145,6 +149,22 @@ class FlutterMCPServer:
                     }
                 ),
                 Tool(
+                    name="list_running",
+                    description="List currently running async operations",
+                    inputSchema={"type": "object", "properties": {}}
+                ),
+                Tool(
+                    name="cancel_run",
+                    description="Cancel a running async operation",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "runId": {"type": "string", "description": "Run ID"}
+                        },
+                        "required": ["runId"]
+                    }
+                ),
+                Tool(
                     name="get_analyze_results",
                     description="Query cached analysis results",
                     inputSchema={
@@ -233,6 +253,10 @@ class FlutterMCPServer:
                 result = await self._get_analyze_results(args)
             elif name == "get_run_status":
                 result = self.cache.get_status(args.get("runId", ""))
+            elif name == "list_running":
+                result = self.cache.list_running()
+            elif name == "cancel_run":
+                result = await self._cancel_run(args)
             elif name == "run_validation":
                 result = await self._run_validation(args)
             elif name == "list_test_runs":
@@ -366,20 +390,52 @@ class FlutterMCPServer:
             run_id = self.cache.reserve_run_id("test", params)
 
             async def _run_background():
+                cidfile = None
                 try:
-                    returncode, stdout, stderr = await asyncio.to_thread(
-                        self.runner.test,
-                        path=path,
-                        name=name,
-                        fail_fast=fail_fast,
-                        coverage=coverage,
-                        reporter="compact",
-                        timeout=timeout
+                    args = ["test", "--reporter", "compact"]
+                    if path:
+                        if isinstance(path, list):
+                            args.extend(path)
+                        else:
+                            args.append(path)
+                    if name:
+                        args.extend(["--name", name])
+                    if fail_fast:
+                        args.append("--fail-fast")
+                    if coverage:
+                        args.append("--coverage")
+
+                    proc, cidfile = self.runner.start_flutter_command(
+                        args,
+                        with_pub_get=True,
+                        capture_output=True
                     )
+                    self.running_procs[run_id] = proc
+                    self.cache.update_pending(run_id, {"pid": proc.pid, "cidfile": cidfile})
+                    if cidfile:
+                        container_id = self.runner._read_cidfile(cidfile)
+                        if container_id:
+                            self.cache.update_pending(run_id, {"containerId": container_id})
+
+                    stdout_bytes, stderr_bytes = proc.communicate(timeout=timeout)
+                    stdout = stdout_bytes.decode() if stdout_bytes else ""
+                    stderr = stderr_bytes.decode() if stderr_bytes else ""
                     output = stdout + stderr
+                    if run_id in self.cancelled_runs:
+                        return
                     result = self.test_parser.parse(output)
                     result.summary.duration = time.time() - start_time
                     self.cache.store_test_result(result, params, output, run_id=run_id)
+                except subprocess.TimeoutExpired:
+                    if run_id in self.running_procs:
+                        self.running_procs[run_id].kill()
+                    result = TestResult(
+                        success=False,
+                        summary=TestSummary(total=0, failed=1),
+                        warnings=[f"Async test run timed out after {timeout}s"],
+                        runId=run_id
+                    )
+                    self.cache.store_test_result(result, params, "", run_id=run_id)
                 except Exception as e:
                     result = TestResult(
                         success=False,
@@ -388,6 +444,16 @@ class FlutterMCPServer:
                         runId=run_id
                     )
                     self.cache.store_test_result(result, params, str(e), run_id=run_id)
+                finally:
+                    if run_id in self.running_procs:
+                        del self.running_procs[run_id]
+                    if run_id in self.cancelled_runs:
+                        self.cancelled_runs.remove(run_id)
+                    if cidfile:
+                        try:
+                            os.unlink(cidfile)
+                        except OSError:
+                            pass
 
             asyncio.create_task(_run_background())
 
@@ -433,15 +499,42 @@ class FlutterMCPServer:
             run_id = self.cache.reserve_run_id("analyze", params)
 
             async def _run_background():
+                cidfile = None
                 try:
-                    returncode, stdout, stderr = await asyncio.to_thread(
-                        self.runner.analyze,
-                        path=path,
-                        timeout=timeout
+                    args = ["analyze"]
+                    if path:
+                        args.append(path)
+
+                    proc, cidfile = self.runner.start_flutter_command(
+                        args,
+                        with_pub_get=True,
+                        capture_output=True
                     )
+                    self.running_procs[run_id] = proc
+                    self.cache.update_pending(run_id, {"pid": proc.pid, "cidfile": cidfile})
+                    if cidfile:
+                        container_id = self.runner._read_cidfile(cidfile)
+                        if container_id:
+                            self.cache.update_pending(run_id, {"containerId": container_id})
+
+                    stdout_bytes, stderr_bytes = proc.communicate(timeout=timeout)
+                    stdout = stdout_bytes.decode() if stdout_bytes else ""
+                    stderr = stderr_bytes.decode() if stderr_bytes else ""
                     output = stdout + stderr
+                    if run_id in self.cancelled_runs:
+                        return
                     result = self.analyze_parser.parse(output)
                     self.cache.store_analyze_result(result, params, output, run_id=run_id)
+                except subprocess.TimeoutExpired:
+                    if run_id in self.running_procs:
+                        self.running_procs[run_id].kill()
+                    result = AnalyzeResult(
+                        success=False,
+                        summary=AnalyzeSummary(errors=1),
+                        issues=None,
+                        runId=run_id
+                    )
+                    self.cache.store_analyze_result(result, params, "", run_id=run_id)
                 except Exception as e:
                     result = AnalyzeResult(
                         success=False,
@@ -450,6 +543,16 @@ class FlutterMCPServer:
                         runId=run_id
                     )
                     self.cache.store_analyze_result(result, params, str(e), run_id=run_id)
+                finally:
+                    if run_id in self.running_procs:
+                        del self.running_procs[run_id]
+                    if run_id in self.cancelled_runs:
+                        self.cancelled_runs.remove(run_id)
+                    if cidfile:
+                        try:
+                            os.unlink(cidfile)
+                        except OSError:
+                            pass
 
             asyncio.create_task(_run_background())
 
@@ -515,21 +618,49 @@ class FlutterMCPServer:
             run_id = self.cache.reserve_run_id("build", params)
 
             async def _run_background():
+                cidfile = None
                 try:
-                    returncode, stdout, stderr = await asyncio.to_thread(
-                        self.runner.build,
-                        target=target,
-                        mode=mode,
-                        flavor=flavor,
-                        build_number=build_number,
-                        build_name=build_name,
-                        timeout=timeout
+                    args = ["build", target]
+                    if mode != "debug":
+                        args.append(f"--{mode}")
+                    if flavor:
+                        args.extend(["--flavor", flavor])
+                    if build_number:
+                        args.extend(["--build-number", build_number])
+                    if build_name:
+                        args.extend(["--build-name", build_name])
+
+                    proc, cidfile = self.runner.start_flutter_command(
+                        args,
+                        with_pub_get=True,
+                        capture_output=True
                     )
+                    self.running_procs[run_id] = proc
+                    self.cache.update_pending(run_id, {"pid": proc.pid, "cidfile": cidfile})
+                    if cidfile:
+                        container_id = self.runner._read_cidfile(cidfile)
+                        if container_id:
+                            self.cache.update_pending(run_id, {"containerId": container_id})
+
+                    stdout_bytes, stderr_bytes = proc.communicate(timeout=timeout)
+                    stdout = stdout_bytes.decode() if stdout_bytes else ""
+                    stderr = stderr_bytes.decode() if stderr_bytes else ""
                     output = stdout + stderr
-                    success = returncode == 0
+                    success = proc.returncode == 0
+                    if run_id in self.cancelled_runs:
+                        return
                     result = self.build_parser.parse(output, success)
                     result.duration = time.time() - start_time
                     self.cache.store_build_result(result, params, output, run_id=run_id)
+                except subprocess.TimeoutExpired:
+                    if run_id in self.running_procs:
+                        self.running_procs[run_id].kill()
+                    result = BuildResult(
+                        success=False,
+                        output=f"Async build timed out after {timeout}s",
+                        errors=[BuildError(message=f"Async build timed out after {timeout}s")]
+                    )
+                    self.cache.store_build_result(result, params, "", run_id=run_id)
                 except Exception as e:
                     result = BuildResult(
                         success=False,
@@ -537,6 +668,16 @@ class FlutterMCPServer:
                         errors=[BuildError(message=f"Async build failed: {e}")]
                     )
                     self.cache.store_build_result(result, params, str(e), run_id=run_id)
+                finally:
+                    if run_id in self.running_procs:
+                        del self.running_procs[run_id]
+                    if run_id in self.cancelled_runs:
+                        self.cancelled_runs.remove(run_id)
+                    if cidfile:
+                        try:
+                            os.unlink(cidfile)
+                        except OSError:
+                            pass
 
             asyncio.create_task(_run_background())
 
@@ -662,6 +803,71 @@ class FlutterMCPServer:
 
         return asdict(result)
 
+    async def _cancel_run(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Cancel a running async operation."""
+        run_id = args.get("runId", "")
+        status = self.cache.get_status(run_id)
+        if status.get("status") != "running":
+            return status
+
+        meta = self.cache.pending.get(run_id, {})
+        operation = meta.get("operation", "unknown")
+        container_id = meta.get("containerId")
+
+        # Kill docker container if known
+        if container_id:
+            self.runner.kill_container_id(container_id)
+
+        # Kill local process if tracked
+        proc = self.running_procs.get(run_id)
+        if proc:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+
+        # Prevent background tasks from overwriting cancellation result
+        self.cancelled_runs.add(run_id)
+
+        # Store a minimal cancelled result
+        if operation == "test":
+            result = TestResult(
+                success=False,
+                summary=TestSummary(total=0, failed=1),
+                warnings=["Cancelled by user"],
+                runId=run_id
+            )
+            self.cache.store_test_result(result, meta.get("params", {}), "Cancelled by user", run_id=run_id)
+        elif operation == "analyze":
+            result = AnalyzeResult(
+                success=False,
+                summary=AnalyzeSummary(errors=1),
+                issues=None,
+                runId=run_id
+            )
+            self.cache.store_analyze_result(result, meta.get("params", {}), "Cancelled by user", run_id=run_id)
+        elif operation == "build":
+            result = BuildResult(
+                success=False,
+                output="Cancelled by user",
+                errors=[BuildError(message="Cancelled by user")]
+            )
+            self.cache.store_build_result(result, meta.get("params", {}), "Cancelled by user", run_id=run_id)
+        elif operation == "validation":
+            result = ValidationResult(
+                success=False,
+                analyze=AnalyzeResult(
+                    success=False,
+                    summary=AnalyzeSummary(errors=1),
+                    issues=None
+                ),
+                test=None,
+                duration=0.0
+            )
+            self.cache.store_validation_result(result, meta.get("params", {}), "Cancelled by user", run_id=run_id)
+
+        return {"status": "cancelled", "runId": run_id, "operation": operation}
+
     async def _get_analyze_results(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Get cached analyze results."""
         import re
@@ -778,12 +984,39 @@ class FlutterMCPServer:
 
             async def _run_background():
                 try:
-                    analyze_result_dict = await self._flutter_analyze({**analyze_args, "async": False})
-                    analyze_result = AnalyzeResult(**analyze_result_dict)
+                    # Analyze phase
+                    self.cache.update_pending(run_id, {"phase": "analyze"})
+                    analyze_args_list = ["analyze"]
+                    proc, cidfile = self.runner.start_flutter_command(
+                        analyze_args_list,
+                        with_pub_get=True,
+                        capture_output=True
+                    )
+                    self.running_procs[run_id] = proc
+                    self.cache.update_pending(run_id, {"pid": proc.pid, "cidfile": cidfile})
+                    if cidfile:
+                        container_id = self.runner._read_cidfile(cidfile)
+                        if container_id:
+                            self.cache.update_pending(run_id, {"containerId": container_id})
+
+                    stdout_bytes, stderr_bytes = proc.communicate(timeout=120)
+                    if run_id in self.cancelled_runs:
+                        return
+                    stdout = stdout_bytes.decode() if stdout_bytes else ""
+                    stderr = stderr_bytes.decode() if stderr_bytes else ""
+                    analyze_output = stdout + stderr
+                    analyze_result = self.analyze_parser.parse(analyze_output)
+                    if cidfile:
+                        try:
+                            os.unlink(cidfile)
+                        except OSError:
+                            pass
 
                     test_result = None
                     if not stop_on_analyze_failure or analyze_result.success:
-                        test_args = {**test_options, "async": False}
+                        # Test phase
+                        self.cache.update_pending(run_id, {"phase": "test"})
+                        test_args = {**test_options}
                         if args.get("dockerImage"):
                             test_args["dockerImage"] = args["dockerImage"]
 
@@ -793,8 +1026,44 @@ class FlutterMCPServer:
                                 'test/presentation', 'test/helpers'
                             ]
 
-                        test_result_dict = await self._flutter_test(test_args)
-                        test_result = TestResult(**test_result_dict)
+                        test_args_list = ["test", "--reporter", "compact"]
+                        path = test_args.get("path")
+                        if path:
+                            if isinstance(path, list):
+                                test_args_list.extend(path)
+                            else:
+                                test_args_list.append(path)
+                        if test_args.get("name"):
+                            test_args_list.extend(["--name", test_args["name"]])
+                        if test_args.get("failFast"):
+                            test_args_list.append("--fail-fast")
+                        if test_args.get("coverage"):
+                            test_args_list.append("--coverage")
+
+                        proc, cidfile = self.runner.start_flutter_command(
+                            test_args_list,
+                            with_pub_get=True,
+                            capture_output=True
+                        )
+                        self.running_procs[run_id] = proc
+                        self.cache.update_pending(run_id, {"pid": proc.pid, "cidfile": cidfile})
+                        if cidfile:
+                            container_id = self.runner._read_cidfile(cidfile)
+                            if container_id:
+                                self.cache.update_pending(run_id, {"containerId": container_id})
+
+                        stdout_bytes, stderr_bytes = proc.communicate(timeout=300)
+                        if run_id in self.cancelled_runs:
+                            return
+                        stdout = stdout_bytes.decode() if stdout_bytes else ""
+                        stderr = stderr_bytes.decode() if stderr_bytes else ""
+                        test_output = stdout + stderr
+                        test_result = self.test_parser.parse(test_output)
+                        if cidfile:
+                            try:
+                                os.unlink(cidfile)
+                            except OSError:
+                                pass
 
                     duration = time.time() - start_time
                     success = analyze_result.success and (test_result is None or test_result.success)
@@ -806,6 +1075,20 @@ class FlutterMCPServer:
                         duration=duration
                     )
                     self.cache.store_validation_result(validation_result, params, run_id=run_id)
+                except subprocess.TimeoutExpired:
+                    if run_id in self.running_procs:
+                        self.running_procs[run_id].kill()
+                    validation_result = ValidationResult(
+                        success=False,
+                        analyze=AnalyzeResult(
+                            success=False,
+                            summary=AnalyzeSummary(errors=1),
+                            issues=None
+                        ),
+                        test=None,
+                        duration=time.time() - start_time
+                    )
+                    self.cache.store_validation_result(validation_result, params, "Validation timed out", run_id=run_id)
                 except Exception as e:
                     validation_result = ValidationResult(
                         success=False,
@@ -818,6 +1101,11 @@ class FlutterMCPServer:
                         duration=time.time() - start_time
                     )
                     self.cache.store_validation_result(validation_result, params, str(e), run_id=run_id)
+                finally:
+                    if run_id in self.running_procs:
+                        del self.running_procs[run_id]
+                    if run_id in self.cancelled_runs:
+                        self.cancelled_runs.remove(run_id)
 
             asyncio.create_task(_run_background())
 
@@ -931,12 +1219,20 @@ class FlutterMCPServer:
 
     async def run(self):
         """Run the MCP server."""
-        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-            await self.server.run(
-                read_stream,
-                write_stream,
-                self.server.create_initialization_options()
-            )
+        try:
+            async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+                await self.server.run(
+                    read_stream,
+                    write_stream,
+                    self.server.create_initialization_options()
+                )
+        finally:
+            # Best-effort cleanup of any running jobs on shutdown
+            for run_id in list(self.running_procs.keys()):
+                try:
+                    await self._cancel_run({"runId": run_id})
+                except Exception:
+                    pass
 
 
 async def main():

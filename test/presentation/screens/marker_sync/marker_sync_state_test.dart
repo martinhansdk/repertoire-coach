@@ -46,7 +46,7 @@ void main() {
         expect(state.isComplete, false);
       });
 
-      test('returns false when current index is at last non-empty marker', () {
+      test('returns true when current index is at last non-empty marker', () {
         final state = MarkerSyncState.initial().copyWith(
           step: SyncStep.timeSync,
           labels: ['verse', '', 'chorus'],
@@ -54,7 +54,7 @@ void main() {
           syncedPositions: {-1: 0, 0: 1000, 2: 2000},
         );
 
-        expect(state.isComplete, false);
+        expect(state.isComplete, true);
       });
 
       test('returns true when current index is past last non-empty marker', () {

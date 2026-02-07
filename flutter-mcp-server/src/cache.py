@@ -53,6 +53,18 @@ class ResultCache:
         }
         return run_id
 
+    def update_pending(self, run_id: str, updates: Dict[str, Any]) -> None:
+        """Update metadata for a pending run."""
+        if run_id in self.pending:
+            self.pending[run_id].update(updates)
+
+    def list_running(self) -> List[Dict[str, Any]]:
+        """List all pending runs."""
+        return [
+            {"runId": run_id, **meta}
+            for run_id, meta in self.pending.items()
+        ]
+
     def mark_completed(self, run_id: str) -> None:
         """Remove a run from pending (if present)."""
         if run_id in self.pending:

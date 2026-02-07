@@ -263,6 +263,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
 
                   // Restart sync
                   IconButton(
+                    key: const ValueKey('markerSyncRestartButton'),
                     icon: const Icon(Icons.restart_alt),
                     onPressed: _showRestartConfirmation,
                     tooltip: 'Restart sync (clear all positions)',
@@ -317,6 +318,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
         // Special "..." marker at start
         if (markerIndex == -1) {
           return ListTile(
+            key: const ValueKey('markerSyncMarker_-1'),
             selected: state.currentIndex == -1,
             leading: const Icon(Icons.check, color: Colors.green),
             title: const Text('...'),
@@ -340,6 +342,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
         final isSynced = positionMs != null;
 
         return ListTile(
+          key: ValueKey('markerSyncMarker_$markerIndex'),
           selected: isSelected,
           selectedTileColor: theme.colorScheme.primaryContainer.withOpacity(0.5),
           leading: Icon(
@@ -377,6 +380,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
+              key: const ValueKey('markerSyncMarkHereButton'),
               onPressed: canSync ? _syncNextMarker : null,
               icon: const Icon(Icons.add_location_alt),
               label: const Text('Mark Here (Space)'),
@@ -405,6 +409,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
             children: [
               Expanded(
                 child: OutlinedButton(
+                  key: const ValueKey('markerSyncDiscardButton'),
                   onPressed: _discard,
                   child: const Text('Discard'),
                 ),
@@ -412,6 +417,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
               const SizedBox(width: 16),
               Expanded(
                 child: FilledButton(
+                  key: const ValueKey('markerSyncSaveButton'),
                   onPressed: _save,
                   child: const Text('Save'),
                 ),

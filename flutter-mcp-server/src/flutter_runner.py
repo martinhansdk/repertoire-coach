@@ -60,22 +60,84 @@ class FlutterRunner:
                 "flutter"
             ] + flutter_args
 
+    def _add_cidfile(self, cmd: List[str], cidfile: str) -> List[str]:
+        """Inject --cidfile into a docker run command."""
+        if cmd and cmd[0] == 'docker' and 'run' in cmd:
+            run_idx = cmd.index('run')
+            return cmd[:run_idx + 1] + ['--cidfile', cidfile] + cmd[run_idx + 1:]
+        return cmd
+
     def _kill_container(self, cidfile: str) -> None:
         """Kill and remove a Docker container identified by a cidfile."""
         try:
             with open(cidfile, 'r') as f:
                 container_id = f.read().strip()
             if container_id:
-                subprocess.run(
-                    ['docker', 'kill', container_id],
-                    capture_output=True, timeout=10
-                )
-                subprocess.run(
-                    ['docker', 'rm', container_id],
-                    capture_output=True, timeout=10
-                )
+                self.kill_container_id(container_id)
         except (FileNotFoundError, IOError, subprocess.TimeoutExpired):
             pass
+
+    def kill_container_id(self, container_id: str) -> None:
+        """Kill and remove a Docker container by ID."""
+        if not container_id:
+            return
+        try:
+            subprocess.run(
+                ['docker', 'kill', container_id],
+                capture_output=True, timeout=10
+            )
+            subprocess.run(
+                ['docker', 'rm', container_id],
+                capture_output=True, timeout=10
+            )
+        except subprocess.TimeoutExpired:
+            pass
+
+    def _read_cidfile(self, cidfile: str, timeout: float = 5.0) -> Optional[str]:
+        """Wait briefly for cidfile to appear and return container ID."""
+        start = time.time()
+        while time.time() - start < timeout:
+            if os.path.exists(cidfile):
+                try:
+                    with open(cidfile, 'r') as f:
+                        container_id = f.read().strip()
+                        return container_id or None
+                except IOError:
+                    return None
+            time.sleep(0.05)
+        return None
+
+    def start_flutter_command(
+        self,
+        args: List[str],
+        with_pub_get: bool = False,
+        capture_output: bool = True
+    ) -> Tuple[subprocess.Popen, Optional[str]]:
+        """Start a Flutter command and return the process and cidfile path."""
+        if not self._check_docker_available():
+            raise RuntimeError(
+                "Docker is not available but is REQUIRED. "
+                "Flutter is NOT installed on this host. "
+                "Please install Docker to use this MCP server."
+            )
+
+        cmd = self._build_docker_command(args, with_pub_get=with_pub_get)
+        cidfile: Optional[str] = None
+        if cmd and cmd[0] == 'docker' and 'run' in cmd:
+            cidfile = tempfile.mktemp(prefix='flutter_mcp_')
+            cmd = self._add_cidfile(cmd, cidfile)
+
+        if capture_output:
+            proc = subprocess.Popen(
+                cmd,
+                cwd=self.project_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+        else:
+            proc = subprocess.Popen(cmd, cwd=self.project_root)
+
+        return proc, cidfile
 
     def _run_command(
         self,

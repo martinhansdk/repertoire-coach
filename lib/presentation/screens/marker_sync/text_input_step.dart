@@ -102,13 +102,20 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
               ),
               const Spacer(),
               // Show example button
-              TextButton.icon(
+              TextButton(
+                key: const ValueKey('markerSyncLoadExampleButton'),
                 onPressed: () {
                   _textController.text = 'intro\n\nverse 1\nchorus\n\nverse 2\nchorus\n\nbridge\n\nchorus\noutro';
                   setState(() {});
                 },
-                icon: const Icon(Icons.auto_fix_high),
-                label: const Text('Load Example'),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_fix_high),
+                    SizedBox(width: 8),
+                    Text('Load Example'),
+                  ],
+                ),
               ),
             ],
           ),
@@ -116,10 +123,17 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
           const SizedBox(height: 16),
 
           // Next button
-          FilledButton.icon(
+          FilledButton(
+            key: const ValueKey('markerSyncNextButton'),
             onPressed: hasNonEmptyLines ? _onNextPressed : null,
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('Next: Sync to Audio'),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_forward),
+                SizedBox(width: 8),
+                Text('Next: Sync to Audio'),
+              ],
+            ),
           ),
 
           // Warning if no non-empty lines

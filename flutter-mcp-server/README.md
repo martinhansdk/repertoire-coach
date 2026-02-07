@@ -368,6 +368,17 @@ Check status of an async run.
 }
 ```
 
+### 12. `list_running`
+
+List currently running async operations.
+
+### 13. `cancel_run`
+
+Cancel a running async operation.
+
+**Parameters:**
+- `runId` (string, required): Run ID
+
 ## Advanced Filtering Use Cases
 
 The cache query tools (`get_analyze_results` and `get_test_results`) support powerful filtering to help you inspect logs efficiently without re-running slow commands or consuming excessive tokens.

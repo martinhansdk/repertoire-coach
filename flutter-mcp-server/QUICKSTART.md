@@ -145,6 +145,14 @@ Claude: I'll use the flutter_test tool with async enabled and then poll status.
 [Claude uses flutter_test MCP tool]
 ```
 
+**Example 1c: Cancel a running job**
+```
+You: Cancel that test run
+
+Claude: I'll use cancel_run with the run ID.
+[Claude uses cancel_run MCP tool]
+```
+
 **Example 2: Check for errors**
 ```
 You: Run Flutter analyze on the codebase

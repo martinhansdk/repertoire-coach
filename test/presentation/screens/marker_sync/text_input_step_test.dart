@@ -63,20 +63,22 @@ void main() {
       testWidgets('displays next button', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        expect(find.widgetWithText(FilledButton, 'Next: Sync to Audio'), findsOneWidget);
+        expect(find.byKey(const ValueKey('markerSyncNextButton')),
+            findsOneWidget);
       });
 
       testWidgets('displays line counter', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
         expect(find.byIcon(Icons.list_alt), findsOneWidget);
-        expect(find.textContaining('lines'), findsOneWidget);
+        expect(find.text('1 lines (0 non-empty)'), findsOneWidget);
       });
 
       testWidgets('displays load example button', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        expect(find.widgetWithText(TextButton, 'Load Example'), findsOneWidget);
+        expect(find.byKey(const ValueKey('markerSyncLoadExampleButton')),
+            findsOneWidget);
       });
 
       testWidgets('text field is autofocused', (tester) async {
@@ -144,7 +146,7 @@ void main() {
         await tester.pumpWidget(createWidgetUnderTest());
 
         final button = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Next: Sync to Audio'),
+          find.byKey(const ValueKey('markerSyncNextButton')),
         );
         expect(button.onPressed, isNull);
       });
@@ -156,7 +158,7 @@ void main() {
         await tester.pump();
 
         final button = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Next: Sync to Audio'),
+          find.byKey(const ValueKey('markerSyncNextButton')),
         );
         expect(button.onPressed, isNull);
       });
@@ -168,7 +170,7 @@ void main() {
         await tester.pump();
 
         final button = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Next: Sync to Audio'),
+          find.byKey(const ValueKey('markerSyncNextButton')),
         );
         expect(button.onPressed, isNull);
       });
@@ -180,7 +182,7 @@ void main() {
         await tester.pump();
 
         final button = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Next: Sync to Audio'),
+          find.byKey(const ValueKey('markerSyncNextButton')),
         );
         expect(button.onPressed, isNotNull);
       });
@@ -192,7 +194,7 @@ void main() {
         await tester.pump();
 
         final button = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Next: Sync to Audio'),
+          find.byKey(const ValueKey('markerSyncNextButton')),
         );
         expect(button.onPressed, isNotNull);
       });
@@ -240,7 +242,7 @@ void main() {
       testWidgets('loads example text when tapped', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        await tester.tap(find.widgetWithText(TextButton, 'Load Example'));
+        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
         await tester.pump();
 
         final textField = tester.widget<TextField>(find.byType(TextField));
@@ -257,7 +259,7 @@ void main() {
       testWidgets('example text includes empty lines', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        await tester.tap(find.widgetWithText(TextButton, 'Load Example'));
+        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
         await tester.pump();
 
         final textField = tester.widget<TextField>(find.byType(TextField));
@@ -271,7 +273,7 @@ void main() {
       testWidgets('loads example and updates line counter', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        await tester.tap(find.widgetWithText(TextButton, 'Load Example'));
+        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
         await tester.pump();
 
         expect(find.textContaining('non-empty)'), findsOneWidget);
@@ -280,11 +282,11 @@ void main() {
       testWidgets('loads example and enables next button', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        await tester.tap(find.widgetWithText(TextButton, 'Load Example'));
+        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
         await tester.pump();
 
         final button = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Next: Sync to Audio'),
+          find.byKey(const ValueKey('markerSyncNextButton')),
         );
         expect(button.onPressed, isNotNull);
       });
@@ -292,9 +294,9 @@ void main() {
       testWidgets('can load example multiple times', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        await tester.tap(find.widgetWithText(TextButton, 'Load Example'));
+        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
         await tester.pump();
-        await tester.tap(find.widgetWithText(TextButton, 'Load Example'));
+        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
         await tester.pump();
 
         // Should still have example text
@@ -308,7 +310,7 @@ void main() {
         await tester.enterText(find.byType(TextField), 'my custom text');
         await tester.pump();
 
-        await tester.tap(find.widgetWithText(TextButton, 'Load Example'));
+        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
         await tester.pump();
 
         final textField = tester.widget<TextField>(find.byType(TextField));
