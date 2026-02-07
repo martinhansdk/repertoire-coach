@@ -75,6 +75,23 @@ Add to your Claude Code MCP configuration (`~/.config/claude/mcp.json` or simila
 
 **Note:** Adjust the last argument to point to your Flutter project root and the `cwd` to point to the flutter-mcp-server directory.
 
+### Configuration with Codex CLI
+
+If you're using Codex CLI, add the MCP server directly:
+
+```bash
+codex mcp add flutter -- \
+  uv run --directory /home/martin/code/repertoire-coach/flutter-mcp-server \
+  flutter-mcp-server /home/martin/code/repertoire-coach
+```
+
+Verify:
+```bash
+codex mcp list
+```
+
+Restart Codex after adding the server.
+
 ## Available Tools
 
 ### 1. `flutter_test`
@@ -560,4 +577,3 @@ The cache has a 1-hour TTL. To clear expired entries, restart the server.
 This was fixed in recent versions. Ensure you have the latest code where:
 - Dependencies are installed in the same Docker container as the command
 - Test parser extracts all status counts from compact reporter output
-

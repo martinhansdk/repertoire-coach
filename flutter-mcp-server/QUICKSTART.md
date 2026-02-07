@@ -65,7 +65,24 @@ uv sync
 uv run python -c "import mcp; print('MCP installed successfully')"
 ```
 
-### 2. Find Your Claude Code MCP Config File
+### 2. Configure Codex CLI (Recommended)
+
+If you're using Codex CLI, add the MCP server directly (no config file editing):
+
+```bash
+codex mcp add flutter -- \
+  uv run --directory /home/martin/code/repertoire-coach/flutter-mcp-server \
+  flutter-mcp-server /home/martin/code/repertoire-coach
+```
+
+Verify:
+```bash
+codex mcp list
+```
+
+Restart Codex after adding the server.
+
+### 3. Find Your Claude Code MCP Config File
 
 Typical locations:
 - **Linux:** `~/.config/claude/mcp.json` or `~/.config/Code/User/globalStorage/anthropic.claude-code/mcp.json`
@@ -74,7 +91,7 @@ Typical locations:
 
 If unsure, check Claude Code settings for "MCP Configuration Path".
 
-### 3. Add Flutter MCP Server to Config
+### 4. Add Flutter MCP Server to Config
 
 Edit your `mcp.json` file and add:
 
@@ -103,11 +120,11 @@ Edit your `mcp.json` file and add:
 
 If you have other MCP servers configured, just add the `"flutter"` entry to the existing `mcpServers` object.
 
-### 4. Restart Claude Code
+### 5. Restart Claude Code
 
 Completely close and reopen Claude Code to load the new MCP server.
 
-### 5. Test It!
+### 6. Test It!
 
 Open a conversation in Claude Code and try:
 
