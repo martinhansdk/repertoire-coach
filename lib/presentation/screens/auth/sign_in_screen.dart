@@ -4,6 +4,7 @@ import 'package:repertoire_coach/core/services/error_reporter.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/screens/auth/forgot_password_screen.dart';
 import 'package:repertoire_coach/presentation/screens/auth/sign_up_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Screen for user sign in.
 class SignInScreen extends ConsumerStatefulWidget {
@@ -45,14 +46,28 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       ErrorReporter.report(error, stackTrace: stackTrace, screen: 'sign_in');
       if (mounted) {
         setState(() => _isLoading = false);
+        final message = _userFriendlySignInError(error);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sign in failed: ${error.toString()}'),
+            content: Text(message),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+  }
+
+  String _userFriendlySignInError(Object error) {
+    if (error is AuthException) {
+      final normalized = error.message.toLowerCase();
+      if (normalized.contains('email not confirmed') ||
+          (normalized.contains('not confirmed') &&
+              normalized.contains('email'))) {
+        return 'Please confirm your email address. Check for an email from "Supabase Auth", then sign in.';
+      }
+      return error.message;
+    }
+    return 'Sign in failed: ${error.toString()}';
   }
 
   void _navigateToSignUp() {

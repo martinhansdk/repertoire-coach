@@ -49,13 +49,26 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
       // Sign up successful
       if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created successfully! Please sign in.'),
-            backgroundColor: Colors.green,
+        final email = _emailController.text.trim();
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Confirm Your Email'),
+            content: Text(
+              'We sent a confirmation email from "Supabase Auth" to $email. '
+              'Please confirm your email address, then sign in.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
           ),
         );
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       }
     } catch (error, stackTrace) {
       ErrorReporter.report(error, stackTrace: stackTrace, screen: 'sign_up');
