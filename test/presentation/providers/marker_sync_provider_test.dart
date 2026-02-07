@@ -83,7 +83,7 @@ void main() {
       test('should sync next non-empty marker and advance highlight', () {
         notifier.syncNextMarker(1000);
 
-        expect(notifier.state.currentIndex, 0);
+        expect(notifier.state.currentIndex, 1);
         expect(notifier.state.syncedPositions[0], 1000);
         expect(notifier.state.isDirty, true);
       });
@@ -98,8 +98,10 @@ void main() {
 
         notifier.syncNextMarker(1000);
 
-        expect(notifier.state.currentIndex, 0); // intro
+        expect(notifier.state.currentIndex, 3); // verse (skipped 2 empty lines)
         expect(notifier.state.syncedPositions[0], 1000);
+        expect(notifier.state.syncedPositions[1], 1000);
+        expect(notifier.state.syncedPositions[2], 1000);
 
         notifier.syncNextMarker(2000);
 
@@ -114,7 +116,7 @@ void main() {
         // Try to sync at earlier position - should be rejected
         notifier.syncNextMarker(500);
 
-        expect(notifier.state.currentIndex, 1); // Still at second marker
+        expect(notifier.state.currentIndex, 2); // Still at third marker
         expect(notifier.state.syncedPositions[2], null); // Third not synced
       });
 
@@ -123,7 +125,7 @@ void main() {
 
         notifier.syncNextMarker(1000); // Same position
 
-        expect(notifier.state.currentIndex, 1);
+        expect(notifier.state.currentIndex, 2);
         expect(notifier.state.syncedPositions[1], 1000);
       });
 

@@ -81,6 +81,21 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
   void syncNextMarker(int positionMs) {
     print('[MarkerSync] syncNextMarker called: position=$positionMs, currentIndex=${state.currentIndex}');
 
+    // If we're already at the last non-empty marker and it's synced, do nothing.
+    int lastNonEmptyIndex = -1;
+    for (int i = state.labels.length - 1; i >= 0; i--) {
+      if (state.labels[i].isNotEmpty) {
+        lastNonEmptyIndex = i;
+        break;
+      }
+    }
+    if (lastNonEmptyIndex != -1 &&
+        state.currentIndex == lastNonEmptyIndex &&
+        state.syncedPositions.containsKey(lastNonEmptyIndex)) {
+      print('[MarkerSync] All markers already synced');
+      return;
+    }
+
     // Determine which marker to sync.
     int syncIndex = state.currentIndex == -1 ? 0 : state.currentIndex;
     if (syncIndex < 0) {
@@ -105,22 +120,23 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
     print('[MarkerSync] Syncing marker at index $syncIndex ("${state.labels[syncIndex]}") to position $positionMs ms');
 
-    // Apply position to next marker and any skipped empty lines
-    final newPositions = {...state.syncedPositions};
-    final startIndex = state.currentIndex == -1 ? 0 : state.currentIndex;
-    for (int i = startIndex; i <= syncIndex; i++) {
-      newPositions[i] = positionMs;
-      if (state.labels[i].isEmpty) {
-        print('[MarkerSync] Syncing skipped empty line at index $i to position $positionMs ms');
-      }
-    }
-
     // Advance to the next non-empty marker after the one just synced.
     int nextIndex = syncIndex + 1;
     while (nextIndex < state.labels.length && state.labels[nextIndex].isEmpty) {
       nextIndex++;
     }
     final newCurrentIndex = nextIndex < state.labels.length ? nextIndex : syncIndex;
+
+    // Apply position to the synced marker and any empty lines we skipped over.
+    final newPositions = {...state.syncedPositions};
+    final startIndex = state.currentIndex == -1 ? 0 : state.currentIndex;
+    final endIndex = newCurrentIndex == syncIndex ? syncIndex : newCurrentIndex - 1;
+    for (int i = startIndex; i <= endIndex; i++) {
+      newPositions[i] = positionMs;
+      if (state.labels[i].isEmpty) {
+        print('[MarkerSync] Syncing skipped empty line at index $i to position $positionMs ms');
+      }
+    }
 
     state = state.copyWith(
       syncedPositions: newPositions,

@@ -126,7 +126,7 @@ void main() {
         await tester.tap(find.text('Create Marker Set'));
         await tester.pumpAndSettle();
 
-        expect(find.text('New Marker Set'), findsOneWidget);
+        expect(find.text('Sync Markers'), findsOneWidget);
       });
     });
 
@@ -592,7 +592,7 @@ void main() {
         await tester.tap(find.byType(FloatingActionButton));
         await tester.pumpAndSettle();
 
-        expect(find.text('New Marker Set'), findsOneWidget);
+        expect(find.text('Sync Markers'), findsOneWidget);
       });
     });
 
