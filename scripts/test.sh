@@ -9,6 +9,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Create logs directory if it doesn't exist
 mkdir -p "${PROJECT_ROOT}/logs"
+mkdir -p "${PROJECT_ROOT}/.pub-cache"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)

@@ -23,8 +23,12 @@ fi
 echo "Building Android APK with Supabase credentials..."
 echo "Supabase URL: ${SUPABASE_URL:0:30}..."
 
+mkdir -p "${PROJECT_ROOT}/.pub-cache"
+
 docker run --rm \
+  -e PUB_CACHE=/workspace/.pub-cache \
   -v "${PROJECT_ROOT}":/workspace \
+  -v "${PROJECT_ROOT}/.pub-cache":/workspace/.pub-cache \
   -w /workspace \
   ghcr.io/cirruslabs/flutter:stable \
   flutter build apk --debug \

@@ -35,9 +35,19 @@ RUN mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools && \
     rm commandlinetools-linux-9477386_latest.zip && \
     mv cmdline-tools latest
 
-# Accept Android licenses and install build tools
+# Accept Android licenses and install build tools/SDK/NDK needed by the project
+# Keep these in sync with:
+# - android/app/build.gradle (compileSdk/targetSdk, Flutter ndkVersion)
+# - android/gradle.properties (compile/target SDK overrides)
 RUN yes | sdkmanager --licenses && \
-    sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+    sdkmanager \
+      "platform-tools" \
+      "platforms;android-34" \
+      "platforms;android-35" \
+      "platforms;android-36" \
+      "build-tools;35.0.0" \
+      "cmake;3.22.1" \
+      "ndk;28.2.13676358"
 
 # Install Flutter (latest stable)
 ENV FLUTTER_VERSION=3.38.3

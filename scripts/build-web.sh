@@ -22,6 +22,7 @@ fi
 
 # Create logs directory if it doesn't exist
 mkdir -p "${PROJECT_ROOT}/logs"
+mkdir -p "${PROJECT_ROOT}/.pub-cache"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
@@ -34,7 +35,9 @@ echo "Supabase URL: $SUPABASE_URL"
 # Use cirruslabs/flutter image (same as run-web.sh) for consistency
 # Clean up artifacts inside Docker to avoid permission issues
 docker run --rm \
+  -e PUB_CACHE=/app/.pub-cache \
   -v "${PROJECT_ROOT}":/app \
+  -v "${PROJECT_ROOT}/.pub-cache":/app/.pub-cache \
   -w /app \
   ghcr.io/cirruslabs/flutter:stable \
   sh -c "

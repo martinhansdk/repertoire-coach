@@ -31,13 +31,18 @@ class FlutterRunner:
 
     def _build_docker_command(self, flutter_args: List[str], with_pub_get: bool = False) -> List[str]:
         """Build Docker command to run Flutter."""
+        pub_cache_host = self.project_root / ".pub-cache"
+        pub_cache_host.mkdir(parents=True, exist_ok=True)
+        pub_cache_mount = f"{pub_cache_host.absolute()}:/app/.pub-cache"
         if with_pub_get:
             # Run pub get first, then the command, all in the same container
             flutter_cmd = " ".join(["flutter"] + flutter_args)
             return [
                 "docker", "run",
                 "--rm",
+                "-e", "PUB_CACHE=/app/.pub-cache",
                 "-v", f"{self.project_root.absolute()}:/app",
+                "-v", pub_cache_mount,
                 "-w", "/app",
                 self.docker_image,
                 "sh", "-c",
@@ -47,7 +52,9 @@ class FlutterRunner:
             return [
                 "docker", "run",
                 "--rm",
+                "-e", "PUB_CACHE=/app/.pub-cache",
                 "-v", f"{self.project_root.absolute()}:/app",
+                "-v", pub_cache_mount,
                 "-w", "/app",
                 self.docker_image,
                 "flutter"

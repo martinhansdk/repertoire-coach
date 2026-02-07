@@ -15,6 +15,7 @@ fi
 
 # Create logs directory
 mkdir -p "${PROJECT_ROOT}/logs"
+mkdir -p "${PROJECT_ROOT}/.pub-cache"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
@@ -26,14 +27,18 @@ if [ "$WATCH_MODE" = true ]; then
   echo "Starting in watch mode (Ctrl+C to stop)..."
   # Watch mode - show output in terminal
   docker run --rm \
+    -e PUB_CACHE=/app/.pub-cache \
     -v "${PROJECT_ROOT}":/app \
+    -v "${PROJECT_ROOT}/.pub-cache":/app/.pub-cache \
     -w /app \
     ghcr.io/cirruslabs/flutter:stable \
     sh -c 'flutter pub get > /dev/null 2>&1 && flutter pub run build_runner watch --delete-conflicting-outputs'
 else
   # Run build_runner in Docker
   docker run --rm \
+    -e PUB_CACHE=/app/.pub-cache \
     -v "${PROJECT_ROOT}":/app \
+    -v "${PROJECT_ROOT}/.pub-cache":/app/.pub-cache \
     -w /app \
     ghcr.io/cirruslabs/flutter:stable \
     sh -c 'flutter pub get > /dev/null 2>&1 && flutter pub run build_runner build --delete-conflicting-outputs' > "$LOGFILE" 2>&1

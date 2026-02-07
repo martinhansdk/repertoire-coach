@@ -28,6 +28,7 @@ fi
 
 # Create logs directory if it doesn't exist
 mkdir -p "${PROJECT_ROOT}/logs"
+mkdir -p "${PROJECT_ROOT}/.pub-cache" "${PROJECT_ROOT}/.gradle"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
@@ -49,18 +50,13 @@ case $PLATFORM in
     ;;
 esac
 
-# Run inside docker and capture all output to log file
-# Use root user in CI to avoid permission issues with mounted volumes
-if [ -n "$CI" ]; then
-  DOCKER_USER="--user root"
-  DOCKER_ENV="-e CI=true"
-else
-  DOCKER_USER=""
-  DOCKER_ENV=""
-fi
+DOCKER_USER="--user root"
+DOCKER_ENV="-e CI=true -e PUB_CACHE=/app/.pub-cache -e GRADLE_USER_HOME=/app/.gradle"
 
 docker run --rm $DOCKER_USER $DOCKER_ENV \
   -v "${PROJECT_ROOT}:/app" \
+  -v "${PROJECT_ROOT}/.pub-cache:/app/.pub-cache" \
+  -v "${PROJECT_ROOT}/.gradle:/app/.gradle" \
   repertoire-coach-builder \
   sh -c "
     if [ -n \"\$CI\" ]; then
@@ -68,7 +64,7 @@ docker run --rm $DOCKER_USER $DOCKER_ENV \
     fi
     flutter pub get
     $BUILD_CMD
-  " > "$LOGFILE" 2>&1
+  " 2>&1 | ts > "$LOGFILE" 
 
 EXIT_CODE=$?
 

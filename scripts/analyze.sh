@@ -9,6 +9,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Create logs directory if it doesn't exist
 mkdir -p "${PROJECT_ROOT}/logs"
+mkdir -p "${PROJECT_ROOT}/.pub-cache"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
@@ -20,7 +21,9 @@ echo "Running flutter analyze..."
 # Use cirruslabs/flutter image for consistent environment
 # Run as current user to avoid permission issues with .dart_tool
 docker run --rm \
+  -e PUB_CACHE=/app/.pub-cache \
   -v "${PROJECT_ROOT}":/app \
+  -v "${PROJECT_ROOT}/.pub-cache":/app/.pub-cache \
   -w /app \
   ghcr.io/cirruslabs/flutter:stable \
   sh -c '

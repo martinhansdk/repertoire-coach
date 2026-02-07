@@ -18,6 +18,7 @@ echo "Generating test coverage..."
 
 # Create logs directory if it doesn't exist
 mkdir -p "$PROJECT_DIR/logs"
+mkdir -p "$PROJECT_DIR/.pub-cache"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
@@ -25,7 +26,9 @@ LOG_FILE="$PROJECT_DIR/logs/coverage-$TIMESTAMP.log"
 
 # Run tests with coverage (pub get is run automatically if needed)
 docker run --rm \
+  -e PUB_CACHE=/workspace/.pub-cache \
   -v "$PROJECT_DIR":/workspace \
+  -v "$PROJECT_DIR/.pub-cache":/workspace/.pub-cache \
   -w /workspace \
   ghcr.io/cirruslabs/flutter:stable \
   sh -c "flutter pub get > /dev/null 2>&1 && flutter test --coverage" 2>&1 | tee "$LOG_FILE"

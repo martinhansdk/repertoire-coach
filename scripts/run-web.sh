@@ -9,6 +9,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Create logs directory if it doesn't exist
 mkdir -p "${PROJECT_ROOT}/logs"
+mkdir -p "${PROJECT_ROOT}/.pub-cache"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
@@ -36,7 +37,9 @@ echo ""
 # Run Flutter web server and log output
 # First get dependencies, then run the web server
 docker run --rm \
+  -e PUB_CACHE=/app/.pub-cache \
   -v "${PROJECT_ROOT}":/app \
+  -v "${PROJECT_ROOT}/.pub-cache":/app/.pub-cache \
   -w /app \
   -p 8080:8080 \
   ghcr.io/cirruslabs/flutter:stable \
