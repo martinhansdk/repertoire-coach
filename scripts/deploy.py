@@ -219,7 +219,7 @@ class BuildFinder:
 
         return builds
 
-    def find_github_builds(self, platform_filter: Optional[Platform] = None) -> List[Build]:
+    def find_github_builds(self, allow_failed_builds: bool, platform_filter: Optional[Platform] = None) -> List[Build]:
         """Find builds from GitHub Actions"""
         builds = []
 
@@ -238,7 +238,7 @@ class BuildFinder:
 
             for run in runs:
                 # Only include successful runs
-                if run.get("conclusion") != "success":
+                if not allow_failed_builds and run.get("conclusion") != "success":
                     continue
 
                 run_id = str(run["databaseId"])
@@ -712,6 +712,13 @@ Examples:
     )
 
     parser.add_argument(
+        "--allow-failed",
+        action="store_true",
+        default=False,
+        help="Accept failed jobs %(default)s"
+    )
+
+    parser.add_argument(
         "--run-id",
         "--run",
         type=str,
@@ -769,7 +776,7 @@ Examples:
             builds = finder.find_local_ios_builds()
     elif args.github or args.run_id:
         # Only GitHub builds
-        builds = finder.find_github_builds(platform_choice)
+        builds = finder.find_github_builds(True, platform_choice)
 
         # Filter by run ID or run number if specified
         if args.run_id:
@@ -790,7 +797,7 @@ Examples:
 
         # Only try GitHub if gh is available
         if DependencyChecker.check_command("gh"):
-            builds.extend(finder.find_github_builds(platform_choice))
+            builds.extend(finder.find_github_builds(args.allow_failed, platform_choice))
 
     # Sort builds by date (newest first)
     builds.sort(key=lambda b: b.date or datetime.min, reverse=True)
