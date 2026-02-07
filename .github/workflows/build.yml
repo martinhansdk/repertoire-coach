@@ -73,6 +73,10 @@ jobs:
         docker pull ${{ needs.build-docker.outputs.image-tag }}
         docker tag ${{ needs.build-docker.outputs.image-tag }} repertoire-coach-builder
 
+    - name: Prepare cache directories
+      run: |
+        mkdir -p ~/.gradle/caches ~/.gradle/wrapper ~/.pub-cache
+
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -111,6 +115,8 @@ jobs:
         docker run --rm \
           -u $(id -u):$(id -g) \
           -e HOME=/workspace/.cache \
+          -e GRADLE_USER_HOME=/workspace/.cache/.gradle \
+          -e PUB_CACHE=/workspace/.cache/.pub-cache \
           -e ANDROID_USER_HOME=/workspace/.cache \
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/workspace/.cache/.gradle \
@@ -166,6 +172,10 @@ jobs:
         docker pull ${{ needs.build-docker.outputs.image-tag }}
         docker tag ${{ needs.build-docker.outputs.image-tag }} repertoire-coach-builder
 
+    - name: Prepare cache directories
+      run: |
+        mkdir -p ~/.gradle/caches ~/.gradle/wrapper ~/.pub-cache
+
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -204,6 +214,8 @@ jobs:
         docker run --rm \
           -u $(id -u):$(id -g) \
           -e HOME=/workspace/.cache \
+          -e GRADLE_USER_HOME=/workspace/.cache/.gradle \
+          -e PUB_CACHE=/workspace/.cache/.pub-cache \
           -e ANDROID_USER_HOME=/workspace/.cache \
           -v $(pwd):/workspace \
           -v $HOME/.gradle:/workspace/.cache/.gradle \

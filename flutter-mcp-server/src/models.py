@@ -106,6 +106,8 @@ class ValidationResult:
     analyze: AnalyzeResult
     test: Optional[TestResult] = None
     duration: float = 0.0
+    runId: str = ""
+    timestamp: datetime = field(default_factory=datetime.now)
 
 
 @dataclass

@@ -31,6 +31,7 @@ uv sync
 This MCP server gives Claude Code superpowers for Flutter development:
 
 ✅ **Run Flutter tests** - Get structured results instead of 45K characters of output
+✅ **Async runs** - Start long runs (tests/analyze/build/validation) and poll for results
 ✅ **Run Flutter analyze** - Structured error/warning data
 ✅ **Run Flutter build** - Build status and artifact info
 ✅ **Cache results** - Query previous runs without re-running
@@ -133,6 +134,14 @@ Open a conversation in Claude Code and try:
 You: Run the Flutter tests in the widgets directory
 
 Claude: I'll use the flutter_test tool to run tests in the widgets directory.
+[Claude uses flutter_test MCP tool]
+```
+
+**Example 1b: Start async tests**
+```
+You: Start a full test run asynchronously
+
+Claude: I'll use the flutter_test tool with async enabled and then poll status.
 [Claude uses flutter_test MCP tool]
 ```
 

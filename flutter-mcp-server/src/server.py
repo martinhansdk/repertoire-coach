@@ -16,7 +16,7 @@ from .cache import ResultCache
 from .parsers import TestParser, AnalyzeParser, BuildParser
 from .models import (
     TestResult, AnalyzeResult, BuildResult, ValidationResult,
-    TestSummary, AnalyzeSummary
+    TestSummary, AnalyzeSummary, BuildError
 )
 
 
@@ -60,7 +60,8 @@ class FlutterMCPServer:
                             "coverage": {"type": "boolean", "description": "Generate coverage report"},
                             "verbose": {"type": "boolean", "description": "Include full output in cache"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
-                            "timeout": {"type": "number", "description": "Timeout in seconds"}
+                            "timeout": {"type": "number", "description": "Timeout in seconds"},
+                            "async": {"type": "boolean", "description": "Run asynchronously (default: true)"}
                         }
                     }
                 ),
@@ -74,7 +75,8 @@ class FlutterMCPServer:
                             "severity": {"type": "string", "enum": ["info", "warning", "error"], "description": "Minimum severity"},
                             "maxIssues": {"type": "number", "description": "Max issues to return (default: 50, 0 for all)"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
-                            "timeout": {"type": "number", "description": "Timeout in seconds"}
+                            "timeout": {"type": "number", "description": "Timeout in seconds"},
+                            "async": {"type": "boolean", "description": "Run asynchronously (default: true)"}
                         }
                     }
                 ),
@@ -90,7 +92,8 @@ class FlutterMCPServer:
                             "buildNumber": {"type": "string", "description": "Build number"},
                             "buildName": {"type": "string", "description": "Build name"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
-                            "timeout": {"type": "number", "description": "Timeout in seconds"}
+                            "timeout": {"type": "number", "description": "Timeout in seconds"},
+                            "async": {"type": "boolean", "description": "Run asynchronously (default: true)"}
                         },
                         "required": ["target"]
                     }
@@ -108,6 +111,37 @@ class FlutterMCPServer:
                             "excludePattern": {"type": "string", "description": "Regex pattern to exclude from messages"},
                             "maxFailures": {"type": "number", "description": "Max failures to return (default: 50, 0 for all)"}
                         }
+                    }
+                ),
+                Tool(
+                    name="get_build_results",
+                    description="Query cached build results",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "runId": {"type": "string", "description": "Specific run ID"}
+                        }
+                    }
+                ),
+                Tool(
+                    name="get_validation_results",
+                    description="Query cached validation results",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "runId": {"type": "string", "description": "Specific run ID"}
+                        }
+                    }
+                ),
+                Tool(
+                    name="get_run_status",
+                    description="Get status for an async run",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "runId": {"type": "string", "description": "Run ID"}
+                        },
+                        "required": ["runId"]
                     }
                 ),
                 Tool(
@@ -141,7 +175,8 @@ class FlutterMCPServer:
                                     "coverage": {"type": "boolean"}
                                 }
                             },
-                            "dockerImage": {"type": "string", "description": "Docker image to use"}
+                            "dockerImage": {"type": "string", "description": "Docker image to use"},
+                            "async": {"type": "boolean", "description": "Run asynchronously (default: true)"}
                         }
                     }
                 ),
@@ -190,8 +225,14 @@ class FlutterMCPServer:
                 result = await self._flutter_build(args)
             elif name == "get_test_results":
                 result = await self._get_test_results(args)
+            elif name == "get_build_results":
+                result = await self._get_build_results(args)
+            elif name == "get_validation_results":
+                result = await self._get_validation_results(args)
             elif name == "get_analyze_results":
                 result = await self._get_analyze_results(args)
+            elif name == "get_run_status":
+                result = self.cache.get_status(args.get("runId", ""))
             elif name == "run_validation":
                 result = await self._run_validation(args)
             elif name == "list_test_runs":
@@ -305,12 +346,57 @@ class FlutterMCPServer:
         coverage = args.get("coverage", False)
         verbose = args.get("verbose", False)
         timeout = args.get("timeout", 300)
+        async_mode = args.get("async", True)
 
         # Update Docker image if specified
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
 
         # Run test (pub get is automatically run first in the same container)
+        # Default to the same directories as scripts/test.sh (exclude integration tests)
+        if path is None:
+            path = [
+                "test/core", "test/data", "test/domain",
+                "test/presentation", "test/helpers"
+            ]
+
+        params = {k: v for k, v in args.items() if v is not None}
+
+        if async_mode:
+            run_id = self.cache.reserve_run_id("test", params)
+
+            async def _run_background():
+                try:
+                    returncode, stdout, stderr = await asyncio.to_thread(
+                        self.runner.test,
+                        path=path,
+                        name=name,
+                        fail_fast=fail_fast,
+                        coverage=coverage,
+                        reporter="compact",
+                        timeout=timeout
+                    )
+                    output = stdout + stderr
+                    result = self.test_parser.parse(output)
+                    result.summary.duration = time.time() - start_time
+                    self.cache.store_test_result(result, params, output, run_id=run_id)
+                except Exception as e:
+                    result = TestResult(
+                        success=False,
+                        summary=TestSummary(total=0, failed=1),
+                        warnings=[f"Async test run failed: {e}"],
+                        runId=run_id
+                    )
+                    self.cache.store_test_result(result, params, str(e), run_id=run_id)
+
+            asyncio.create_task(_run_background())
+
+            return {
+                "status": "running",
+                "runId": run_id,
+                "message": "Test run started in background. Poll get_run_status or get_test_results."
+            }
+
         returncode, stdout, stderr = self.runner.test(
             path=path,
             name=name,
@@ -320,16 +406,11 @@ class FlutterMCPServer:
             timeout=timeout
         )
 
-        # Parse output
         output = stdout + stderr
         result = self.test_parser.parse(output)
         result.summary.duration = time.time() - start_time
+        self.cache.store_test_result(result, params, output)
 
-        # Store in cache (always store raw log for debugging)
-        params = {k: v for k, v in args.items() if v is not None}
-        run_id = self.cache.store_test_result(result, params, output)
-
-        # Convert to dict for JSON serialization
         return asdict(result)
 
     async def _flutter_analyze(self, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -339,18 +420,50 @@ class FlutterMCPServer:
         timeout = args.get("timeout", 120)
         min_severity = args.get("severity", "info")
         max_issues = args.get("maxIssues", 50)
+        async_mode = args.get("async", True)
 
         # Update Docker image if specified
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
 
         # Run analyze (pub get is automatically run first in the same container)
+        params = {k: v for k, v in args.items() if v is not None}
+
+        if async_mode:
+            run_id = self.cache.reserve_run_id("analyze", params)
+
+            async def _run_background():
+                try:
+                    returncode, stdout, stderr = await asyncio.to_thread(
+                        self.runner.analyze,
+                        path=path,
+                        timeout=timeout
+                    )
+                    output = stdout + stderr
+                    result = self.analyze_parser.parse(output)
+                    self.cache.store_analyze_result(result, params, output, run_id=run_id)
+                except Exception as e:
+                    result = AnalyzeResult(
+                        success=False,
+                        summary=AnalyzeSummary(errors=1),
+                        issues=None,
+                        runId=run_id
+                    )
+                    self.cache.store_analyze_result(result, params, str(e), run_id=run_id)
+
+            asyncio.create_task(_run_background())
+
+            return {
+                "status": "running",
+                "runId": run_id,
+                "message": "Analyze started in background. Poll get_run_status or get_analyze_results."
+            }
+
         returncode, stdout, stderr = self.runner.analyze(
             path=path,
             timeout=timeout
         )
 
-        # Parse output
         output = stdout + stderr
         result = self.analyze_parser.parse(output)
 
@@ -364,8 +477,7 @@ class FlutterMCPServer:
             ]
 
         # Store FULL result in cache (before limiting for response)
-        params = {k: v for k, v in args.items() if v is not None}
-        run_id = self.cache.store_analyze_result(result, params, output)
+        self.cache.store_analyze_result(result, params, output)
 
         # Limit issues in response (but keep full data in cache)
         result_dict = asdict(result)
@@ -390,12 +502,50 @@ class FlutterMCPServer:
         build_number = args.get("buildNumber")
         build_name = args.get("buildName")
         timeout = args.get("timeout", 1200)
+        async_mode = args.get("async", True)
 
         # Update Docker image if specified
         if args.get("dockerImage"):
             self.runner.docker_image = args["dockerImage"]
 
         # Run build (pub get is automatically run first in the same container)
+        params = {k: v for k, v in args.items() if v is not None}
+
+        if async_mode:
+            run_id = self.cache.reserve_run_id("build", params)
+
+            async def _run_background():
+                try:
+                    returncode, stdout, stderr = await asyncio.to_thread(
+                        self.runner.build,
+                        target=target,
+                        mode=mode,
+                        flavor=flavor,
+                        build_number=build_number,
+                        build_name=build_name,
+                        timeout=timeout
+                    )
+                    output = stdout + stderr
+                    success = returncode == 0
+                    result = self.build_parser.parse(output, success)
+                    result.duration = time.time() - start_time
+                    self.cache.store_build_result(result, params, output, run_id=run_id)
+                except Exception as e:
+                    result = BuildResult(
+                        success=False,
+                        output=str(e),
+                        errors=[BuildError(message=f"Async build failed: {e}")]
+                    )
+                    self.cache.store_build_result(result, params, str(e), run_id=run_id)
+
+            asyncio.create_task(_run_background())
+
+            return {
+                "status": "running",
+                "runId": run_id,
+                "message": "Build started in background. Poll get_run_status or get_build_results."
+            }
+
         returncode, stdout, stderr = self.runner.build(
             target=target,
             mode=mode,
@@ -405,15 +555,11 @@ class FlutterMCPServer:
             timeout=timeout
         )
 
-        # Parse output
         output = stdout + stderr
         success = returncode == 0
         result = self.build_parser.parse(output, success)
         result.duration = time.time() - start_time
-
-        # Store in cache
-        params = {k: v for k, v in args.items() if v is not None}
-        run_id = self.cache.store_build_result(result, params, output)
+        self.cache.store_build_result(result, params, output)
 
         return asdict(result)
 
@@ -497,6 +643,24 @@ class FlutterMCPServer:
             result_dict['message'] = f"Showing {filtered_count} of {original_count} failures after filtering"
 
         return result_dict
+
+    async def _get_build_results(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Get cached build results."""
+        run_id = args.get("runId")
+        result = self.cache.get_build_result(run_id)
+        if not result:
+            return {"error": "No build results found"}
+
+        return asdict(result)
+
+    async def _get_validation_results(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Get cached validation results."""
+        run_id = args.get("runId")
+        result = self.cache.get_validation_result(run_id)
+        if not result:
+            return {"error": "No validation results found"}
+
+        return asdict(result)
 
     async def _get_analyze_results(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Get cached analyze results."""
@@ -601,24 +765,77 @@ class FlutterMCPServer:
 
         stop_on_analyze_failure = args.get("stopOnAnalyzeFailure", True)
         test_options = args.get("testOptions", {})
+        async_mode = args.get("async", True)
 
         # Run analyze
         analyze_args = {}
         if args.get("dockerImage"):
             analyze_args["dockerImage"] = args["dockerImage"]
 
-        analyze_result_dict = await self._flutter_analyze(analyze_args)
+        if async_mode:
+            params = {k: v for k, v in args.items() if v is not None}
+            run_id = self.cache.reserve_run_id("validation", params)
+
+            async def _run_background():
+                try:
+                    analyze_result_dict = await self._flutter_analyze({**analyze_args, "async": False})
+                    analyze_result = AnalyzeResult(**analyze_result_dict)
+
+                    test_result = None
+                    if not stop_on_analyze_failure or analyze_result.success:
+                        test_args = {**test_options, "async": False}
+                        if args.get("dockerImage"):
+                            test_args["dockerImage"] = args["dockerImage"]
+
+                        if 'path' not in test_args or test_args.get('path') is None:
+                            test_args['path'] = [
+                                'test/core', 'test/data', 'test/domain',
+                                'test/presentation', 'test/helpers'
+                            ]
+
+                        test_result_dict = await self._flutter_test(test_args)
+                        test_result = TestResult(**test_result_dict)
+
+                    duration = time.time() - start_time
+                    success = analyze_result.success and (test_result is None or test_result.success)
+
+                    validation_result = ValidationResult(
+                        success=success,
+                        analyze=analyze_result,
+                        test=test_result,
+                        duration=duration
+                    )
+                    self.cache.store_validation_result(validation_result, params, run_id=run_id)
+                except Exception as e:
+                    validation_result = ValidationResult(
+                        success=False,
+                        analyze=AnalyzeResult(
+                            success=False,
+                            summary=AnalyzeSummary(errors=1),
+                            issues=None
+                        ),
+                        test=None,
+                        duration=time.time() - start_time
+                    )
+                    self.cache.store_validation_result(validation_result, params, str(e), run_id=run_id)
+
+            asyncio.create_task(_run_background())
+
+            return {
+                "status": "running",
+                "runId": run_id,
+                "message": "Validation started in background. Poll get_run_status or get_validation_results."
+            }
+
+        analyze_result_dict = await self._flutter_analyze({**analyze_args, "async": False})
         analyze_result = AnalyzeResult(**analyze_result_dict)
 
-        # Run tests if analyze passed or if we shouldn't stop
         test_result = None
         if not stop_on_analyze_failure or analyze_result.success:
-            test_args = {**test_options}
+            test_args = {**test_options, "async": False}
             if args.get("dockerImage"):
                 test_args["dockerImage"] = args["dockerImage"]
 
-            # Default to the same directories CI uses (excludes test/integration
-            # which contains tests that may hang in the Docker environment)
             if 'path' not in test_args or test_args.get('path') is None:
                 test_args['path'] = [
                     'test/core', 'test/data', 'test/domain',
@@ -637,6 +854,9 @@ class FlutterMCPServer:
             test=test_result,
             duration=duration
         )
+
+        params = {k: v for k, v in args.items() if v is not None}
+        self.cache.store_validation_result(validation_result, params)
 
         return asdict(validation_result)
 

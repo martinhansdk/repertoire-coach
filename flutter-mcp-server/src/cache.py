@@ -16,20 +16,25 @@ class ResultCache:
         max_test_runs: int = 10,
         max_analyze_runs: int = 5,
         max_build_runs: int = 3,
+        max_validation_runs: int = 3,
         ttl_seconds: int = 3600
     ):
         self.max_test_runs = max_test_runs
         self.max_analyze_runs = max_analyze_runs
         self.max_build_runs = max_build_runs
+        self.max_validation_runs = max_validation_runs
         self.ttl_seconds = ttl_seconds
 
         # OrderedDict maintains insertion order for LRU behavior
         self.test_cache: OrderedDict[str, tuple[TestResult, str]] = OrderedDict()
         self.analyze_cache: OrderedDict[str, tuple[AnalyzeResult, str]] = OrderedDict()
         self.build_cache: OrderedDict[str, tuple[BuildResult, str]] = OrderedDict()
+        self.validation_cache: OrderedDict[str, tuple[Any, str]] = OrderedDict()
 
         # Store full logs separately (only when verbose or small)
         self.logs: Dict[str, str] = {}
+        # Track pending runs (async)
+        self.pending: Dict[str, Dict[str, Any]] = {}
 
     def _generate_run_id(self, operation: str, params: Dict[str, Any]) -> str:
         """Generate unique run ID based on timestamp and parameters."""
@@ -37,6 +42,21 @@ class ResultCache:
         param_str = json.dumps(params, sort_keys=True)
         param_hash = hashlib.sha256(param_str.encode()).hexdigest()[:8]
         return f"{operation}:{timestamp}:{param_hash}"
+
+    def reserve_run_id(self, operation: str, params: Dict[str, Any]) -> str:
+        """Reserve a run ID for an async operation and mark as pending."""
+        run_id = self._generate_run_id(operation, params)
+        self.pending[run_id] = {
+            "operation": operation,
+            "params": params,
+            "timestamp": datetime.now().isoformat()
+        }
+        return run_id
+
+    def mark_completed(self, run_id: str) -> None:
+        """Remove a run from pending (if present)."""
+        if run_id in self.pending:
+            del self.pending[run_id]
 
     def _is_expired(self, timestamp: datetime) -> bool:
         """Check if cached entry has expired."""
@@ -55,10 +75,11 @@ class ResultCache:
         self,
         result: TestResult,
         params: Dict[str, Any],
-        log: Optional[str] = None
+        log: Optional[str] = None,
+        run_id: Optional[str] = None
     ) -> str:
         """Store test result in cache and return run ID."""
-        run_id = self._generate_run_id("test", params)
+        run_id = run_id or self._generate_run_id("test", params)
         result.runId = run_id
 
         self.test_cache[run_id] = (result, json.dumps(params))
@@ -67,16 +88,18 @@ class ResultCache:
         if log:
             self.logs[run_id] = log
 
+        self.mark_completed(run_id)
         return run_id
 
     def store_analyze_result(
         self,
         result: AnalyzeResult,
         params: Dict[str, Any],
-        log: Optional[str] = None
+        log: Optional[str] = None,
+        run_id: Optional[str] = None
     ) -> str:
         """Store analyze result in cache and return run ID."""
-        run_id = self._generate_run_id("analyze", params)
+        run_id = run_id or self._generate_run_id("analyze", params)
         result.runId = run_id
 
         self.analyze_cache[run_id] = (result, json.dumps(params))
@@ -85,16 +108,18 @@ class ResultCache:
         if log:
             self.logs[run_id] = log
 
+        self.mark_completed(run_id)
         return run_id
 
     def store_build_result(
         self,
         result: BuildResult,
         params: Dict[str, Any],
-        log: Optional[str] = None
+        log: Optional[str] = None,
+        run_id: Optional[str] = None
     ) -> str:
         """Store build result in cache and return run ID."""
-        run_id = self._generate_run_id("build", params)
+        run_id = run_id or self._generate_run_id("build", params)
         result.runId = run_id
 
         self.build_cache[run_id] = (result, json.dumps(params))
@@ -103,7 +128,75 @@ class ResultCache:
         if log:
             self.logs[run_id] = log
 
+        self.mark_completed(run_id)
         return run_id
+
+    def store_validation_result(
+        self,
+        result: Any,
+        params: Dict[str, Any],
+        log: Optional[str] = None,
+        run_id: Optional[str] = None
+    ) -> str:
+        """Store validation result in cache and return run ID."""
+        run_id = run_id or self._generate_run_id("validation", params)
+        result.runId = run_id
+
+        self.validation_cache[run_id] = (result, json.dumps(params))
+        self._evict_oldest(self.validation_cache, self.max_validation_runs)
+
+        if log:
+            self.logs[run_id] = log
+
+        self.mark_completed(run_id)
+        return run_id
+
+    def get_status(self, run_id: str) -> Dict[str, Any]:
+        """Get status for a run ID (pending/complete/not_found)."""
+        if run_id in self.pending:
+            return {"status": "running", **self.pending[run_id]}
+
+        if run_id in self.test_cache:
+            result, _ = self.test_cache[run_id]
+            if not self._is_expired(result.timestamp):
+                return {
+                    "status": "complete",
+                    "operation": "test",
+                    "runId": run_id,
+                    "timestamp": result.timestamp.isoformat()
+                }
+
+        if run_id in self.analyze_cache:
+            result, _ = self.analyze_cache[run_id]
+            if not self._is_expired(result.timestamp):
+                return {
+                    "status": "complete",
+                    "operation": "analyze",
+                    "runId": run_id,
+                    "timestamp": result.timestamp.isoformat()
+                }
+
+        if run_id in self.build_cache:
+            result, _ = self.build_cache[run_id]
+            if not self._is_expired(result.timestamp):
+                return {
+                    "status": "complete",
+                    "operation": "build",
+                    "runId": run_id,
+                    "timestamp": result.timestamp.isoformat()
+                }
+
+        if run_id in self.validation_cache:
+            result, _ = self.validation_cache[run_id]
+            if not self._is_expired(result.timestamp):
+                return {
+                    "status": "complete",
+                    "operation": "validation",
+                    "runId": run_id,
+                    "timestamp": result.timestamp.isoformat()
+                }
+
+        return {"status": "not_found", "runId": run_id}
 
     def get_test_result(self, run_id: Optional[str] = None) -> Optional[TestResult]:
         """Get test result from cache. If run_id is None, returns latest."""
@@ -154,6 +247,24 @@ class ResultCache:
                 return result
             else:
                 del self.build_cache[run_id]
+                if run_id in self.logs:
+                    del self.logs[run_id]
+
+        return None
+
+    def get_validation_result(self, run_id: Optional[str] = None) -> Optional[Any]:
+        """Get validation result from cache. If run_id is None, returns latest."""
+        if run_id is None:
+            if not self.validation_cache:
+                return None
+            run_id = next(reversed(self.validation_cache))
+
+        if run_id in self.validation_cache:
+            result, _ = self.validation_cache[run_id]
+            if not self._is_expired(result.timestamp):
+                return result
+            else:
+                del self.validation_cache[run_id]
                 if run_id in self.logs:
                     del self.logs[run_id]
 
@@ -212,5 +323,15 @@ class ResultCache:
         ]
         for run_id in expired_build:
             del self.build_cache[run_id]
+            if run_id in self.logs:
+                del self.logs[run_id]
+
+        # Validation cache
+        expired_validation = [
+            run_id for run_id, (result, _) in self.validation_cache.items()
+            if self._is_expired(result.timestamp)
+        ]
+        for run_id in expired_validation:
+            del self.validation_cache[run_id]
             if run_id in self.logs:
                 del self.logs[run_id]

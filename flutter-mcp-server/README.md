@@ -14,6 +14,7 @@ An MCP (Model Context Protocol) server that provides structured, token-efficient
 - **Comprehensive Parsing**: Extracts failures, warnings, and metadata from Flutter output
 - **Low Token Usage**: Reduces token consumption by ~96% compared to raw output
 - **MCP Resources**: Access latest results via standardized resource URIs
+- **Async Runs**: Start long test/analyze/build/validation runs and poll for results
 
 ## Installation
 
@@ -106,6 +107,14 @@ Run Flutter tests with structured output.
 - `verbose` (boolean, optional): Include full output in cache
 - `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
+- `async` (boolean, optional): Run asynchronously (default: true)
+
+**Default paths (if `path` omitted):**
+- `test/core`
+- `test/data`
+- `test/domain`
+- `test/presentation`
+- `test/helpers`
 
 **Returns:**
 ```json
@@ -141,6 +150,7 @@ Run Flutter analysis with structured errors.
 - `maxIssues` (number, optional): Max issues to return (default: 50, 0 for all)
 - `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
+- `async` (boolean, optional): Run asynchronously (default: true)
 
 **Returns:**
 ```json
@@ -182,6 +192,7 @@ Run Flutter build with structured output.
 - `buildName` (string, optional): Build name
 - `dockerImage` (string, optional): Docker image to use
 - `timeout` (number, optional): Timeout in seconds
+- `async` (boolean, optional): Run asynchronously (default: true)
 
 ### 4. `flutter_pub`
 
@@ -294,6 +305,7 @@ Run both analyze and test (equivalent to `scripts/validate.sh`).
   - `failFast` (boolean, optional)
   - `coverage` (boolean, optional)
 - `dockerImage` (string, optional): Docker image to use
+- `async` (boolean, optional): Run asynchronously (default: true)
 
 **Returns:**
 ```json
@@ -323,6 +335,37 @@ List recent test runs with summaries.
     }
   }
 ]
+```
+
+### 9. `get_build_results`
+
+Query cached build results.
+
+**Parameters:**
+- `runId` (string, optional): Specific run ID (default: latest)
+
+### 10. `get_validation_results`
+
+Query cached validation results.
+
+**Parameters:**
+- `runId` (string, optional): Specific run ID (default: latest)
+
+### 11. `get_run_status`
+
+Check status of an async run.
+
+**Parameters:**
+- `runId` (string, required): Run ID
+
+**Returns:**
+```json
+{
+  "status": "running",
+  "operation": "test",
+  "runId": "test:20251210123045:a3f2c8d1",
+  "timestamp": "2025-12-10T12:30:45.123456"
+}
 ```
 
 ## Advanced Filtering Use Cases
@@ -567,6 +610,8 @@ Increase the timeout parameter (note: pub get runs automatically, adding ~10-15s
   "timeout": 600
 }
 ```
+
+If your MCP client has a short tool call timeout, prefer `flutter_test` with `async: true` and poll with `get_run_status` or `get_test_results`.
 
 ### Cache not updating
 
