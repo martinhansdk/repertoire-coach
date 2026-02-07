@@ -10,6 +10,9 @@
    xml:space="preserve"
    inkscape:version="1.4 (86a8ad7, 2024-10-11)"
    sodipodi:docname="repertoire_coach_logo.svg"
+   inkscape:export-filename="repertoire_coach_logo.png"
+   inkscape:export-xdpi="521.19189"
+   inkscape:export-ydpi="521.19189"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -25,7 +28,7 @@
      inkscape:document-units="mm"
      showguides="true"
      inkscape:zoom="1.3095539"
-     inkscape:cx="581.11393"
+     inkscape:cx="581.49574"
      inkscape:cy="548.66013"
      inkscape:window-width="1920"
      inkscape:window-height="974"
@@ -38,10 +41,10 @@
      inkscape:groupmode="layer"
      id="layer1"><path
        style="fill:#1c3340;fill-opacity:1;stroke:none;stroke-width:0.038181"
-       d="m 92.075729,158.92239 v -24.95204 h 24.952041 24.95204 v 24.95204 24.95204 H 117.02777 92.075729 Z"
+       d="m 123.37108,154.27545 v -24.95204 h 24.95205 24.95204 v 24.95204 24.95204 h -24.95204 -24.95205 z"
        id="path13" /><g
        id="g13"
-       transform="translate(-2.0501964,34.610632)"><path
+       transform="matrix(0.88551047,0,0,0.88551047,42.878337,44.196087)"><path
          style="fill:#91ae99;fill-opacity:1;stroke:none;stroke-width:0.119172"
          d="m 125.64194,132.07463 c -0.18138,-0.0306 -0.38048,0.0205 -0.57619,0.18293 -0.348,0.28881 -0.32162,1.38982 0.0429,1.79266 0.39606,0.43764 0.79218,0.33559 1.08727,-0.28009 0.3717,-0.77552 -0.01,-1.60384 -0.55397,-1.6955 z"
          id="path12" /><path

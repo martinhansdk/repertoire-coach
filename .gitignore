@@ -47,6 +47,9 @@ app.*.map.json
 # Claude Code local settings
 .claude/
 
+# Playwright MCP artifacts
+.playwright-mcp/
+
 # Environment variables (contains secrets)
 .env
 .env.local
