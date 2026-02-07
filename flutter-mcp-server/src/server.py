@@ -389,7 +389,7 @@ class FlutterMCPServer:
         flavor = args.get("flavor")
         build_number = args.get("buildNumber")
         build_name = args.get("buildName")
-        timeout = args.get("timeout", 600)
+        timeout = args.get("timeout", 1200)
 
         # Update Docker image if specified
         if args.get("dockerImage"):
