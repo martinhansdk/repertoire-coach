@@ -66,6 +66,15 @@ class _MarkerSyncScreenState extends ConsumerState<MarkerSyncScreen> {
             icon: const Icon(Icons.close),
             onPressed: () => _confirmDiscard(context, ref, state, params),
           ),
+          actions: state.step == SyncStep.timeSync
+              ? [
+                  IconButton(
+                    icon: const Icon(Icons.restart_alt),
+                    tooltip: 'Restart sync',
+                    onPressed: () => _showRestartConfirmation(context, ref, params),
+                  ),
+                ]
+              : null,
         ),
         body: switch (state.step) {
           SyncStep.textInput => TextInputStep(params: params),
@@ -101,6 +110,33 @@ class _MarkerSyncScreenState extends ConsumerState<MarkerSyncScreen> {
     if (shouldPop && context.mounted) {
       Navigator.pop(context);
     }
+  }
+
+  void _showRestartConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    MarkerSyncParams params,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restart sync?'),
+        content: const Text('This will clear all synced positions and start from the beginning.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              ref.read(markerSyncNotifierProvider(params).notifier).restart();
+              Navigator.pop(context);
+            },
+            child: const Text('Restart'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<bool> _showDiscardConfirmation(
