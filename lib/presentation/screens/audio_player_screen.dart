@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/track.dart';
 import '../providers/audio_player_provider.dart';
 import '../providers/marker_provider.dart';
@@ -28,20 +29,18 @@ class AudioPlayerScreen extends ConsumerStatefulWidget {
 class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   bool _isDraggingSlider = false;
   double _dragValue = 0.0;
+  late final AudioPlayerControls _audioControls;
 
   @override
   void initState() {
     super.initState();
+    _audioControls = ref.read(audioPlayerControlsProvider);
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.read(audioPlayerControlsProvider).playTrack(
-          widget.track,
-          songName: widget.songTitle,
-          albumName: widget.concertName,
-        );
-      }
-    });
+  @override
+  void dispose() {
+    _audioControls.stop();
+    super.dispose();
   }
 
   @override
@@ -171,9 +170,15 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                   iconSize: 64,
                   onPressed: () {
                     if (playbackInfo.isPlaying) {
-                      ref.read(audioPlayerControlsProvider).pause();
+                      _audioControls.pause();
+                    } else if (playbackInfo.state == AudioPlayerState.idle) {
+                      _audioControls.playTrack(
+                        widget.track,
+                        songName: widget.songTitle,
+                        albumName: widget.concertName,
+                      );
                     } else {
-                      ref.read(audioPlayerControlsProvider).resume();
+                      _audioControls.resume();
                     }
                   },
                 ),

@@ -128,11 +128,27 @@ void main() {
     expect(find.text('Stop'), findsNothing);
   });
 
-  testWidgets('auto-play calls playTrack on initState', (tester) async {
+  testWidgets('does not auto-play on initState', (tester) async {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 
-    verify(mockAudioPlayerRepository.playTrack(captureAny, songName: anyNamed('songName'), albumName: anyNamed('albumName'))).called(1);
+    verifyNever(
+      mockAudioPlayerRepository.playTrack(
+        captureAny,
+        songName: anyNamed('songName'),
+        albumName: anyNamed('albumName'),
+      ),
+    );
+  });
+
+  testWidgets('stops playback when screen is disposed', (tester) async {
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pump();
+
+    verify(mockAudioPlayerRepository.stop()).called(1);
   });
 
   testWidgets('shows pause button when playing', (tester) async {
