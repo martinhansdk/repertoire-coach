@@ -9,6 +9,7 @@ import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/domain/entities/loop_range.dart';
 import 'package:repertoire_coach/domain/entities/playback_info.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
+import 'package:repertoire_coach/domain/entities/marker_set.dart';
 import 'package:repertoire_coach/domain/repositories/audio_player_repository.dart';
 import 'package:repertoire_coach/domain/repositories/marker_repository.dart';
 import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
@@ -673,7 +674,21 @@ void main() {
 
     group('Save and Discard', () {
       testWidgets('save button calls save and closes screen', (tester) async {
+        final markerSet = MarkerSet(
+          id: 'set-1',
+          trackId: 'track-1',
+          name: 'Test Set',
+          isShared: false,
+          isTimeSynced: false,
+          createdByUserId: 'user-1',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        );
+
         when(mockMarkerRepository.createMarker(any)).thenAnswer((_) async {});
+        when(mockMarkerRepository.deleteMarkersByMarkerSet(any)).thenAnswer((_) async {});
+        when(mockMarkerRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
+        when(mockMarkerRepository.updateMarkerSet(any)).thenAnswer((_) async => true);
 
         await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
         await tester.pumpAndSettle();

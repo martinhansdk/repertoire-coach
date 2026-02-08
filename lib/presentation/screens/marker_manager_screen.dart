@@ -277,6 +277,19 @@ class _MarkerSetCard extends ConsumerWidget {
     );
   }
 
+  Future<void> _startSyncFromExisting(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MarkerSyncScreen(
+          trackId: trackId,
+          markerSetId: markerSet.id,
+          startInTimeSync: true,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -316,12 +329,32 @@ class _MarkerSetCard extends ConsumerWidget {
         trailing: PopupMenuButton(
           itemBuilder: (context) => [
             const PopupMenuItem(
-              value: 'edit',
+              value: 'rename',
               child: Row(
                 children: [
                   Icon(Icons.edit),
                   SizedBox(width: 8),
+                  Text('Rename'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'edit_text',
+              child: Row(
+                children: [
+                  Icon(Icons.notes),
+                  SizedBox(width: 8),
                   Text('Edit'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'sync',
+              child: Row(
+                children: [
+                  const Icon(Icons.sync),
+                  const SizedBox(width: 8),
+                  Text(markerSet.isTimeSynced ? 'Re-sync' : 'Sync'),
                 ],
               ),
             ),
@@ -337,8 +370,12 @@ class _MarkerSetCard extends ConsumerWidget {
             ),
           ],
           onSelected: (value) {
-            if (value == 'edit') {
+            if (value == 'rename') {
               _editMarkerSetName(context, ref);
+            } else if (value == 'edit_text') {
+              _startSync(context);
+            } else if (value == 'sync') {
+              _startSyncFromExisting(context);
             } else if (value == 'delete') {
               onDelete();
             }

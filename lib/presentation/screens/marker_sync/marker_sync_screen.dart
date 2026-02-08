@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/audio_player_provider.dart';
+import '../../providers/marker_provider.dart';
 import '../../providers/marker_sync_provider.dart';
 import 'marker_sync_state.dart';
 import 'text_input_step.dart';
@@ -15,11 +16,13 @@ import 'time_sync_step.dart';
 class MarkerSyncScreen extends ConsumerStatefulWidget {
   final String trackId;
   final String markerSetId;
+  final bool startInTimeSync;
 
   const MarkerSyncScreen({
     super.key,
     required this.trackId,
     required this.markerSetId,
+    this.startInTimeSync = false,
   });
 
   @override
@@ -28,11 +31,13 @@ class MarkerSyncScreen extends ConsumerStatefulWidget {
 
 class _MarkerSyncScreenState extends ConsumerState<MarkerSyncScreen> {
   late final AudioPlayerControls _audioControls;
+  bool _didInitFromExisting = false;
 
   @override
   void initState() {
     super.initState();
     _audioControls = ref.read(audioPlayerControlsProvider);
+    _initializeTimeSyncIfRequested();
   }
 
   @override
@@ -82,6 +87,39 @@ class _MarkerSyncScreenState extends ConsumerState<MarkerSyncScreen> {
         },
       ),
     );
+  }
+
+  void _initializeTimeSyncIfRequested() {
+    if (!widget.startInTimeSync || _didInitFromExisting) {
+      return;
+    }
+    _didInitFromExisting = true;
+
+    Future<void>(() async {
+      if (!mounted) return;
+      final params = MarkerSyncParams(
+        trackId: widget.trackId,
+        markerSetId: widget.markerSetId,
+      );
+      final state = ref.read(markerSyncNotifierProvider(params));
+      if (state.step == SyncStep.timeSync) {
+        return;
+      }
+
+      final repository = ref.read(markerRepositoryProvider);
+      final markers = await repository.getMarkersByMarkerSet(widget.markerSetId);
+      if (markers.isEmpty) {
+        return;
+      }
+
+      final sorted = List.of(markers)..sort((a, b) => a.order.compareTo(b.order));
+      final text = sorted.map((marker) => marker.label).join('\n');
+      if (text.trim().isEmpty) {
+        return;
+      }
+
+      ref.read(markerSyncNotifierProvider(params).notifier).setLabels(text);
+    });
   }
 
   Future<void> _handlePopWithDiscard(
