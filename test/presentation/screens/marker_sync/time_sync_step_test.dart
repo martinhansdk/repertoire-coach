@@ -476,6 +476,26 @@ void main() {
         // All should be synced
         expect(find.text('not synced'), findsNothing);
       });
+
+      testWidgets('keeps current marker visible after sync', (tester) async {
+        final labels = List.generate(40, (i) => 'label-$i');
+        await tester.pumpWidget(await createWidgetUnderTest(labels: labels));
+        await tester.pumpAndSettle();
+
+        // Sync once to advance to the next marker and trigger auto-scroll.
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        final listRect = tester.getRect(find.byType(ListView));
+        final currentTileRect = tester.getRect(
+          find.byKey(const ValueKey('markerSyncMarker_1')),
+        );
+        final tileCenter = currentTileRect.center.dy;
+
+        expect(tileCenter, greaterThan(listRect.top));
+        expect(tileCenter, lessThan(listRect.bottom));
+      });
     });
 
     group('Keyboard Shortcuts', () {

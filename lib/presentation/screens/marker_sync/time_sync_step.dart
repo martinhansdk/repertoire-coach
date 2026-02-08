@@ -26,15 +26,6 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(TimeSyncStep oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Auto-scroll to highlighted marker when it changes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToCurrentMarker();
-    });
-  }
-
   void _scrollToCurrentMarker() {
     final state = ref.read(markerSyncNotifierProvider(widget.params));
     if (!mounted || !_scrollController.hasClients) return;
@@ -114,6 +105,16 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
     final theme = Theme.of(context);
     final state = ref.watch(markerSyncNotifierProvider(widget.params));
     final playbackInfoAsync = ref.watch(playbackInfoProvider);
+    ref.listen<MarkerSyncState>(
+      markerSyncNotifierProvider(widget.params),
+      (previous, next) {
+        if (previous?.currentIndex != next.currentIndex) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToCurrentMarker();
+          });
+        }
+      },
+    );
 
     // Check if sync button should be enabled
     final currentPositionMs = playbackInfoAsync.value?.position.inMilliseconds ?? 0;
@@ -200,17 +201,28 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
         final audioControls = ref.read(audioPlayerControlsProvider);
 
         return Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Column(
             children: [
-              // Position display
-              Text(
-                _formatDuration(playbackInfo.position),
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontFeatures: [const FontFeature.tabularFigures()],
-                ),
+              // Compact time display
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDuration(playbackInfo.position),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontFeatures: [const FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  Text(
+                    _formatDuration(playbackInfo.duration),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontFeatures: [const FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // Playback controls
               Row(
@@ -232,7 +244,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                   IconButton(
                     icon: Icon(
                       playbackInfo.isPlaying ? Icons.pause_circle : Icons.play_circle,
-                      size: 56,
+                      size: 40,
                     ),
                     onPressed: () async {
                       if (playbackInfo.isPlaying) {
@@ -281,24 +293,6 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                   await audioControls.seek(Duration(milliseconds: value.toInt()));
                 },
               ),
-
-              // Duration
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatDuration(playbackInfo.position),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    Text(
-                      _formatDuration(playbackInfo.duration),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         );
@@ -344,7 +338,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
         return ListTile(
           key: ValueKey('markerSyncMarker_$markerIndex'),
           selected: isSelected,
-          selectedTileColor: theme.colorScheme.primaryContainer.withOpacity(0.5),
+          selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
           leading: Icon(
             isSynced ? Icons.check : Icons.pending,
             color: isSynced ? Colors.green : Colors.grey,
