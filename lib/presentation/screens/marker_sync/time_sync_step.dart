@@ -305,6 +305,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                             return;
                           }
                         } else {
+                          await audioControls.seek(Duration.zero);
                           await audioControls.resume();
                         }
                       }
@@ -342,11 +343,24 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
               const SizedBox(height: 16),
 
               // Progress bar (seekable)
-              Slider(
-                value: playbackInfo.position.inMilliseconds.toDouble(),
-                max: playbackInfo.duration.inMilliseconds.toDouble(),
-                onChanged: (value) async {
-                  await audioControls.seek(Duration(milliseconds: value.toInt()));
+              Builder(
+                builder: (context) {
+                  final maxMs = playbackInfo.duration.inMilliseconds;
+                  if (maxMs <= 0) {
+                    return Slider(
+                      value: 0,
+                      max: 1,
+                      onChanged: null,
+                    );
+                  }
+                  final positionMs = playbackInfo.position.inMilliseconds.clamp(0, maxMs);
+                  return Slider(
+                    value: positionMs.toDouble(),
+                    max: maxMs.toDouble(),
+                    onChanged: (value) async {
+                      await audioControls.seek(Duration(milliseconds: value.toInt()));
+                    },
+                  );
                 },
               ),
             ],
