@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../domain/entities/audio_player_state.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../providers/marker_provider.dart';
 import '../../providers/marker_sync_provider.dart';
@@ -221,6 +222,15 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
     return playbackInfoAsync.when(
       data: (playbackInfo) {
         final audioControls = ref.read(audioPlayerControlsProvider);
+        final isSyncTrack = playbackInfo.currentTrack?.id == widget.params.trackId;
+        final displayInfo = isSyncTrack
+            ? playbackInfo
+            : playbackInfo.copyWith(
+                clearTrack: true,
+                state: AudioPlayerState.paused,
+                position: Duration.zero,
+                duration: Duration.zero,
+              );
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -231,13 +241,13 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _formatDuration(playbackInfo.position),
+                    _formatDuration(displayInfo.position),
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontFeatures: [const FontFeature.tabularFigures()],
                     ),
                   ),
                   Text(
-                    _formatDuration(playbackInfo.duration),
+                    _formatDuration(displayInfo.duration),
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontFeatures: [const FontFeature.tabularFigures()],
                     ),
@@ -254,7 +264,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                   IconButton(
                     icon: const Icon(Icons.replay_10),
                     onPressed: () async {
-                      final newPosition = playbackInfo.position - const Duration(seconds: 10);
+                      final newPosition = displayInfo.position - const Duration(seconds: 10);
                       await audioControls.seek(newPosition.isNegative ? Duration.zero : newPosition);
                     },
                     tooltip: 'Rewind 10 seconds',
@@ -265,16 +275,14 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                   // Play/Pause
                   IconButton(
                     icon: Icon(
-                      playbackInfo.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                      displayInfo.isPlaying ? Icons.pause_circle : Icons.play_circle,
                       size: 40,
                     ),
                     onPressed: () async {
-                      if (playbackInfo.isPlaying) {
+                      if (displayInfo.isPlaying) {
                         await audioControls.pause();
                       } else {
-                        final currentTrack = playbackInfo.currentTrack;
-                        if (currentTrack == null ||
-                            currentTrack.id != widget.params.trackId) {
+                        if (!isSyncTrack) {
                           final track = await ref.read(
                             trackByIdProvider(widget.params.trackId).future,
                           );
@@ -305,12 +313,14 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                             return;
                           }
                         } else {
-                          await audioControls.seek(Duration.zero);
+                          if (!_didResetPlayback) {
+                            await _resetPlaybackPosition();
+                          }
                           await audioControls.resume();
                         }
                       }
                     },
-                    tooltip: playbackInfo.isPlaying ? 'Pause' : 'Play',
+                    tooltip: displayInfo.isPlaying ? 'Pause' : 'Play',
                   ),
 
                   const SizedBox(width: 16),
@@ -319,8 +329,8 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                   IconButton(
                     icon: const Icon(Icons.forward_10),
                     onPressed: () async {
-                      final newPosition = playbackInfo.position + const Duration(seconds: 10);
-                      final maxPosition = playbackInfo.duration;
+                      final newPosition = displayInfo.position + const Duration(seconds: 10);
+                      final maxPosition = displayInfo.duration;
                       await audioControls.seek(
                         newPosition > maxPosition ? maxPosition : newPosition,
                       );
@@ -345,7 +355,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
               // Progress bar (seekable)
               Builder(
                 builder: (context) {
-                  final maxMs = playbackInfo.duration.inMilliseconds;
+                  final maxMs = displayInfo.duration.inMilliseconds;
                   if (maxMs <= 0) {
                     return Slider(
                       value: 0,
@@ -353,7 +363,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                       onChanged: null,
                     );
                   }
-                  final positionMs = playbackInfo.position.inMilliseconds.clamp(0, maxMs);
+                  final positionMs = displayInfo.position.inMilliseconds.clamp(0, maxMs);
                   return Slider(
                     value: positionMs.toDouble(),
                     max: maxMs.toDouble(),

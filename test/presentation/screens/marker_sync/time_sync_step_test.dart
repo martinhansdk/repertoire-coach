@@ -16,6 +16,7 @@ import 'package:repertoire_coach/domain/repositories/marker_repository.dart';
 import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_sync_provider.dart';
+import 'package:repertoire_coach/presentation/providers/track_provider.dart';
 import 'package:repertoire_coach/presentation/screens/marker_sync/time_sync_step.dart';
 
 import 'time_sync_step_test.mocks.dart';
@@ -25,6 +26,9 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   late final StreamController<PlaybackInfo> _controller;
   Duration? lastPlayStartPosition;
   bool? lastIgnoreSavedPosition;
+  Duration? lastSeekPosition;
+  int resumeCallCount = 0;
+  int seekCallCount = 0;
 
   FakeAudioPlayerRepository([PlaybackInfo? initialPlayback])
       : _currentPlayback = initialPlayback ?? PlaybackInfo.idle() {
@@ -44,6 +48,29 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   void updatePosition(Duration position) {
     _currentPlayback = _currentPlayback.copyWith(position: position);
     _controller.add(_currentPlayback);
+  }
+
+  void updatePlayback({
+    Track? track,
+    Duration? position,
+    Duration? duration,
+    AudioPlayerState? state,
+  }) {
+    _currentPlayback = _currentPlayback.copyWith(
+      currentTrack: track,
+      position: position,
+      duration: duration,
+      state: state,
+    );
+    _controller.add(_currentPlayback);
+  }
+
+  void resetCallTracking() {
+    lastPlayStartPosition = null;
+    lastIgnoreSavedPosition = null;
+    lastSeekPosition = null;
+    resumeCallCount = 0;
+    seekCallCount = 0;
   }
 
   @override
@@ -66,16 +93,33 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   }
 
   @override
-  Future<void> resume() async {}
+  Future<void> resume() async {
+    resumeCallCount += 1;
+    _currentPlayback = _currentPlayback.copyWith(state: AudioPlayerState.playing);
+    _controller.add(_currentPlayback);
+  }
 
   @override
-  Future<void> pause() async {}
+  Future<void> pause() async {
+    _currentPlayback = _currentPlayback.copyWith(state: AudioPlayerState.paused);
+    _controller.add(_currentPlayback);
+  }
 
   @override
-  Future<void> stop() async {}
+  Future<void> stop() async {
+    _currentPlayback = _currentPlayback.copyWith(
+      clearTrack: true,
+      position: Duration.zero,
+      duration: Duration.zero,
+      state: AudioPlayerState.idle,
+    );
+    _controller.add(_currentPlayback);
+  }
 
   @override
   Future<Duration> seek(Duration position) async {
+    seekCallCount += 1;
+    lastSeekPosition = position;
     updatePosition(position);
     return position;
   }
@@ -127,7 +171,16 @@ void main() {
     Future<Widget> createWidgetUnderTest({
       List<String>? labels,
       PlaybackInfo? playbackInfo,
+      Track? trackOverride,
     }) async {
+      final track = trackOverride ??
+          Track(
+            id: 'track-1',
+            songId: 'song-1',
+            name: 'Test Track',
+            createdAt: DateTime(2024, 1, 1),
+            updatedAt: DateTime(2024, 1, 1),
+          );
       Stream<PlaybackInfo> playbackStreamWithInitial() async* {
         yield fakeAudioRepository.currentPlayback;
         yield* fakeAudioRepository.playbackStream;
@@ -138,6 +191,9 @@ void main() {
           markerRepositoryProvider.overrideWithValue(mockMarkerRepository),
           audioPlayerRepositoryProvider.overrideWithValue(fakeAudioRepository),
           playbackInfoProvider.overrideWith((ref) => playbackStreamWithInitial()),
+          trackByIdProvider.overrideWith(
+            (ref, trackId) async => trackId == track.id ? track : null,
+          ),
         ],
       );
 
@@ -215,7 +271,7 @@ void main() {
 
         // Should show "..." marker at 0:00.000
         expect(find.byKey(const ValueKey('markerSyncMarker_-1')), findsOneWidget);
-        expect(find.text('...'), findsOneWidget);
+        expect(find.text('...'), findsNWidgets(2));
         expect(find.text('0:00.000'), findsAtLeastNWidgets(1));
 
         // Should show check icon for "..." marker (always synced)
@@ -483,12 +539,22 @@ void main() {
         await tester.pumpAndSettle();
 
         // Sync verse
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
         await tester.pumpAndSettle();
 
-        // Sync should skip empty line and highlight chorus
-        // (Current index should be 2, not 1)
+        // Sync should keep focus on last synced marker
+        expect(notifier.state.currentIndex, 0);
+
+        // Sync chorus (skip empty line)
+        fakeAudioRepository.updatePosition(const Duration(seconds: 8));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+
         expect(notifier.state.currentIndex, 2);
+        expect(notifier.state.syncedPositions[1], notifier.state.syncedPositions[2]);
       });
 
       testWidgets('syncs multiple markers in sequence', (tester) async {
@@ -572,8 +638,8 @@ void main() {
         await tester.sendKeyEvent(LogicalKeyboardKey.space);
         await tester.pumpAndSettle();
 
-        // Should still be at chorus (advance from verse already happened)
-        expect(notifier.state.currentIndex, 1);
+        // Should still be on the last synced marker
+        expect(notifier.state.currentIndex, 0);
       });
 
       testWidgets('Down arrow navigates to next marker', (tester) async {
@@ -749,11 +815,24 @@ void main() {
       });
 
       testWidgets('restart resets playback position to 0', (tester) async {
+        final track = Track(
+          id: 'track-1',
+          songId: 'song-1',
+          name: 'Test Track',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        );
+
         await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
         await tester.pumpAndSettle();
 
         // Move playback away from zero
-        fakeAudioRepository.updatePosition(const Duration(seconds: 12));
+        fakeAudioRepository.updatePlayback(
+          track: track,
+          position: const Duration(seconds: 12),
+          duration: const Duration(minutes: 3),
+          state: AudioPlayerState.paused,
+        );
         await tester.pumpAndSettle();
 
         // Restart
@@ -763,6 +842,35 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(fakeAudioRepository.currentPlayback.position, Duration.zero);
+      });
+
+      testWidgets('play resumes without resetting after pause', (tester) async {
+        final track = Track(
+          id: 'track-1',
+          songId: 'song-1',
+          name: 'Test Track',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        );
+
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        fakeAudioRepository.resetCallTracking();
+        fakeAudioRepository.updatePlayback(
+          track: track,
+          position: const Duration(seconds: 18),
+          duration: const Duration(minutes: 3),
+          state: AudioPlayerState.paused,
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.play_circle));
+        await tester.pumpAndSettle();
+
+        expect(fakeAudioRepository.seekCallCount, 0);
+        expect(fakeAudioRepository.resumeCallCount, 1);
+        expect(fakeAudioRepository.currentPlayback.position, const Duration(seconds: 18));
       });
 
       testWidgets('play starts from 0 and ignores saved position', (tester) async {
@@ -801,7 +909,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Should show "..." marker only
-        expect(find.text('...'), findsOneWidget);
+        expect(find.text('...'), findsNWidgets(2));
       });
 
       testWidgets('handles single label', (tester) async {
