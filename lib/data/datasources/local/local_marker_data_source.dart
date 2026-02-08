@@ -269,6 +269,18 @@ class LocalMarkerDataSource {
     );
   }
 
+  /// Soft delete all markers for a marker set
+  Future<void> deleteMarkersByMarkerSet(String markerSetId) async {
+    await (_database.update(_database.markers)
+          ..where((m) => m.markerSetId.equals(markerSetId)))
+        .write(
+      const db.MarkersCompanion(
+        deleted: Value(true),
+        synced: Value(false), // Mark for sync
+      ),
+    );
+  }
+
   /// Get all unsynced markers
   ///
   /// Used by sync service to find markers that need to be synced to cloud.

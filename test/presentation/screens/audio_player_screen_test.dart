@@ -43,6 +43,7 @@ void main() {
     Future<List<MarkerSet>>? markerSetsTrack1,
     Future<List<MarkerSet>>? markerSetsTrack2,
     Map<String, List<Marker>>? markersBySetId,
+    Map<String, MarkerSet>? markerSetsById,
   }) {
     return ProviderScope(
       overrides: [
@@ -60,6 +61,11 @@ void main() {
         if (markersBySetId != null)
           ...markersBySetId.entries.map(
             (entry) => markersByMarkerSetProvider(entry.key)
+                .overrideWith((ref) => Future.value(entry.value)),
+          ),
+        if (markerSetsById != null)
+          ...markerSetsById.entries.map(
+            (entry) => markerSetByIdProvider(entry.key)
                 .overrideWith((ref) => Future.value(entry.value)),
           ),
       ],
@@ -205,6 +211,7 @@ void main() {
       trackId: tTrack1.id,
       name: 'Set 1',
       isShared: false,
+      isTimeSynced: true,
       createdByUserId: 'local-user-1',
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -223,6 +230,7 @@ void main() {
         playbackInfoStream: controller.stream,
         markerSetsTrack1: Future.value([markerSet1]),
         markerSetsTrack2: Future.value([]),
+        markerSetsById: {markerSet1.id: markerSet1},
         markersBySetId: {markerSet1.id: [marker1]},
       ),
     );

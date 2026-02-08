@@ -138,6 +138,27 @@ void main() {
 
         expect(find.byIcon(Icons.play_arrow), findsOneWidget);
       });
+
+      testWidgets('should display empty label markers as blank rows', (tester) async {
+        final emptyMarker = Marker(
+          id: 'marker-empty',
+          markerSetId: 'set-1',
+          label: '',
+          positionMs: 0,
+          order: 0,
+          createdAt: now,
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          markers: [emptyMarker],
+        ));
+        await tester.pumpAndSettle();
+
+        final listTiles = tester.widgetList<ListTile>(find.byType(ListTile)).toList();
+        expect(listTiles.length, 1);
+        final title = listTiles[0].title as Text;
+        expect(title.data, '');
+      });
     });
 
     group('Marker Sorting', () {

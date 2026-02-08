@@ -185,6 +185,9 @@ class MarkerSets extends Table {
   /// Is this marker set shared with choir members?
   BoolColumn get isShared => boolean().withDefault(const Constant(false))();
 
+  /// Are markers synced to audio positions?
+  BoolColumn get isTimeSynced => boolean().withDefault(const Constant(true))();
+
   /// ID of the user who created this marker set
   TextColumn get createdByUserId => text()();
 
@@ -235,7 +238,16 @@ class Markers extends Table {
 }
 
 /// Main application database
-@DriftDatabase(tables: [Choirs, ChoirMembers, Concerts, Songs, Tracks, UserPlaybackStates, MarkerSets, Markers])
+@DriftDatabase(tables: [
+  Choirs,
+  ChoirMembers,
+  Concerts,
+  Songs,
+  Tracks,
+  UserPlaybackStates,
+  MarkerSets,
+  Markers,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -243,7 +255,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   /// Migration strategy for database upgrades
   @override
@@ -341,6 +353,12 @@ class AppDatabase extends _$AppDatabase {
             );
             await customStatement(
               'CREATE INDEX idx_markers_set ON markers(marker_set_id)',
+            );
+          }
+          if (from == 7 && to == 8) {
+            // Add is_time_synced to marker_sets
+            await customStatement(
+              'ALTER TABLE marker_sets ADD COLUMN is_time_synced INTEGER NOT NULL DEFAULT 1',
             );
           }
           // Handle multi-version upgrade (e.g., 1 -> 5)

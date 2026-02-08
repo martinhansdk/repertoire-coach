@@ -7,6 +7,7 @@ class MarkerSet extends Equatable {
   final String trackId;
   final String name;
   final bool isShared; // true = shared with choir, false = private to user
+  final bool isTimeSynced; // true = markers have synced positions
   final String createdByUserId;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -16,6 +17,7 @@ class MarkerSet extends Equatable {
     required this.trackId,
     required this.name,
     required this.isShared,
+    required this.isTimeSynced,
     required this.createdByUserId,
     required this.createdAt,
     required this.updatedAt,
@@ -27,6 +29,7 @@ class MarkerSet extends Equatable {
         trackId,
         name,
         isShared,
+        isTimeSynced,
         createdByUserId,
         createdAt,
         updatedAt,
@@ -34,6 +37,6 @@ class MarkerSet extends Equatable {
 
   @override
   String toString() {
-    return 'MarkerSet(id: $id, trackId: $trackId, name: $name, isShared: $isShared)';
+    return 'MarkerSet(id: $id, trackId: $trackId, name: $name, isShared: $isShared, isTimeSynced: $isTimeSynced)';
   }
 }

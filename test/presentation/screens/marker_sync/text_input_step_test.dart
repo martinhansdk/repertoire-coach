@@ -22,6 +22,7 @@ void main() {
     Widget createWidgetUnderTest({List<Marker>? markers}) {
       return ProviderScope(
         overrides: [
+          markerRepositoryProvider.overrideWithValue(mockRepository),
           markerSyncNotifierProvider(
             const MarkerSyncParams(trackId: 'track-1', markerSetId: 'set-1'),
           ).overrideWith((ref) => MarkerSyncNotifier(
@@ -127,6 +128,7 @@ void main() {
         final textField = tester.widget<TextField>(find.byType(TextField));
         expect(textField.controller?.text, 'Verse\nChorus');
       });
+
     });
 
     group('Line Counter', () {

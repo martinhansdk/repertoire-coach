@@ -2521,6 +2521,16 @@ class $MarkerSetsTable extends MarkerSets
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_shared" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _isTimeSyncedMeta =
+      const VerificationMeta('isTimeSynced');
+  @override
+  late final GeneratedColumn<bool> isTimeSynced = GeneratedColumn<bool>(
+      'is_time_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_time_synced" IN (0, 1))'),
+      defaultValue: const Constant(true));
   static const VerificationMeta _createdByUserIdMeta =
       const VerificationMeta('createdByUserId');
   @override
@@ -2564,6 +2574,7 @@ class $MarkerSetsTable extends MarkerSets
         trackId,
         name,
         isShared,
+        isTimeSynced,
         createdByUserId,
         createdAt,
         updatedAt,
@@ -2600,6 +2611,12 @@ class $MarkerSetsTable extends MarkerSets
     if (data.containsKey('is_shared')) {
       context.handle(_isSharedMeta,
           isShared.isAcceptableOrUnknown(data['is_shared']!, _isSharedMeta));
+    }
+    if (data.containsKey('is_time_synced')) {
+      context.handle(
+          _isTimeSyncedMeta,
+          isTimeSynced.isAcceptableOrUnknown(
+              data['is_time_synced']!, _isTimeSyncedMeta));
     }
     if (data.containsKey('created_by_user_id')) {
       context.handle(
@@ -2646,6 +2663,8 @@ class $MarkerSetsTable extends MarkerSets
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       isShared: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_shared'])!,
+      isTimeSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_time_synced'])!,
       createdByUserId: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}created_by_user_id'])!,
       createdAt: attachedDatabase.typeMapping
@@ -2678,6 +2697,9 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
   /// Is this marker set shared with choir members?
   final bool isShared;
 
+  /// Are markers synced to audio positions?
+  final bool isTimeSynced;
+
   /// ID of the user who created this marker set
   final String createdByUserId;
 
@@ -2697,6 +2719,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       required this.trackId,
       required this.name,
       required this.isShared,
+      required this.isTimeSynced,
       required this.createdByUserId,
       required this.createdAt,
       required this.updatedAt,
@@ -2709,6 +2732,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
     map['track_id'] = Variable<String>(trackId);
     map['name'] = Variable<String>(name);
     map['is_shared'] = Variable<bool>(isShared);
+    map['is_time_synced'] = Variable<bool>(isTimeSynced);
     map['created_by_user_id'] = Variable<String>(createdByUserId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -2723,6 +2747,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       trackId: Value(trackId),
       name: Value(name),
       isShared: Value(isShared),
+      isTimeSynced: Value(isTimeSynced),
       createdByUserId: Value(createdByUserId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -2739,6 +2764,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       trackId: serializer.fromJson<String>(json['trackId']),
       name: serializer.fromJson<String>(json['name']),
       isShared: serializer.fromJson<bool>(json['isShared']),
+      isTimeSynced: serializer.fromJson<bool>(json['isTimeSynced']),
       createdByUserId: serializer.fromJson<String>(json['createdByUserId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -2754,6 +2780,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       'trackId': serializer.toJson<String>(trackId),
       'name': serializer.toJson<String>(name),
       'isShared': serializer.toJson<bool>(isShared),
+      'isTimeSynced': serializer.toJson<bool>(isTimeSynced),
       'createdByUserId': serializer.toJson<String>(createdByUserId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -2767,6 +2794,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
           String? trackId,
           String? name,
           bool? isShared,
+          bool? isTimeSynced,
           String? createdByUserId,
           DateTime? createdAt,
           DateTime? updatedAt,
@@ -2777,6 +2805,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
         trackId: trackId ?? this.trackId,
         name: name ?? this.name,
         isShared: isShared ?? this.isShared,
+        isTimeSynced: isTimeSynced ?? this.isTimeSynced,
         createdByUserId: createdByUserId ?? this.createdByUserId,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -2789,6 +2818,9 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       trackId: data.trackId.present ? data.trackId.value : this.trackId,
       name: data.name.present ? data.name.value : this.name,
       isShared: data.isShared.present ? data.isShared.value : this.isShared,
+      isTimeSynced: data.isTimeSynced.present
+          ? data.isTimeSynced.value
+          : this.isTimeSynced,
       createdByUserId: data.createdByUserId.present
           ? data.createdByUserId.value
           : this.createdByUserId,
@@ -2806,6 +2838,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
           ..write('trackId: $trackId, ')
           ..write('name: $name, ')
           ..write('isShared: $isShared, ')
+          ..write('isTimeSynced: $isTimeSynced, ')
           ..write('createdByUserId: $createdByUserId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2816,8 +2849,8 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
   }
 
   @override
-  int get hashCode => Object.hash(id, trackId, name, isShared, createdByUserId,
-      createdAt, updatedAt, deleted, synced);
+  int get hashCode => Object.hash(id, trackId, name, isShared, isTimeSynced,
+      createdByUserId, createdAt, updatedAt, deleted, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2826,6 +2859,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
           other.trackId == this.trackId &&
           other.name == this.name &&
           other.isShared == this.isShared &&
+          other.isTimeSynced == this.isTimeSynced &&
           other.createdByUserId == this.createdByUserId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -2838,6 +2872,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
   final Value<String> trackId;
   final Value<String> name;
   final Value<bool> isShared;
+  final Value<bool> isTimeSynced;
   final Value<String> createdByUserId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -2849,6 +2884,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
     this.trackId = const Value.absent(),
     this.name = const Value.absent(),
     this.isShared = const Value.absent(),
+    this.isTimeSynced = const Value.absent(),
     this.createdByUserId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -2861,6 +2897,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
     required String trackId,
     required String name,
     this.isShared = const Value.absent(),
+    this.isTimeSynced = const Value.absent(),
     required String createdByUserId,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -2878,6 +2915,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
     Expression<String>? trackId,
     Expression<String>? name,
     Expression<bool>? isShared,
+    Expression<bool>? isTimeSynced,
     Expression<String>? createdByUserId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -2890,6 +2928,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
       if (trackId != null) 'track_id': trackId,
       if (name != null) 'name': name,
       if (isShared != null) 'is_shared': isShared,
+      if (isTimeSynced != null) 'is_time_synced': isTimeSynced,
       if (createdByUserId != null) 'created_by_user_id': createdByUserId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -2904,6 +2943,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
       Value<String>? trackId,
       Value<String>? name,
       Value<bool>? isShared,
+      Value<bool>? isTimeSynced,
       Value<String>? createdByUserId,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
@@ -2915,6 +2955,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
       trackId: trackId ?? this.trackId,
       name: name ?? this.name,
       isShared: isShared ?? this.isShared,
+      isTimeSynced: isTimeSynced ?? this.isTimeSynced,
       createdByUserId: createdByUserId ?? this.createdByUserId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -2938,6 +2979,9 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
     }
     if (isShared.present) {
       map['is_shared'] = Variable<bool>(isShared.value);
+    }
+    if (isTimeSynced.present) {
+      map['is_time_synced'] = Variable<bool>(isTimeSynced.value);
     }
     if (createdByUserId.present) {
       map['created_by_user_id'] = Variable<String>(createdByUserId.value);
@@ -2967,6 +3011,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
           ..write('trackId: $trackId, ')
           ..write('name: $name, ')
           ..write('isShared: $isShared, ')
+          ..write('isTimeSynced: $isTimeSynced, ')
           ..write('createdByUserId: $createdByUserId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -4681,6 +4726,7 @@ typedef $$MarkerSetsTableCreateCompanionBuilder = MarkerSetsCompanion Function({
   required String trackId,
   required String name,
   Value<bool> isShared,
+  Value<bool> isTimeSynced,
   required String createdByUserId,
   required DateTime createdAt,
   required DateTime updatedAt,
@@ -4693,6 +4739,7 @@ typedef $$MarkerSetsTableUpdateCompanionBuilder = MarkerSetsCompanion Function({
   Value<String> trackId,
   Value<String> name,
   Value<bool> isShared,
+  Value<bool> isTimeSynced,
   Value<String> createdByUserId,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -4721,6 +4768,9 @@ class $$MarkerSetsTableFilterComposer
 
   ColumnFilters<bool> get isShared => $composableBuilder(
       column: $table.isShared, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isTimeSynced => $composableBuilder(
+      column: $table.isTimeSynced, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get createdByUserId => $composableBuilder(
       column: $table.createdByUserId,
@@ -4760,6 +4810,10 @@ class $$MarkerSetsTableOrderingComposer
   ColumnOrderings<bool> get isShared => $composableBuilder(
       column: $table.isShared, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isTimeSynced => $composableBuilder(
+      column: $table.isTimeSynced,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get createdByUserId => $composableBuilder(
       column: $table.createdByUserId,
       builder: (column) => ColumnOrderings(column));
@@ -4797,6 +4851,9 @@ class $$MarkerSetsTableAnnotationComposer
 
   GeneratedColumn<bool> get isShared =>
       $composableBuilder(column: $table.isShared, builder: (column) => column);
+
+  GeneratedColumn<bool> get isTimeSynced => $composableBuilder(
+      column: $table.isTimeSynced, builder: (column) => column);
 
   GeneratedColumn<String> get createdByUserId => $composableBuilder(
       column: $table.createdByUserId, builder: (column) => column);
@@ -4841,6 +4898,7 @@ class $$MarkerSetsTableTableManager extends RootTableManager<
             Value<String> trackId = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<bool> isShared = const Value.absent(),
+            Value<bool> isTimeSynced = const Value.absent(),
             Value<String> createdByUserId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -4853,6 +4911,7 @@ class $$MarkerSetsTableTableManager extends RootTableManager<
             trackId: trackId,
             name: name,
             isShared: isShared,
+            isTimeSynced: isTimeSynced,
             createdByUserId: createdByUserId,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -4865,6 +4924,7 @@ class $$MarkerSetsTableTableManager extends RootTableManager<
             required String trackId,
             required String name,
             Value<bool> isShared = const Value.absent(),
+            Value<bool> isTimeSynced = const Value.absent(),
             required String createdByUserId,
             required DateTime createdAt,
             required DateTime updatedAt,
@@ -4877,6 +4937,7 @@ class $$MarkerSetsTableTableManager extends RootTableManager<
             trackId: trackId,
             name: name,
             isShared: isShared,
+            isTimeSynced: isTimeSynced,
             createdByUserId: createdByUserId,
             createdAt: createdAt,
             updatedAt: updatedAt,

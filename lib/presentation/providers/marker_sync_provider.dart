@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/marker.dart';
+import '../../domain/entities/marker_set.dart';
 import '../../domain/repositories/marker_repository.dart';
 import '../screens/marker_sync/marker_sync_state.dart';
 import 'marker_provider.dart';
@@ -76,6 +77,69 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       syncedPositions: {-1: 0}, // "..." is always at 0:00.000
       isDirty: false, // Not dirty yet - no sync has happened
     );
+  }
+
+  /// Persist labels as an unsynced marker set and advance to sync step
+  Future<void> startSyncFromText(String text) async {
+    // Keep all lines including empty ones for visual organization
+    final lines = text.split('\n').map((line) => line.trim()).toList();
+
+    if (lines.every((line) => line.isEmpty)) {
+      debugPrint('[MarkerSync] No non-empty lines found in input');
+      return;
+    }
+
+    // Persist labels but keep existing positions until save.
+    final existingMarkers =
+        await _markerRepository.getMarkersByMarkerSet(state.markerSetId);
+
+    for (int i = 0; i < lines.length; i++) {
+      final label = lines[i];
+      if (i < existingMarkers.length) {
+        final existing = existingMarkers[i];
+        final updated = Marker(
+          id: existing.id,
+          markerSetId: existing.markerSetId,
+          label: label,
+          positionMs: existing.positionMs,
+          order: i,
+          createdAt: existing.createdAt,
+        );
+        await _markerRepository.updateMarker(updated);
+      } else {
+        final marker = Marker(
+          id: const Uuid().v4(),
+          markerSetId: state.markerSetId,
+          label: label,
+          positionMs: 0,
+          order: i,
+          createdAt: DateTime.now().toUtc(),
+        );
+        await _markerRepository.createMarker(marker);
+      }
+    }
+
+    for (int i = lines.length; i < existingMarkers.length; i++) {
+      await _markerRepository.deleteMarker(existingMarkers[i].id);
+    }
+
+    final markerSet = await _markerRepository.getMarkerSetById(state.markerSetId);
+    if (markerSet != null) {
+      await _markerRepository.updateMarkerSet(
+        MarkerSet(
+          id: markerSet.id,
+          trackId: markerSet.trackId,
+          name: markerSet.name,
+          isShared: markerSet.isShared,
+          isTimeSynced: false,
+          createdByUserId: markerSet.createdByUserId,
+          createdAt: markerSet.createdAt,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    }
+
+    setLabels(text);
   }
 
   /// Sync the next non-empty marker to the given position
@@ -178,32 +242,36 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
     int savedCount = 0;
     int skippedEmpty = 0;
     int skippedUnsynced = 0;
+    bool allNonEmptySynced = true;
+
+    await _markerRepository.deleteMarkersByMarkerSet(state.markerSetId);
 
     // Create all synced non-empty markers in repository
     for (int i = 0; i < state.labels.length; i++) {
       final label = state.labels[i];
 
-      // Skip empty lines
       if (label.isEmpty) {
         skippedEmpty++;
-        continue;
       }
 
-      // Skip unsynced markers (unsynced is valid - user's choice)
+      // If this non-empty marker has no synced position, track unsynced
       final positionMs = state.syncedPositions[i];
       if (positionMs == null) {
-        debugPrint('[MarkerSync] Skipping unsynced marker: "$label"');
-        skippedUnsynced++;
-        continue;
+        if (label.isNotEmpty) {
+          debugPrint('[MarkerSync] Saving unsynced marker: "$label"');
+          skippedUnsynced++;
+          allNonEmptySynced = false;
+        }
       }
 
-      debugPrint('[MarkerSync] Creating marker: "$label" at $positionMs ms');
+      final resolvedPosition = positionMs ?? 0;
+      debugPrint('[MarkerSync] Creating marker: "$label" at $resolvedPosition ms');
 
       final marker = Marker(
         id: const Uuid().v4(),
         markerSetId: state.markerSetId,
         label: label,
-        positionMs: positionMs,
+        positionMs: resolvedPosition,
         order: i, // Preserve input order
         createdAt: DateTime.now().toUtc(),
       );
@@ -214,6 +282,22 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
     debugPrint('[MarkerSync] Save complete: $savedCount saved, $skippedUnsynced unsynced, $skippedEmpty empty lines');
 
+    final markerSet = await _markerRepository.getMarkerSetById(state.markerSetId);
+    if (markerSet != null) {
+      await _markerRepository.updateMarkerSet(
+        MarkerSet(
+          id: markerSet.id,
+          trackId: markerSet.trackId,
+          name: markerSet.name,
+          isShared: markerSet.isShared,
+          isTimeSynced: allNonEmptySynced,
+          createdByUserId: markerSet.createdByUserId,
+          createdAt: markerSet.createdAt,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    }
+
     // Mark as saved (no longer dirty)
     state = state.copyWith(isDirty: false);
   }
@@ -221,9 +305,12 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
   /// Discard all changes and reset to initial state
   void discard() {
     debugPrint('[MarkerSync] Discarding changes');
-    state = MarkerSyncState.initial(
-      trackId: state.trackId,
-      markerSetId: state.markerSetId,
+    state = state.copyWith(
+      step: SyncStep.textInput,
+      labels: const [],
+      syncedPositions: const {},
+      currentIndex: -1,
+      isDirty: false,
     );
   }
 }

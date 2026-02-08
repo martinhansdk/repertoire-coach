@@ -61,6 +61,7 @@ A collaborative mobile and desktop application for practicing choir singing. Use
   - Examples: "intro", "verse 1", "chorus", "outro" or bar numbers "1", "25", "48"
 - **Private Marker Sets**: Per-user marker sets for personal practice notes
   - Examples: "hard part in outro", "sections to review"
+- **Synced vs. Unsynced**: Marker sets can be unsynced (labels only) or synced (all non-empty markers have positions)
 - **Mark Positions During Playback**: Users can mark positions while listening and add labels
 - **Create Marker Sets**: Users can organize markers into named sets
 - **Section Looping**: Select any marker range from any set to loop/repeat continuously
@@ -147,6 +148,14 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 5. User selects a range between markers to practice (e.g., from "verse 1" to "chorus")
 6. App loops that range until user stops
 7. User can switch between different marker sets to navigate the track in different ways
+
+### Syncing Marker Sets
+1. User enters marker text (one per line; empty lines are preserved)
+2. Labels are saved immediately so the set can be returned to later
+3. User syncs markers to audio; positions are held in memory during the sync session
+4. **Save** persists positions and marks the set as synced
+5. **Discard** keeps the previously stored labels/positions and returns to the list
+6. Users can re-sync an existing marker set at any time
 
 ### Browsing Concerts
 1. User views all concerts from all their choirs

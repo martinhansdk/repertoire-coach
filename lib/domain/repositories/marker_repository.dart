@@ -61,4 +61,7 @@ abstract class MarkerRepository {
   ///
   /// Marker is marked as deleted but not removed from database.
   Future<void> deleteMarker(String markerId);
+
+  /// Delete all markers in a marker set (soft delete)
+  Future<void> deleteMarkersByMarkerSet(String markerSetId);
 }

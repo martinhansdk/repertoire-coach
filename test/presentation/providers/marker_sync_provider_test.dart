@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/domain/entities/marker.dart';
+import 'package:repertoire_coach/domain/entities/marker_set.dart';
 import 'package:repertoire_coach/domain/repositories/marker_repository.dart';
 import 'package:repertoire_coach/presentation/providers/marker_sync_provider.dart';
 import 'package:repertoire_coach/presentation/screens/marker_sync/marker_sync_state.dart';
@@ -13,9 +14,20 @@ void main() {
   group('MarkerSyncNotifier', () {
     late MockMarkerRepository mockRepository;
     late MarkerSyncNotifier notifier;
+    late MarkerSet markerSet;
 
     setUp(() {
       mockRepository = MockMarkerRepository();
+      markerSet = MarkerSet(
+        id: 'set-1',
+        trackId: 'track-1',
+        name: 'Test Set',
+        isShared: false,
+        isTimeSynced: false,
+        createdByUserId: 'user-1',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      );
       notifier = MarkerSyncNotifier(
         markerRepository: mockRepository,
         trackId: 'track-1',
@@ -72,6 +84,34 @@ void main() {
 
         expect(notifier.state.step, SyncStep.timeSync);
         expect(notifier.state.labels, ['intro']);
+      });
+    });
+
+    group('startSyncFromText', () {
+      test('should persist unsynced markers and advance to timeSync', () async {
+        when(mockRepository.deleteMarkersByMarkerSet(any)).thenAnswer((_) async => {});
+        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
+        when(mockRepository.getMarkersByMarkerSet(any)).thenAnswer((_) async => []);
+        when(mockRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
+        when(mockRepository.updateMarkerSet(any)).thenAnswer((_) async => true);
+
+        await notifier.startSyncFromText('intro\n\nverse');
+
+        final captured = verify(mockRepository.createMarker(captureAny)).captured;
+        expect(captured.length, 3);
+
+        final markers = captured.cast<Marker>();
+        expect(markers[0].label, 'intro');
+        expect(markers[0].positionMs, 0);
+        expect(markers[1].label, '');
+        expect(markers[2].label, 'verse');
+
+        verify(mockRepository.updateMarkerSet(argThat(
+          isA<MarkerSet>().having((ms) => ms.isTimeSynced, 'isTimeSynced', false),
+        ))).called(1);
+
+        expect(notifier.state.step, SyncStep.timeSync);
+        expect(notifier.state.labels, ['intro', '', 'verse']);
       });
     });
 
@@ -220,9 +260,12 @@ void main() {
     group('save', () {
       setUp(() {
         notifier.setLabels('intro\n\nverse\nchorus\noutro');
+        when(mockRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
+        when(mockRepository.updateMarkerSet(any)).thenAnswer((_) async => true);
+        when(mockRepository.deleteMarkersByMarkerSet(any)).thenAnswer((_) async => {});
       });
 
-      test('should save all synced non-empty markers', () async {
+      test('should save markers (including empty and unsynced)', () async {
         notifier.syncNextMarker(1000);
         notifier.syncNextMarker(3000);
         notifier.syncNextMarker(5000);
@@ -231,48 +274,25 @@ void main() {
 
         await notifier.save();
 
-        // Should create 3 markers (skipping 1 empty line and 1 unsynced)
+        // Should create 5 markers (including empty and unsynced)
         final captured = verify(mockRepository.createMarker(captureAny)).captured;
-        expect(captured.length, 3);
+        expect(captured.length, 5);
 
         final markers = captured.cast<Marker>();
         expect(markers[0].label, 'intro');
         expect(markers[0].positionMs, 1000);
-        expect(markers[1].label, 'verse');
-        expect(markers[1].positionMs, 3000);
-        expect(markers[2].label, 'chorus');
-        expect(markers[2].positionMs, 5000);
-      });
+        expect(markers[1].label, '');
+        expect(markers[1].positionMs, 1000);
+        expect(markers[2].label, 'verse');
+        expect(markers[2].positionMs, 3000);
+        expect(markers[3].label, 'chorus');
+        expect(markers[3].positionMs, 5000);
+        expect(markers[4].label, 'outro');
+        expect(markers[4].positionMs, 0);
 
-      test('should skip empty lines', () async {
-        notifier.syncNextMarker(1000); // intro
-        // Skip empty line at index 1
-        notifier.jumpToMarker(2);
-        notifier.syncNextMarker(2000); // verse
-
-        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
-
-        await notifier.save();
-
-        final captured = verify(mockRepository.createMarker(captureAny)).captured;
-        expect(captured.length, 2);
-      });
-
-      test('should skip unsynced markers', () async {
-        notifier.syncNextMarker(1000); // intro
-        notifier.syncNextMarker(2000); // verse
-        // Skip chorus - don't sync it
-
-        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
-
-        await notifier.save();
-
-        final captured = verify(mockRepository.createMarker(captureAny)).captured;
-        expect(captured.length, 2);
-
-        final markers = captured.cast<Marker>();
-        expect(markers[0].label, 'intro');
-        expect(markers[1].label, 'verse');
+        verify(mockRepository.updateMarkerSet(argThat(
+          isA<MarkerSet>().having((ms) => ms.isTimeSynced, 'isTimeSynced', false),
+        ))).called(1);
       });
 
       test('should preserve marker display order from input', () async {
@@ -287,7 +307,7 @@ void main() {
         final markers = captured.cast<Marker>();
 
         expect(markers[0].order, 0);
-        expect(markers[1].order, 2);
+        expect(markers[2].order, 2);
       });
 
       test('should mark state as not dirty after save', () async {
@@ -299,6 +319,21 @@ void main() {
         await notifier.save();
 
         expect(notifier.state.isDirty, false);
+      });
+
+      test('marks marker set as time synced when all non-empty markers are synced', () async {
+        notifier.syncNextMarker(1000);
+        notifier.syncNextMarker(2000);
+        notifier.syncNextMarker(3000);
+        notifier.syncNextMarker(4000);
+
+        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
+
+        await notifier.save();
+
+        verify(mockRepository.updateMarkerSet(argThat(
+          isA<MarkerSet>().having((ms) => ms.isTimeSynced, 'isTimeSynced', true),
+        ))).called(1);
       });
     });
 

@@ -8,8 +8,9 @@ import '../../domain/entities/marker.dart';
 class MarkerList extends StatelessWidget {
   final List<Marker> markers;
   final Duration currentPosition;
-  final ValueChanged<Duration> onMarkerTap;
+  final ValueChanged<Duration>? onMarkerTap;
   final ValueChanged<Marker>? onMarkerLongPress;
+  final bool showPositions;
 
   const MarkerList({
     super.key,
@@ -17,6 +18,7 @@ class MarkerList extends StatelessWidget {
     required this.currentPosition,
     required this.onMarkerTap,
     this.onMarkerLongPress,
+    this.showPositions = true,
   });
 
   String _formatDuration(Duration duration) {
@@ -44,9 +46,23 @@ class MarkerList extends StatelessWidget {
       );
     }
 
-    // Sort markers by display order
+    // Sort markers by display order (empty labels preserved)
     final sortedMarkers = List<Marker>.from(markers)
       ..sort((a, b) => a.order.compareTo(b.order));
+
+    if (sortedMarkers.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'No markers in this set',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
 
     return ListView.builder(
       shrinkWrap: true,
@@ -55,7 +71,8 @@ class MarkerList extends StatelessWidget {
       itemBuilder: (context, index) {
         final marker = sortedMarkers[index];
         final markerPosition = Duration(milliseconds: marker.positionMs);
-        final isActive = currentPosition >= markerPosition &&
+        final isActive = showPositions &&
+            currentPosition >= markerPosition &&
             (index == sortedMarkers.length - 1 ||
                 currentPosition < Duration(milliseconds: sortedMarkers[index + 1].positionMs));
 
@@ -81,19 +98,23 @@ class MarkerList extends StatelessWidget {
                   : theme.colorScheme.onSurface,
             ),
           ),
-          subtitle: Text(
-            _formatDuration(markerPosition),
-            style: TextStyle(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          trailing: Icon(
-            Icons.play_arrow,
-            color: isActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurfaceVariant,
-          ),
-          onTap: () => onMarkerTap(markerPosition),
+          subtitle: showPositions
+              ? Text(
+                  _formatDuration(markerPosition),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                )
+              : null,
+          trailing: showPositions
+              ? Icon(
+                  Icons.play_arrow,
+                  color: isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                )
+              : null,
+          onTap: onMarkerTap != null ? () => onMarkerTap!(markerPosition) : null,
           onLongPress: onMarkerLongPress != null
               ? () => onMarkerLongPress!(marker)
               : null,

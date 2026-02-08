@@ -891,6 +891,17 @@ class MockLocalMarkerDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
+  _i3.Future<void> deleteMarkersByMarkerSet(String? markerSetId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #deleteMarkersByMarkerSet,
+          [markerSetId],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
   _i3.Future<List<_i14.MarkerModel>> getUnsyncedMarkers() =>
       (super.noSuchMethod(
         Invocation.method(

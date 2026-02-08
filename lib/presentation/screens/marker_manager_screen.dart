@@ -30,6 +30,7 @@ class MarkerManagerScreen extends ConsumerWidget {
       trackId: trackId,
       name: 'New Marker Set', // Placeholder name - will be replaced when user adds markers
       isShared: false,
+      isTimeSynced: false,
       createdByUserId: _currentUserId,
       createdAt: DateTime.now().toUtc(),
       updatedAt: DateTime.now().toUtc(),
@@ -235,6 +236,7 @@ class _MarkerSetCard extends ConsumerWidget {
           trackId: markerSet.trackId,
           name: newName,
           isShared: markerSet.isShared,
+          isTimeSynced: markerSet.isTimeSynced,
           createdByUserId: markerSet.createdByUserId,
           createdAt: markerSet.createdAt,
           updatedAt: DateTime.now().toUtc(),
@@ -411,6 +413,16 @@ class _MarkerSetCard extends ConsumerWidget {
 
               return Column(
                 children: [
+                  if (!markerSet.isTimeSynced)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'Not synced to audio yet',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ...markers.map((marker) {
                     final position = Duration(milliseconds: marker.positionMs);
                     final minutes = position.inMinutes;
@@ -420,9 +432,11 @@ class _MarkerSetCard extends ConsumerWidget {
                     return ListTile(
                       leading: const Icon(Icons.place),
                       title: Text(marker.label),
-                      subtitle: Text(
-                        '$minutes:${seconds.toString().padLeft(2, '0')}.${milliseconds.toString().padLeft(3, '0')}',
-                      ),
+                      subtitle: markerSet.isTimeSynced
+                          ? Text(
+                              '$minutes:${seconds.toString().padLeft(2, '0')}.${milliseconds.toString().padLeft(3, '0')}',
+                            )
+                          : const Text('Not synced'),
                       trailing: PopupMenuButton(
                         itemBuilder: (context) => [
                           const PopupMenuItem(

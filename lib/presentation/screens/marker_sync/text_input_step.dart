@@ -24,9 +24,11 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
     super.dispose();
   }
 
-  void _onNextPressed() {
+  Future<void> _onNextPressed() async {
     final text = _textController.text;
-    ref.read(markerSyncNotifierProvider(widget.params).notifier).setLabels(text);
+    await ref
+        .read(markerSyncNotifierProvider(widget.params).notifier)
+        .startSyncFromText(text);
   }
 
   @override
@@ -40,7 +42,6 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
         return;
       }
       if (markers.isEmpty) {
-        _didPrefill = true;
         return;
       }
 

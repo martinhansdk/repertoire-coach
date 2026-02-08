@@ -270,19 +270,105 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       );
     }
 
+    final markerSetAsync = ref.watch(markerSetByIdProvider(selectedMarkerSetId));
     final markersAsync = ref.watch(markersByMarkerSetProvider(selectedMarkerSetId));
 
-    return markersAsync.when(
-      data: (markers) {
-        final loopRange = playbackInfo.loopRange;
-        return MarkerProgressBar(
-          position: playbackInfo.position,
-          duration: playbackInfo.duration,
-          markers: markers,
-          loopStart: loopRange?.startPosition,
-          loopEnd: loopRange?.endPosition,
-          onSeek: (position) {
-            ref.read(audioPlayerControlsProvider).seek(position);
+    return markerSetAsync.when(
+      data: (markerSet) {
+        if (markerSet == null || !markerSet.isTimeSynced) {
+          final double sliderValue = _isDraggingSlider
+              ? _dragValue
+              : playbackInfo.progress.clamp(0.0, 1.0);
+          return Slider(
+            value: sliderValue,
+            onChangeStart: (value) {
+              setState(() {
+                _isDraggingSlider = true;
+                _dragValue = value;
+              });
+            },
+            onChanged: (value) {
+              setState(() {
+                _dragValue = value;
+              });
+            },
+            onChangeEnd: (value) {
+              final newPosition = playbackInfo.duration * value;
+              ref.read(audioPlayerControlsProvider).seek(newPosition);
+              setState(() {
+                _isDraggingSlider = false;
+              });
+            },
+          );
+        }
+
+        return markersAsync.when(
+          data: (markers) {
+            final loopRange = playbackInfo.loopRange;
+            final visibleMarkers =
+                markers.where((marker) => marker.label.trim().isNotEmpty).toList();
+            return MarkerProgressBar(
+              position: playbackInfo.position,
+              duration: playbackInfo.duration,
+              markers: visibleMarkers,
+              loopStart: loopRange?.startPosition,
+              loopEnd: loopRange?.endPosition,
+              onSeek: (position) {
+                ref.read(audioPlayerControlsProvider).seek(position);
+              },
+            );
+          },
+          loading: () {
+            final double sliderValue = _isDraggingSlider
+                ? _dragValue
+                : playbackInfo.progress.clamp(0.0, 1.0);
+            return Slider(
+              value: sliderValue,
+              onChangeStart: (value) {
+                setState(() {
+                  _isDraggingSlider = true;
+                  _dragValue = value;
+                });
+              },
+              onChanged: (value) {
+                setState(() {
+                  _dragValue = value;
+                });
+              },
+              onChangeEnd: (value) {
+                final newPosition = playbackInfo.duration * value;
+                ref.read(audioPlayerControlsProvider).seek(newPosition);
+                setState(() {
+                  _isDraggingSlider = false;
+                });
+              },
+            );
+          },
+          error: (_, __) {
+            final double sliderValue = _isDraggingSlider
+                ? _dragValue
+                : playbackInfo.progress.clamp(0.0, 1.0);
+            return Slider(
+              value: sliderValue,
+              onChangeStart: (value) {
+                setState(() {
+                  _isDraggingSlider = true;
+                  _dragValue = value;
+                });
+              },
+              onChanged: (value) {
+                setState(() {
+                  _dragValue = value;
+                });
+              },
+              onChangeEnd: (value) {
+                final newPosition = playbackInfo.duration * value;
+                ref.read(audioPlayerControlsProvider).seek(newPosition);
+                setState(() {
+                  _isDraggingSlider = false;
+                });
+              },
+            );
           },
         );
       },
@@ -348,34 +434,65 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       return const SizedBox.shrink();
     }
 
+    final markerSetAsync = ref.watch(markerSetByIdProvider(selectedMarkerSetId));
     final markersAsync = ref.watch(markersByMarkerSetProvider(selectedMarkerSetId));
 
-    return markersAsync.when(
-      data: (markers) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Loop control buttons
-            LoopControlButtons(markers: markers),
+    return markerSetAsync.when(
+      data: (markerSet) {
+        if (markerSet == null) {
+          return const SizedBox.shrink();
+        }
 
-            const SizedBox(height: 8),
+        return markersAsync.when(
+          data: (markers) {
+            final visibleMarkers =
+                markers.where((marker) => marker.label.trim().isNotEmpty).toList();
 
-            // Marker list
-            if (markers.isNotEmpty) ...[
-              Text(
-                'Markers',
-                style: Theme.of(context).textTheme.titleSmall,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (markerSet.isTimeSynced) ...[
+                  // Loop control buttons
+                  LoopControlButtons(markers: visibleMarkers),
+                  const SizedBox(height: 8),
+                ],
+
+                // Marker list
+                if (visibleMarkers.isNotEmpty) ...[
+                  Text(
+                    'Markers',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  MarkerList(
+                    markers: visibleMarkers,
+                    currentPosition: playbackInfo.position,
+                    showPositions: markerSet.isTimeSynced,
+                    onMarkerTap: markerSet.isTimeSynced
+                        ? (position) {
+                            ref.read(audioPlayerControlsProvider).seek(position);
+                          }
+                        : null,
+                  ),
+                ],
+              ],
+            );
+          },
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (error, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Error loading markers: $error',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
-              const SizedBox(height: 8),
-              MarkerList(
-                markers: markers,
-                currentPosition: playbackInfo.position,
-                onMarkerTap: (position) {
-                  ref.read(audioPlayerControlsProvider).seek(position);
-                },
-              ),
-            ],
-          ],
+            ),
+          ),
         );
       },
       loading: () => const Center(
@@ -388,7 +505,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            'Error loading markers: $error',
+            'Error loading marker set: $error',
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ),

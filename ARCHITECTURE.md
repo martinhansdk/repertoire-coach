@@ -152,6 +152,7 @@ class MarkerSet {
   String trackId;  // Which track this marker set belongs to
   String name;  // Name of the set (e.g., "Musical Structure", "Bar Numbers")
   bool isShared;  // true = shared with choir, false = private to user
+  bool isTimeSynced;  // true = markers have synced positions
   String createdByUserId;  // User who created this marker set
   DateTime createdAt;
   DateTime updatedAt;
@@ -169,6 +170,13 @@ class Marker {
   DateTime createdAt;
 }
 ```
+
+### Marker Sync Workflow
+- Marker sets can be **unsynced** (labels exist without reliable audio positions) or **synced** (all non-empty markers have positions).
+- Empty lines are preserved as markers to support visual grouping in the UI.
+- When starting sync from text input, **labels are persisted immediately** but existing positions are preserved until the user presses **Save**.
+- During sync, positions are held in memory; pressing **Discard** leaves stored labels/positions untouched.
+- On **Save**, marker positions are persisted and `isTimeSynced` is updated to `true` only when all non-empty markers are synced.
 
 #### User
 ```dart

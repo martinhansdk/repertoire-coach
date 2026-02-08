@@ -92,4 +92,9 @@ class MarkerRepositoryImpl implements MarkerRepository {
   Future<void> deleteMarker(String markerId) async {
     await _localDataSource.deleteMarker(markerId);
   }
+
+  @override
+  Future<void> deleteMarkersByMarkerSet(String markerSetId) async {
+    await _localDataSource.deleteMarkersByMarkerSet(markerSetId);
+  }
 }
