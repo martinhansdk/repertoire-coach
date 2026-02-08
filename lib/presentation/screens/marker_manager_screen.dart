@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 import '../../core/constants.dart';
 import '../../domain/entities/marker_set.dart';
 import '../providers/marker_provider.dart';
 import 'marker_sync/marker_sync_screen.dart';
+import '../widgets/marker_set_dialog.dart';
 
 /// Hardcoded user ID for local-first mode
 const String _currentUserId = 'local-user-1';
@@ -24,30 +24,22 @@ class MarkerManagerScreen extends ConsumerWidget {
   });
 
   Future<void> _navigateToMarkerSync(BuildContext context, WidgetRef ref) async {
-    // Create a new marker set
-    final markerSet = MarkerSet(
-      id: const Uuid().v4(),
-      trackId: trackId,
-      name: 'New Marker Set', // Placeholder name - will be replaced when user adds markers
-      isShared: false,
-      isTimeSynced: false,
-      createdByUserId: _currentUserId,
-      createdAt: DateTime.now().toUtc(),
-      updatedAt: DateTime.now().toUtc(),
+    final markerSetId = await showDialog<String?>(
+      context: context,
+      builder: (context) => MarkerSetDialog(trackId: trackId),
     );
 
-    // Create the marker set in repository
-    final repository = ref.read(markerRepositoryProvider);
-    await repository.createMarkerSet(markerSet);
+    if (markerSetId == null) {
+      return;
+    }
 
-    // Navigate to sync screen
     if (context.mounted) {
       await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => MarkerSyncScreen(
             trackId: trackId,
-            markerSetId: markerSet.id,
+            markerSetId: markerSetId,
           ),
         ),
       );

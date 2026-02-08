@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../providers/marker_provider.dart';
 import '../../providers/marker_sync_provider.dart';
+import '../../providers/track_provider.dart';
 import 'marker_sync_state.dart';
 
 /// Step 2 of marker sync: User syncs markers to audio positions
@@ -250,7 +251,26 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                       if (playbackInfo.isPlaying) {
                         await audioControls.pause();
                       } else {
-                        await audioControls.resume();
+                        final currentTrack = playbackInfo.currentTrack;
+                        if (currentTrack == null ||
+                            currentTrack.id != widget.params.trackId) {
+                          final track = await ref.read(
+                            trackByIdProvider(widget.params.trackId).future,
+                          );
+                          if (track == null) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Track not available for playback'),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+                          await audioControls.playTrack(track);
+                        } else {
+                          await audioControls.resume();
+                        }
                       }
                     },
                     tooltip: playbackInfo.isPlaying ? 'Pause' : 'Play',
