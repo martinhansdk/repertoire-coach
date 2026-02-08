@@ -4,7 +4,6 @@ import 'package:uuid/uuid.dart';
 import '../../core/constants.dart';
 import '../../domain/entities/marker_set.dart';
 import '../providers/marker_provider.dart';
-import '../widgets/marker_dialog.dart';
 import 'marker_sync/marker_sync_screen.dart';
 
 /// Hardcoded user ID for local-first mode
@@ -264,11 +263,14 @@ class _MarkerSetCard extends ConsumerWidget {
     }
   }
 
-  Future<void> _showCreateMarkerDialog(BuildContext context) async {
-    await showDialog(
-      context: context,
-      builder: (context) => MarkerDialog(
-        markerSetId: markerSet.id,
+  Future<void> _startSync(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MarkerSyncScreen(
+          trackId: trackId,
+          markerSetId: markerSet.id,
+        ),
       ),
     );
   }
@@ -398,9 +400,9 @@ class _MarkerSetCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
-                        onPressed: () => _showCreateMarkerDialog(context),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Marker'),
+                        onPressed: () => _startSync(context),
+                        icon: const Icon(Icons.sync),
+                        label: const Text('Start Sync'),
                       ),
                     ],
                   ),
@@ -446,13 +448,7 @@ class _MarkerSetCard extends ConsumerWidget {
                         ],
                         onSelected: (value) {
                           if (value == 'edit') {
-                            showDialog(
-                              context: context,
-                              builder: (context) => MarkerDialog(
-                                markerSetId: markerSet.id,
-                                marker: marker,
-                              ),
-                            );
+                            _startSync(context);
                           } else if (value == 'delete') {
                             _deleteMarker(context, ref, marker.id, marker.label);
                           }
@@ -460,14 +456,6 @@ class _MarkerSetCard extends ConsumerWidget {
                       ),
                     );
                   }),
-                  Padding(
-                    padding: const EdgeInsets.all(AppConstants.paddingSmall),
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showCreateMarkerDialog(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Marker'),
-                    ),
-                  ),
                 ],
               );
             },

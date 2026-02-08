@@ -384,10 +384,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('No markers yet'), findsOneWidget);
-        expect(find.text('Add Marker'), findsOneWidget);
+        expect(find.text('Start Sync'), findsOneWidget);
       });
 
-      testWidgets('should show add marker button in empty state', (tester) async {
+      testWidgets('should start sync when tapping start sync button', (tester) async {
         await repository.createMarkerSet(testMarkerSet);
 
         await tester.pumpWidget(createWidgetUnderTest());
@@ -396,11 +396,11 @@ void main() {
         await tester.tap(find.text('Structure'));
         await tester.pumpAndSettle();
 
-        // Find and tap Add Marker button
-        await tester.tap(find.text('Add Marker').first);
+        // Find and tap Start Sync button
+        await tester.tap(find.text('Start Sync').first);
         await tester.pumpAndSettle();
 
-        expect(find.text('Add Marker'), findsAtLeastNWidgets(1)); // Dialog title
+        expect(find.text('Sync Markers'), findsOneWidget);
       });
 
       testWidgets('should display markers in the expanded marker set', (tester) async {
