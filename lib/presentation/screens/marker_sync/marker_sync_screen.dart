@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/audio_player_provider.dart';
 import '../../providers/marker_sync_provider.dart';
 import 'marker_sync_state.dart';
 import 'text_input_step.dart';
@@ -11,7 +12,7 @@ import 'time_sync_step.dart';
 /// Coordinates between two steps:
 /// 1. Text input - User enters marker labels
 /// 2. Time sync - User syncs markers to audio positions
-class MarkerSyncScreen extends ConsumerWidget {
+class MarkerSyncScreen extends ConsumerStatefulWidget {
   final String trackId;
   final String markerSetId;
 
@@ -22,22 +23,41 @@ class MarkerSyncScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MarkerSyncScreen> createState() => _MarkerSyncScreenState();
+}
+
+class _MarkerSyncScreenState extends ConsumerState<MarkerSyncScreen> {
+  late final AudioPlayerControls _audioControls;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioControls = ref.read(audioPlayerControlsProvider);
+  }
+
+  @override
+  void dispose() {
+    _audioControls.stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Create provider params
     final params = MarkerSyncParams(
-      trackId: trackId,
-      markerSetId: markerSetId,
+      trackId: widget.trackId,
+      markerSetId: widget.markerSetId,
     );
 
     // Watch state
     final state = ref.watch(markerSyncNotifierProvider(params));
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (state.isDirty) {
-          return await _showDiscardConfirmation(context, ref, params);
+    return PopScope(
+      canPop: !state.isDirty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _handlePopWithDiscard(context, ref, params);
         }
-        return true;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -53,6 +73,17 @@ class MarkerSyncScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _handlePopWithDiscard(
+    BuildContext context,
+    WidgetRef ref,
+    MarkerSyncParams params,
+  ) async {
+    final shouldPop = await _showDiscardConfirmation(context, ref, params);
+    if (shouldPop && context.mounted) {
+      Navigator.pop(context);
+    }
   }
 
   void _confirmDiscard(
