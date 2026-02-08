@@ -161,11 +161,9 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       return;
     }
 
-    // Determine which marker to sync.
-    int syncIndex = state.currentIndex == -1 ? 0 : state.currentIndex;
-    if (syncIndex < 0) {
-      syncIndex = 0;
-    }
+    // Determine which marker to sync: next non-empty after current.
+    int syncIndex = state.currentIndex + 1;
+    if (syncIndex < 0) syncIndex = 0;
     while (syncIndex < state.labels.length && state.labels[syncIndex].isEmpty) {
       debugPrint('[MarkerSync] Skipping empty line at index $syncIndex');
       syncIndex++;
@@ -185,18 +183,10 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
     debugPrint('[MarkerSync] Syncing marker at index $syncIndex ("${state.labels[syncIndex]}") to position $positionMs ms');
 
-    // Advance to the next non-empty marker after the one just synced.
-    int nextIndex = syncIndex + 1;
-    while (nextIndex < state.labels.length && state.labels[nextIndex].isEmpty) {
-      nextIndex++;
-    }
-    final newCurrentIndex = nextIndex < state.labels.length ? nextIndex : syncIndex;
-
     // Apply position to the synced marker and any empty lines we skipped over.
     final newPositions = {...state.syncedPositions};
-    final startIndex = state.currentIndex == -1 ? 0 : state.currentIndex;
-    final endIndex = newCurrentIndex == syncIndex ? syncIndex : newCurrentIndex - 1;
-    for (int i = startIndex; i <= endIndex; i++) {
+    final startIndex = state.currentIndex == -1 ? 0 : state.currentIndex + 1;
+    for (int i = startIndex; i <= syncIndex; i++) {
       newPositions[i] = positionMs;
       if (state.labels[i].isEmpty) {
         debugPrint('[MarkerSync] Syncing skipped empty line at index $i to position $positionMs ms');
@@ -205,14 +195,14 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
     state = state.copyWith(
       syncedPositions: newPositions,
-      currentIndex: newCurrentIndex,
+      currentIndex: syncIndex,
       isDirty: true,
     );
   }
 
   /// Jump to a specific marker (without applying position)
   void jumpToMarker(int index) {
-    if (index < -1 || index >= state.labels.length) {
+    if (index < -1 || index > state.labels.length) {
       debugPrint('[MarkerSync] Invalid jump to index $index');
       return;
     }

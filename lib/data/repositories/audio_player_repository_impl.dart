@@ -249,6 +249,9 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       // Seek to position if needed
       if (seekPosition > Duration.zero) {
         await _player.seek(seekPosition);
+      } else if (_player.position > Duration.zero) {
+        // Force reset to start when ignoring saved position
+        await _player.seek(Duration.zero);
       }
 
       // Set the MediaItem before play() so the notification has a title.

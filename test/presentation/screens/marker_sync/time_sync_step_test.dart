@@ -8,6 +8,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/domain/entities/loop_range.dart';
 import 'package:repertoire_coach/domain/entities/playback_info.dart';
+import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/domain/entities/marker_set.dart';
 import 'package:repertoire_coach/domain/repositories/audio_player_repository.dart';
@@ -22,6 +23,8 @@ import 'time_sync_step_test.mocks.dart';
 class FakeAudioPlayerRepository implements AudioPlayerRepository {
   PlaybackInfo _currentPlayback;
   late final StreamController<PlaybackInfo> _controller;
+  Duration? lastPlayStartPosition;
+  bool? lastIgnoreSavedPosition;
 
   FakeAudioPlayerRepository([PlaybackInfo? initialPlayback])
       : _currentPlayback = initialPlayback ?? PlaybackInfo.idle() {
@@ -51,7 +54,16 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
     String? audioUrl,
     String? songName,
     String? albumName,
-  }) async {}
+  }) async {
+    lastPlayStartPosition = startPosition;
+    lastIgnoreSavedPosition = ignoreSavedPosition;
+    _currentPlayback = _currentPlayback.copyWith(
+      currentTrack: track,
+      position: startPosition,
+      state: AudioPlayerState.playing,
+    );
+    _controller.add(_currentPlayback);
+  }
 
   @override
   Future<void> resume() async {}
@@ -208,6 +220,9 @@ void main() {
 
         // Should show check icon for "..." marker (always synced)
         expect(find.byIcon(Icons.check), findsAtLeastNWidgets(1));
+
+        // Should show trailing "..." marker
+        expect(find.byKey(const ValueKey('markerSyncMarker_end')), findsOneWidget);
       });
 
       testWidgets('displays all marker labels', (tester) async {
@@ -218,6 +233,25 @@ void main() {
         expect(find.text('chorus'), findsOneWidget);
         await tester.scrollUntilVisible(find.text('bridge'), 200);
         expect(find.text('bridge'), findsOneWidget);
+      });
+
+      testWidgets('highlights the last synced marker (not next)', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['A', 'B', 'C']));
+        await tester.pumpAndSettle();
+
+        // First sync
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+
+        final aTile = tester.widget<ListTile>(find.byKey(const ValueKey('markerSyncMarker_0')));
+        expect(aTile.selected, isTrue);
+
+        // Second sync
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+
+        final bTile = tester.widget<ListTile>(find.byKey(const ValueKey('markerSyncMarker_1')));
+        expect(bTile.selected, isTrue);
       });
 
       testWidgets('renders empty lines as spacing', (tester) async {
@@ -712,6 +746,36 @@ void main() {
 
         // Should call repository
         verify(mockMarkerRepository.createMarker(any)).called(1);
+      });
+
+      testWidgets('restart resets playback position to 0', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        // Move playback away from zero
+        fakeAudioRepository.updatePosition(const Duration(seconds: 12));
+        await tester.pumpAndSettle();
+
+        // Restart
+        await tester.tap(find.byIcon(Icons.restart_alt));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Restart'));
+        await tester.pumpAndSettle();
+
+        expect(fakeAudioRepository.currentPlayback.position, Duration.zero);
+      });
+
+      testWidgets('play starts from 0 and ignores saved position', (tester) async {
+        fakeAudioRepository.updatePosition(const Duration(seconds: 20));
+
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.play_circle));
+        await tester.pumpAndSettle();
+
+        expect(fakeAudioRepository.lastPlayStartPosition, Duration.zero);
+        expect(fakeAudioRepository.lastIgnoreSavedPosition, true);
       });
 
       testWidgets('discard button closes screen without saving', (tester) async {

@@ -375,9 +375,9 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   Widget _buildMarkerList(ThemeData theme, MarkerSyncState state) {
     return ListView.builder(
       controller: _scrollController,
-      itemCount: state.labels.length + 1, // +1 for "..." marker
+      itemCount: state.labels.length + 2, // +2 for leading/trailing "..." markers
       itemBuilder: (context, index) {
-        final markerIndex = index - 1; // -1 = "..." marker
+        final markerIndex = index - 1; // -1 = leading "..." marker
 
         // Special "..." marker at start
         if (markerIndex == -1) {
@@ -389,6 +389,21 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
             subtitle: const Text('0:00.000'),
             onTap: () {
               ref.read(markerSyncNotifierProvider(widget.params).notifier).jumpToMarker(-1);
+            },
+          );
+        }
+
+        // Trailing "..." marker after last line
+        if (markerIndex == state.labels.length) {
+          final lastSynced = state.getLastSyncedPosition();
+          return ListTile(
+            key: const ValueKey('markerSyncMarker_end'),
+            selected: state.currentIndex == state.labels.length,
+            leading: const Icon(Icons.check, color: Colors.green),
+            title: const Text('...'),
+            subtitle: Text(_formatDuration(Duration(milliseconds: lastSynced))),
+            onTap: () {
+              ref.read(markerSyncNotifierProvider(widget.params).notifier).jumpToMarker(state.labels.length);
             },
           );
         }
