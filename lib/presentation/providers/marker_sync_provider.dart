@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -61,12 +62,12 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
     // Need at least one non-empty line
     if (lines.every((line) => line.isEmpty)) {
-      print('[MarkerSync] No non-empty lines found in input');
+      debugPrint('[MarkerSync] No non-empty lines found in input');
       return;
     }
 
     final nonEmptyCount = lines.where((l) => l.isNotEmpty).length;
-    print('[MarkerSync] Parsed ${lines.length} lines ($nonEmptyCount non-empty)');
+    debugPrint('[MarkerSync] Parsed ${lines.length} lines ($nonEmptyCount non-empty)');
 
     state = state.copyWith(
       step: SyncStep.timeSync,
@@ -79,7 +80,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
   /// Sync the next non-empty marker to the given position
   void syncNextMarker(int positionMs) {
-    print('[MarkerSync] syncNextMarker called: position=$positionMs, currentIndex=${state.currentIndex}');
+    debugPrint('[MarkerSync] syncNextMarker called: position=$positionMs, currentIndex=${state.currentIndex}');
 
     // If we're already at the last non-empty marker and it's synced, do nothing.
     int lastNonEmptyIndex = -1;
@@ -92,7 +93,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
     if (lastNonEmptyIndex != -1 &&
         state.currentIndex == lastNonEmptyIndex &&
         state.syncedPositions.containsKey(lastNonEmptyIndex)) {
-      print('[MarkerSync] All markers already synced');
+      debugPrint('[MarkerSync] All markers already synced');
       return;
     }
 
@@ -102,23 +103,23 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       syncIndex = 0;
     }
     while (syncIndex < state.labels.length && state.labels[syncIndex].isEmpty) {
-      print('[MarkerSync] Skipping empty line at index $syncIndex');
+      debugPrint('[MarkerSync] Skipping empty line at index $syncIndex');
       syncIndex++;
     }
 
     if (syncIndex >= state.labels.length) {
-      print('[MarkerSync] No more non-empty markers to sync');
+      debugPrint('[MarkerSync] No more non-empty markers to sync');
       return; // No more markers
     }
 
     // Verify monotonic invariant (should be prevented by UI, but double-check)
     final lastSyncedPosition = state.getLastSyncedPosition();
     if (positionMs < lastSyncedPosition) {
-      print('[MarkerSync] ERROR: Position $positionMs < last synced $lastSyncedPosition (should be prevented by UI)');
+      debugPrint('[MarkerSync] ERROR: Position $positionMs < last synced $lastSyncedPosition (should be prevented by UI)');
       return; // Don't apply sync - this should never happen
     }
 
-    print('[MarkerSync] Syncing marker at index $syncIndex ("${state.labels[syncIndex]}") to position $positionMs ms');
+    debugPrint('[MarkerSync] Syncing marker at index $syncIndex ("${state.labels[syncIndex]}") to position $positionMs ms');
 
     // Advance to the next non-empty marker after the one just synced.
     int nextIndex = syncIndex + 1;
@@ -134,7 +135,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
     for (int i = startIndex; i <= endIndex; i++) {
       newPositions[i] = positionMs;
       if (state.labels[i].isEmpty) {
-        print('[MarkerSync] Syncing skipped empty line at index $i to position $positionMs ms');
+        debugPrint('[MarkerSync] Syncing skipped empty line at index $i to position $positionMs ms');
       }
     }
 
@@ -148,11 +149,11 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
   /// Jump to a specific marker (without applying position)
   void jumpToMarker(int index) {
     if (index < -1 || index >= state.labels.length) {
-      print('[MarkerSync] Invalid jump to index $index');
+      debugPrint('[MarkerSync] Invalid jump to index $index');
       return;
     }
 
-    print('[MarkerSync] Jumping to marker at index $index');
+    debugPrint('[MarkerSync] Jumping to marker at index $index');
 
     state = state.copyWith(
       currentIndex: index,
@@ -161,7 +162,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
   /// Restart sync process (clear all positions except "...")
   void restart() {
-    print('[MarkerSync] Restarting sync - clearing all positions');
+    debugPrint('[MarkerSync] Restarting sync - clearing all positions');
 
     state = state.copyWith(
       currentIndex: -1,
@@ -172,7 +173,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
   /// Save all synced markers to the repository
   Future<void> save() async {
-    print('[MarkerSync] Saving markers...');
+    debugPrint('[MarkerSync] Saving markers...');
 
     int savedCount = 0;
     int skippedEmpty = 0;
@@ -191,12 +192,12 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       // Skip unsynced markers (unsynced is valid - user's choice)
       final positionMs = state.syncedPositions[i];
       if (positionMs == null) {
-        print('[MarkerSync] Skipping unsynced marker: "$label"');
+        debugPrint('[MarkerSync] Skipping unsynced marker: "$label"');
         skippedUnsynced++;
         continue;
       }
 
-      print('[MarkerSync] Creating marker: "$label" at $positionMs ms');
+      debugPrint('[MarkerSync] Creating marker: "$label" at $positionMs ms');
 
       final marker = Marker(
         id: const Uuid().v4(),
@@ -211,7 +212,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       savedCount++;
     }
 
-    print('[MarkerSync] Save complete: $savedCount saved, $skippedUnsynced unsynced, $skippedEmpty empty lines');
+    debugPrint('[MarkerSync] Save complete: $savedCount saved, $skippedUnsynced unsynced, $skippedEmpty empty lines');
 
     // Mark as saved (no longer dirty)
     state = state.copyWith(isDirty: false);
@@ -219,7 +220,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
   /// Discard all changes and reset to initial state
   void discard() {
-    print('[MarkerSync] Discarding changes');
+    debugPrint('[MarkerSync] Discarding changes');
     state = MarkerSyncState.initial(
       trackId: state.trackId,
       markerSetId: state.markerSetId,
