@@ -25,7 +25,14 @@ abstract class AudioPlayerRepository {
   /// [albumName] - Optional album name (concert name) to display in notification
   ///
   /// Throws an exception if the track has no audio source
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl, String? songName, String? albumName});
+  Future<void> playTrack(
+    Track track, {
+    Duration startPosition = Duration.zero,
+    bool ignoreSavedPosition = false,
+    String? audioUrl,
+    String? songName,
+    String? albumName,
+  });
 
   /// Resume playback if paused
   Future<void> resume();

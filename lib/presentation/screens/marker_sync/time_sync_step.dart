@@ -20,11 +20,27 @@ class TimeSyncStep extends ConsumerStatefulWidget {
 
 class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   final _scrollController = ScrollController();
+  bool _didResetPlayback = false;
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _resetPlaybackPosition() async {
+    if (_didResetPlayback) return;
+    _didResetPlayback = true;
+
+    final playbackInfo = ref.read(currentPlaybackProvider);
+    final audioControls = ref.read(audioPlayerControlsProvider);
+
+    if (playbackInfo.currentTrack?.id == widget.params.trackId) {
+      await audioControls.pause();
+      await audioControls.seek(Duration.zero);
+    } else {
+      await audioControls.stop();
+    }
   }
 
   void _scrollToCurrentMarker() {
@@ -71,6 +87,8 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
           FilledButton(
             onPressed: () {
               ref.read(markerSyncNotifierProvider(widget.params).notifier).restart();
+              _didResetPlayback = false;
+              _resetPlaybackPosition();
               Navigator.pop(context);
             },
             child: const Text('Restart'),
@@ -106,6 +124,9 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
     final theme = Theme.of(context);
     final state = ref.watch(markerSyncNotifierProvider(widget.params));
     final playbackInfoAsync = ref.watch(playbackInfoProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _resetPlaybackPosition();
+    });
     ref.listen<MarkerSyncState>(
       markerSyncNotifierProvider(widget.params),
       (previous, next) {
@@ -267,7 +288,22 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                             }
                             return;
                           }
-                          await audioControls.playTrack(track);
+                          try {
+                            await audioControls.playTrack(
+                              track,
+                              startPosition: Duration.zero,
+                              ignoreSavedPosition: true,
+                            );
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Unable to start playback: $e'),
+                                ),
+                              );
+                            }
+                            return;
+                          }
                         } else {
                           await audioControls.resume();
                         }

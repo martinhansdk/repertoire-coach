@@ -168,6 +168,7 @@ class _MarkerSyncScreenState extends ConsumerState<MarkerSyncScreen> {
           FilledButton(
             onPressed: () {
               ref.read(markerSyncNotifierProvider(params).notifier).restart();
+              _audioControls.stop();
               Navigator.pop(context);
             },
             child: const Text('Restart'),

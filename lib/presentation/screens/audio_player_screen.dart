@@ -123,6 +123,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                           builder: (context) => MarkerManagerScreen(
                             trackId: currentTrack.id,
                             trackName: currentTrack.name,
+                            songTitle: widget.songTitle,
                           ),
                         ),
                       );

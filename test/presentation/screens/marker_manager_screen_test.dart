@@ -18,6 +18,7 @@ void main() {
 
     const String testTrackId = 'track-1';
     const String testTrackName = 'Test Track';
+    const String testSongTitle = 'Test Song';
     const String testUserId = 'local-user-1';
 
     setUp(() async {
@@ -50,19 +51,21 @@ void main() {
           home: MarkerManagerScreen(
             trackId: testTrackId,
             trackName: testTrackName,
+            songTitle: testSongTitle,
           ),
         ),
       );
     }
 
     group('App Bar', () {
-      testWidgets('should display correct title and track name', (tester) async {
+      testWidgets('should display correct title, song, and track name', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
           markerSetsFuture: Future.value([]),
         ));
         await tester.pumpAndSettle();
 
         expect(find.text('Markers'), findsOneWidget);
+        expect(find.text(testSongTitle), findsOneWidget);
         expect(find.text(testTrackName), findsOneWidget);
       });
 
@@ -83,6 +86,7 @@ void main() {
                           builder: (_) => const MarkerManagerScreen(
                             trackId: testTrackId,
                             trackName: testTrackName,
+                            songTitle: testSongTitle,
                           ),
                         ),
                       );

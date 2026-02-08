@@ -87,6 +87,7 @@ class MockAudioPlayerRepository extends _i1.Mock
   _i4.Future<void> playTrack(
     _i5.Track? track, {
     Duration? startPosition = Duration.zero,
+    bool? ignoreSavedPosition = false,
     String? audioUrl,
     String? songName,
     String? albumName,
@@ -97,6 +98,7 @@ class MockAudioPlayerRepository extends _i1.Mock
           [track],
           {
             #startPosition: startPosition,
+            #ignoreSavedPosition: ignoreSavedPosition,
             #audioUrl: audioUrl,
             #songName: songName,
             #albumName: albumName,

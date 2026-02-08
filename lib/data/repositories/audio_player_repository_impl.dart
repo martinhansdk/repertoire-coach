@@ -192,7 +192,14 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   PlaybackInfo get currentPlayback => _currentPlaybackInfo;
 
   @override
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? audioUrl, String? songName, String? albumName}) async {
+  Future<void> playTrack(
+    Track track, {
+    Duration startPosition = Duration.zero,
+    bool ignoreSavedPosition = false,
+    String? audioUrl,
+    String? songName,
+    String? albumName,
+  }) async {
     await _ensureInitialized(); // ensure audio_service & audio_session are ready
 
     // Use provided audioUrl (e.g., signed URL) or fall back to track's stored URL
@@ -228,7 +235,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
       // Load saved position if no start position specified
       Duration seekPosition = startPosition;
-      if (startPosition == Duration.zero) {
+      if (!ignoreSavedPosition && startPosition == Duration.zero) {
         seekPosition = await loadPlaybackPosition(track.id);
       }
 

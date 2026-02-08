@@ -16,11 +16,13 @@ const String _currentUserId = 'local-user-1';
 class MarkerManagerScreen extends ConsumerWidget {
   final String trackId;
   final String trackName;
+  final String songTitle;
 
   const MarkerManagerScreen({
     super.key,
     required this.trackId,
     required this.trackName,
+    required this.songTitle,
   });
 
   Future<void> _navigateToMarkerSync(BuildContext context, WidgetRef ref) async {
@@ -117,6 +119,13 @@ class MarkerManagerScreen extends ConsumerWidget {
             const Text(
               'Markers',
               style: TextStyle(fontSize: 18),
+            ),
+            Text(
+              songTitle,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
             ),
             Text(
               trackName,

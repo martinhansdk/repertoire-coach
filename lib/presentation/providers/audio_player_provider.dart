@@ -64,7 +64,13 @@ class AudioPlayerControls {
   ///
   /// If the track has a cloud storage path, generates a signed URL for
   /// authenticated access (valid for 24 hours).
-  Future<void> playTrack(Track track, {Duration startPosition = Duration.zero, String? songName, String? albumName}) async {
+  Future<void> playTrack(
+    Track track, {
+    Duration startPosition = Duration.zero,
+    bool ignoreSavedPosition = false,
+    String? songName,
+    String? albumName,
+  }) async {
     String? signedUrl;
 
     // Generate signed URL for cloud-stored audio files
@@ -80,7 +86,14 @@ class AudioPlayerControls {
       }
     }
 
-    await _repository.playTrack(track, startPosition: startPosition, audioUrl: signedUrl, songName: songName, albumName: albumName);
+    await _repository.playTrack(
+      track,
+      startPosition: startPosition,
+      ignoreSavedPosition: ignoreSavedPosition,
+      audioUrl: signedUrl,
+      songName: songName,
+      albumName: albumName,
+    );
   }
 
   /// Resume playback if paused
