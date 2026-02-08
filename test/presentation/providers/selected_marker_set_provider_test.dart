@@ -3,13 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/presentation/providers/selected_marker_set_provider.dart';
 
 void main() {
-  group('SelectedMarkerSetNotifier', () {
+  group('selectedMarkerSetProvider', () {
     late ProviderContainer container;
-    late SelectedMarkerSetNotifier notifier;
 
     setUp(() {
       container = ProviderContainer();
-      notifier = container.read(selectedMarkerSetProvider);
     });
 
     tearDown(() {
@@ -17,85 +15,47 @@ void main() {
     });
 
     test('initial state is null', () {
-      // Assert
-      expect(notifier.selectedMarkerSetId, isNull);
+      expect(container.read(selectedMarkerSetProvider), isNull);
     });
 
-    test('select() updates the selected marker set ID', () {
+    test('updates the selected marker set ID', () {
       // Arrange
       const markerSetId = 'marker-set-123';
 
       // Act
-      notifier.select(markerSetId);
+      container.read(selectedMarkerSetProvider.notifier).state = markerSetId;
 
       // Assert
-      expect(notifier.selectedMarkerSetId, markerSetId);
+      expect(container.read(selectedMarkerSetProvider), markerSetId);
     });
 
-    test('select() can update to different marker set IDs', () {
+    test('can update to different marker set IDs', () {
       // Arrange
       const firstId = 'marker-set-1';
       const secondId = 'marker-set-2';
       const thirdId = 'marker-set-3';
 
       // Act & Assert
-      notifier.select(firstId);
-      expect(notifier.selectedMarkerSetId, firstId);
+      container.read(selectedMarkerSetProvider.notifier).state = firstId;
+      expect(container.read(selectedMarkerSetProvider), firstId);
 
-      notifier.select(secondId);
-      expect(notifier.selectedMarkerSetId, secondId);
+      container.read(selectedMarkerSetProvider.notifier).state = secondId;
+      expect(container.read(selectedMarkerSetProvider), secondId);
 
-      notifier.select(thirdId);
-      expect(notifier.selectedMarkerSetId, thirdId);
+      container.read(selectedMarkerSetProvider.notifier).state = thirdId;
+      expect(container.read(selectedMarkerSetProvider), thirdId);
     });
 
-    test('select() can be called with null', () {
+    test('can be cleared by setting null', () {
       // Arrange
       const markerSetId = 'marker-set-123';
-      notifier.select(markerSetId);
+      container.read(selectedMarkerSetProvider.notifier).state = markerSetId;
 
       // Act
-      notifier.select(null);
+      container.read(selectedMarkerSetProvider.notifier).state = null;
 
       // Assert
-      expect(notifier.selectedMarkerSetId, isNull);
-    });
-
-    test('clear() resets selection to null', () {
-      // Arrange
-      const markerSetId = 'marker-set-123';
-      notifier.select(markerSetId);
-
-      // Act
-      notifier.clear();
-
-      // Assert
-      expect(notifier.selectedMarkerSetId, isNull);
-    });
-
-    test('selectedMarkerSetProvider returns SelectedMarkerSetNotifier instance', () {
-      expect(notifier, isA<SelectedMarkerSetNotifier>());
-    });
-
-    test('multiple reads from provider return same instance', () {
-      // Act
-      final notifier1 = container.read(selectedMarkerSetProvider);
-      final notifier2 = container.read(selectedMarkerSetProvider);
-
-      // Assert
-      expect(notifier1, same(notifier2));
-    });
-
-    test('state persists across multiple reads', () {
-      // Arrange
-      const markerSetId = 'marker-set-456';
-
-      // Act
-      container.read(selectedMarkerSetProvider).select(markerSetId);
-      final result = container.read(selectedMarkerSetProvider).selectedMarkerSetId;
-
-      // Assert
-      expect(result, markerSetId);
+      expect(container.read(selectedMarkerSetProvider), isNull);
     });
   });
 }

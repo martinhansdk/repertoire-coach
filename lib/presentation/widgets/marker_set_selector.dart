@@ -20,10 +20,12 @@ class MarkerSetSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final notifier = ref.watch(selectedMarkerSetProvider);
-    final selectedId = notifier.selectedMarkerSetId;
+    final selectedId = ref.watch(selectedMarkerSetProvider);
 
     if (markerSets.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(selectedMarkerSetProvider.notifier).state = null;
+      });
       return _EmptyState(onManageMarkers: onManageMarkers);
     }
 
@@ -35,7 +37,7 @@ class MarkerSetSelector extends ConsumerWidget {
     // Update selection if it was invalid
     if (validSelectedId != selectedId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        notifier.select(validSelectedId);
+        ref.read(selectedMarkerSetProvider.notifier).state = validSelectedId;
       });
     }
 
@@ -68,7 +70,7 @@ class MarkerSetSelector extends ConsumerWidget {
             }).toList(),
             onChanged: (String? newValue) {
               if (newValue != null) {
-                notifier.select(newValue);
+                ref.read(selectedMarkerSetProvider.notifier).state = newValue;
               }
             },
           ),

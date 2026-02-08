@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/audio_player_state.dart';
+import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../providers/audio_player_provider.dart';
 import '../providers/marker_provider.dart';
@@ -46,6 +47,16 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final playbackInfoAsync = ref.watch(playbackInfoProvider);
+    ref.listen<AsyncValue<PlaybackInfo>>(
+      playbackInfoProvider,
+      (previous, next) {
+        final previousTrack = previous?.value?.currentTrack ?? widget.track;
+        final nextTrack = next.value?.currentTrack ?? widget.track;
+        if (previousTrack.id != nextTrack.id) {
+          ref.read(selectedMarkerSetProvider.notifier).state = null;
+        }
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -228,7 +239,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   }
 
   Widget _buildProgressBar(Track track, playbackInfo) {
-    final selectedMarkerSetId = ref.watch(selectedMarkerSetProvider).selectedMarkerSetId;
+    final selectedMarkerSetId = ref.watch(selectedMarkerSetProvider);
 
     if (selectedMarkerSetId == null) {
       // No marker set selected, use simple slider
@@ -331,7 +342,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   }
 
   Widget _buildMarkerSection(Track track, playbackInfo) {
-    final selectedMarkerSetId = ref.watch(selectedMarkerSetProvider).selectedMarkerSetId;
+    final selectedMarkerSetId = ref.watch(selectedMarkerSetProvider);
 
     if (selectedMarkerSetId == null) {
       return const SizedBox.shrink();

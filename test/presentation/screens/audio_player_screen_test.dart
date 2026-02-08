@@ -6,10 +6,13 @@ import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
 import 'package:repertoire_coach/domain/entities/playback_info.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
+import 'package:repertoire_coach/domain/entities/marker.dart';
+import 'package:repertoire_coach/domain/entities/marker_set.dart';
 import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
 import 'package:repertoire_coach/presentation/providers/selected_marker_set_provider.dart';
 import 'package:repertoire_coach/presentation/screens/audio_player_screen.dart';
+import 'package:repertoire_coach/presentation/widgets/marker_progress_bar.dart';
 
 import '../providers/audio_player_provider_test.mocks.dart';
 
@@ -17,6 +20,7 @@ void main() {
   late MockAudioPlayerRepository mockAudioPlayerRepository;
 
   final tTrack1 = Track(id: 't1', songId: 's1', name: 'Track 1', filePath: '/path/to/track1.mp3', createdAt: DateTime.now(), updatedAt: DateTime.now());
+  final tTrack2 = Track(id: 't2', songId: 's1', name: 'Track 2', filePath: '/path/to/track2.mp3', createdAt: DateTime.now(), updatedAt: DateTime.now());
 
   setUp(() {
     mockAudioPlayerRepository = MockAudioPlayerRepository();
@@ -36,15 +40,28 @@ void main() {
 
   Widget createWidgetUnderTest({
     Stream<PlaybackInfo>? playbackInfoStream,
+    Future<List<MarkerSet>>? markerSetsTrack1,
+    Future<List<MarkerSet>>? markerSetsTrack2,
+    Map<String, List<Marker>>? markersBySetId,
   }) {
     return ProviderScope(
       overrides: [
         playbackInfoProvider.overrideWith((ref) => playbackInfoStream ?? Stream.value(PlaybackInfo.idle())),
         audioPlayerRepositoryProvider.overrideWithValue(mockAudioPlayerRepository),
         // Mock marker-related providers to prevent database access
-        markerSetsByTrackProvider(('t1', 'local-user-1')).overrideWith((ref) => Future.value([])),
-        selectedMarkerSetProvider.overrideWith((ref) => SelectedMarkerSetNotifier()),
+        markerSetsByTrackProvider(('t1', 'local-user-1')).overrideWith(
+          (ref) => markerSetsTrack1 ?? Future.value([]),
+        ),
+        markerSetsByTrackProvider(('t2', 'local-user-1')).overrideWith(
+          (ref) => markerSetsTrack2 ?? Future.value([]),
+        ),
+        selectedMarkerSetProvider.overrideWith((ref) => null),
         markersByMarkerSetProvider('').overrideWith((ref) => Future.value([])),
+        if (markersBySetId != null)
+          ...markersBySetId.entries.map(
+            (entry) => markersByMarkerSetProvider(entry.key)
+                .overrideWith((ref) => Future.value(entry.value)),
+          ),
       ],
       child: MaterialApp(
         home: AudioPlayerScreen(track: tTrack1, songTitle: 'Test Song', concertName: 'Test Concert'),
@@ -179,5 +196,60 @@ void main() {
     await tester.pump();
 
     verify(mockAudioPlayerRepository.pause()).called(1);
+  });
+
+  testWidgets('clears markers when switching to track with no marker sets', (tester) async {
+    final controller = StreamController<PlaybackInfo>();
+    final markerSet1 = MarkerSet(
+      id: 'set-1',
+      trackId: tTrack1.id,
+      name: 'Set 1',
+      isShared: false,
+      createdByUserId: 'local-user-1',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    final marker1 = Marker(
+      id: 'm1',
+      markerSetId: markerSet1.id,
+      label: 'Intro',
+      positionMs: 1000,
+      order: 1000,
+      createdAt: DateTime.now(),
+    );
+
+    await tester.pumpWidget(
+      createWidgetUnderTest(
+        playbackInfoStream: controller.stream,
+        markerSetsTrack1: Future.value([markerSet1]),
+        markerSetsTrack2: Future.value([]),
+        markersBySetId: {markerSet1.id: [marker1]},
+      ),
+    );
+
+    controller.add(
+      PlaybackInfo.idle().copyWith(
+        currentTrack: tTrack1,
+        duration: const Duration(minutes: 1),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Markers'), findsOneWidget);
+    expect(find.byType(MarkerProgressBar), findsOneWidget);
+
+    controller.add(
+      PlaybackInfo.idle().copyWith(
+        currentTrack: tTrack2,
+        duration: const Duration(minutes: 1),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Markers'), findsNothing);
+    expect(find.byType(MarkerProgressBar), findsNothing);
+    expect(find.text('No marker sets'), findsOneWidget);
+
+    await controller.close();
   });
 }

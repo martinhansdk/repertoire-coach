@@ -46,13 +46,7 @@ void main() {
     }) {
       return ProviderScope(
         overrides: [
-          selectedMarkerSetProvider.overrideWith((ref) {
-            final notifier = SelectedMarkerSetNotifier();
-            if (initialSelectedId != null) {
-              notifier.select(initialSelectedId);
-            }
-            return notifier;
-          }),
+          selectedMarkerSetProvider.overrideWith((ref) => initialSelectedId),
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -223,7 +217,7 @@ void main() {
           ProviderScope(
             child: Consumer(
               builder: (context, ref, child) {
-                selectedId = ref.watch(selectedMarkerSetProvider).selectedMarkerSetId;
+                selectedId = ref.watch(selectedMarkerSetProvider);
                 return MaterialApp(
                   home: Scaffold(
                     body: MarkerSetSelector(
