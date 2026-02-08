@@ -182,6 +182,20 @@ void main() {
 
         expect(notifier.state, stateBefore);
       });
+
+      test('should invalidate later markers when syncing from earlier index', () {
+        notifier.syncNextMarker(1000); // intro
+        notifier.syncNextMarker(2000); // verse
+        notifier.syncNextMarker(3000); // chorus
+
+        notifier.jumpToMarker(0); // back to intro
+        notifier.syncNextMarker(1500); // resync from earlier point
+
+        expect(notifier.state.currentIndex, 1); // verse synced next
+        expect(notifier.state.syncedPositions[0], 1000);
+        expect(notifier.state.syncedPositions[1], 1500);
+        expect(notifier.state.syncedPositions[2], null);
+      });
     });
 
     group('getLastSyncedPosition', () {

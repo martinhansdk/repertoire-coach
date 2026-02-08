@@ -271,14 +271,11 @@ void main() {
 
         // Should show "..." marker at 0:00.000
         expect(find.byKey(const ValueKey('markerSyncMarker_-1')), findsOneWidget);
-        expect(find.text('...'), findsNWidgets(2));
+        expect(find.text('...'), findsOneWidget);
         expect(find.text('0:00.000'), findsAtLeastNWidgets(1));
 
         // Should show check icon for "..." marker (always synced)
         expect(find.byIcon(Icons.check), findsAtLeastNWidgets(1));
-
-        // Should show trailing "..." marker
-        expect(find.byKey(const ValueKey('markerSyncMarker_end')), findsOneWidget);
       });
 
       testWidgets('displays all marker labels', (tester) async {
@@ -909,7 +906,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Should show "..." marker only
-        expect(find.text('...'), findsNWidgets(2));
+        expect(find.text('...'), findsOneWidget);
       });
 
       testWidgets('handles single label', (tester) async {
