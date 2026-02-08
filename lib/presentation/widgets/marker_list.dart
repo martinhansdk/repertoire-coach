@@ -44,9 +44,9 @@ class MarkerList extends StatelessWidget {
       );
     }
 
-    // Sort markers by position
+    // Sort markers by display order
     final sortedMarkers = List<Marker>.from(markers)
-      ..sort((a, b) => a.positionMs.compareTo(b.positionMs));
+      ..sort((a, b) => a.order.compareTo(b.order));
 
     return ListView.builder(
       shrinkWrap: true,

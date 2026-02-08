@@ -141,23 +141,22 @@ void main() {
     });
 
     group('Marker Sorting', () {
-      testWidgets('should sort markers by position (chronologically)', (tester) async {
-        // Provide markers in random order
-        final unsortedMarkers = [marker3, marker1, marker4, marker2];
+      testWidgets('should sort markers by display order', (tester) async {
+        final shuffledMarkers = [marker3, marker1, marker4, marker2];
 
         await tester.pumpWidget(createWidgetUnderTest(
-          markers: unsortedMarkers,
+          markers: shuffledMarkers,
         ));
         await tester.pumpAndSettle();
 
         // Get all ListTile widgets
         final listTiles = tester.widgetList<ListTile>(find.byType(ListTile)).toList();
 
-        // Verify they are in sorted order
-        expect((listTiles[0].title as Text).data, 'Intro'); // 0ms
-        expect((listTiles[1].title as Text).data, 'Verse 1'); // 30000ms
-        expect((listTiles[2].title as Text).data, 'Chorus'); // 60000ms
-        expect((listTiles[3].title as Text).data, 'Bridge'); // 90000ms
+        // Verify they are in display order (order field)
+        expect((listTiles[0].title as Text).data, 'Intro');
+        expect((listTiles[1].title as Text).data, 'Verse 1');
+        expect((listTiles[2].title as Text).data, 'Chorus');
+        expect((listTiles[3].title as Text).data, 'Bridge');
       });
 
       testWidgets('should handle markers with same position', (tester) async {

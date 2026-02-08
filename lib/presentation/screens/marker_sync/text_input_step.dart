@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/marker_provider.dart';
 import '../../providers/marker_sync_provider.dart';
 
 /// Step 1 of marker sync: User inputs text (one marker per line)
@@ -15,6 +16,7 @@ class TextInputStep extends ConsumerStatefulWidget {
 
 class _TextInputStepState extends ConsumerState<TextInputStep> {
   final _textController = TextEditingController();
+  bool _didPrefill = false;
 
   @override
   void dispose() {
@@ -30,7 +32,29 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final markersAsync = ref.watch(markersByMarkerSetProvider(widget.params.markerSetId));
     final text = _textController.text;
+
+    markersAsync.whenData((markers) {
+      if (_didPrefill || _textController.text.isNotEmpty) {
+        return;
+      }
+      if (markers.isEmpty) {
+        _didPrefill = true;
+        return;
+      }
+
+      final sortedMarkers = List.of(markers)
+        ..sort((a, b) => a.order.compareTo(b.order));
+      final prefillText = sortedMarkers.map((marker) => marker.label).join('\n');
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _didPrefill) return;
+        _textController.text = prefillText;
+        _didPrefill = true;
+        setState(() {});
+      });
+    });
 
     // Count lines and non-empty lines
     final lines = text.split('\n');

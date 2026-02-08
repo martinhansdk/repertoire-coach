@@ -384,10 +384,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('No markers yet'), findsOneWidget);
-        expect(find.text('Start Sync'), findsOneWidget);
+        expect(find.text('Edit'), findsOneWidget);
       });
 
-      testWidgets('should start sync when tapping start sync button', (tester) async {
+      testWidgets('should start sync when tapping edit button', (tester) async {
         await repository.createMarkerSet(testMarkerSet);
 
         await tester.pumpWidget(createWidgetUnderTest());
@@ -396,8 +396,8 @@ void main() {
         await tester.tap(find.text('Structure'));
         await tester.pumpAndSettle();
 
-        // Find and tap Start Sync button
-        await tester.tap(find.text('Start Sync').first);
+        // Find and tap Edit button
+        await tester.tap(find.text('Edit').first);
         await tester.pumpAndSettle();
 
         expect(find.text('Sync Markers'), findsOneWidget);

@@ -204,7 +204,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
         markerSetId: state.markerSetId,
         label: label,
         positionMs: positionMs,
-        order: positionMs, // Chronological order
+        order: i, // Preserve input order
         createdAt: DateTime.now().toUtc(),
       );
 

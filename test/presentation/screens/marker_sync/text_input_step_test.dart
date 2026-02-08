@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:repertoire_coach/domain/repositories/marker_repository.dart';
+import 'package:repertoire_coach/domain/entities/marker.dart';
+import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_sync_provider.dart';
 import 'package:repertoire_coach/presentation/screens/marker_sync/text_input_step.dart';
 
@@ -17,7 +19,7 @@ void main() {
       mockRepository = MockMarkerRepository();
     });
 
-    Widget createWidgetUnderTest() {
+    Widget createWidgetUnderTest({List<Marker>? markers}) {
       return ProviderScope(
         overrides: [
           markerSyncNotifierProvider(
@@ -27,6 +29,9 @@ void main() {
                 trackId: 'track-1',
                 markerSetId: 'set-1',
               )),
+          if (markers != null)
+            markersByMarkerSetProvider('set-1')
+                .overrideWith((ref) => Future.value(markers)),
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -94,6 +99,33 @@ void main() {
         final textField = tester.widget<TextField>(find.byType(TextField));
         expect(textField.expands, true);
         expect(textField.maxLines, null);
+      });
+
+      testWidgets('prepopulates text when markers exist', (tester) async {
+        final markers = [
+          Marker(
+            id: 'm2',
+            markerSetId: 'set-1',
+            label: 'Chorus',
+            positionMs: 20000,
+            order: 1,
+            createdAt: DateTime.now(),
+          ),
+          Marker(
+            id: 'm1',
+            markerSetId: 'set-1',
+            label: 'Verse',
+            positionMs: 10000,
+            order: 0,
+            createdAt: DateTime.now(),
+          ),
+        ];
+
+        await tester.pumpWidget(createWidgetUnderTest(markers: markers));
+        await tester.pumpAndSettle();
+
+        final textField = tester.widget<TextField>(find.byType(TextField));
+        expect(textField.controller?.text, 'Verse\nChorus');
       });
     });
 

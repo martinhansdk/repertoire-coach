@@ -401,8 +401,8 @@ class _MarkerSetCard extends ConsumerWidget {
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
                         onPressed: () => _startSync(context),
-                        icon: const Icon(Icons.sync),
-                        label: const Text('Start Sync'),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Edit'),
                       ),
                     ],
                   ),

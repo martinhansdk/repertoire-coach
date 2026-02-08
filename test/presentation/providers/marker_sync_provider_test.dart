@@ -275,7 +275,7 @@ void main() {
         expect(markers[1].label, 'verse');
       });
 
-      test('should set markers in chronological order', () async {
+      test('should preserve marker display order from input', () async {
         notifier.syncNextMarker(1000);
         notifier.syncNextMarker(2000);
 
@@ -286,8 +286,8 @@ void main() {
         final captured = verify(mockRepository.createMarker(captureAny)).captured;
         final markers = captured.cast<Marker>();
 
-        expect(markers[0].order, 1000);
-        expect(markers[1].order, 2000);
+        expect(markers[0].order, 0);
+        expect(markers[1].order, 2);
       });
 
       test('should mark state as not dirty after save', () async {
