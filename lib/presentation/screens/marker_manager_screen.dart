@@ -277,60 +277,6 @@ class _MarkerSetCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _deleteMarker(
-    BuildContext context,
-    WidgetRef ref,
-    String markerId,
-    String markerLabel,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Marker'),
-        content: Text('Are you sure you want to delete "$markerLabel"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && context.mounted) {
-      try {
-        final repository = ref.read(markerRepositoryProvider);
-        await repository.deleteMarker(markerId);
-
-        if (context.mounted) {
-          ref.invalidate(markersByMarkerSetProvider(markerSet.id));
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Marker deleted successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error deleting marker: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -351,7 +297,19 @@ class _MarkerSetCard extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(markerSet.name),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(markerSet.name),
+                  const SizedBox(height: 2),
+                  Text(
+                    markerSet.isTimeSynced ? 'Synced to audio' : 'Not synced to audio',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -411,66 +369,22 @@ class _MarkerSetCard extends ConsumerWidget {
                 );
               }
 
-              return Column(
-                children: [
-                  if (!markerSet.isTimeSynced)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        'Not synced to audio yet',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ...markers.map((marker) {
-                    final position = Duration(milliseconds: marker.positionMs);
-                    final minutes = position.inMinutes;
-                    final seconds = position.inSeconds % 60;
-                    final milliseconds = position.inMilliseconds % 1000;
+              final markerText = markers.map((marker) => marker.label).join('\n');
 
-                    return ListTile(
-                      leading: const Icon(Icons.place),
-                      title: Text(marker.label),
-                      subtitle: markerSet.isTimeSynced
-                          ? Text(
-                              '$minutes:${seconds.toString().padLeft(2, '0')}.${milliseconds.toString().padLeft(3, '0')}',
-                            )
-                          : const Text('Not synced'),
-                      trailing: PopupMenuButton(
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Delete', style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                        ],
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            _startSync(context);
-                          } else if (value == 'delete') {
-                            _deleteMarker(context, ref, marker.id, marker.label);
-                          }
-                        },
-                      ),
-                    );
-                  }),
-                ],
+              return Padding(
+                padding: const EdgeInsets.all(AppConstants.paddingMedium),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppConstants.paddingMedium),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    markerText,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
               );
             },
             loading: () => const Padding(

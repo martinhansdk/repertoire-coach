@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS marker_sets (
   track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   is_shared BOOLEAN NOT NULL DEFAULT false,
+  is_time_synced BOOLEAN NOT NULL DEFAULT true,
   created_by_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

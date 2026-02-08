@@ -31,6 +31,7 @@ class RemoteMarkerDataSource {
             track_id,
             name,
             is_shared,
+            is_time_synced,
             created_by_user_id,
             created_at,
             updated_at
@@ -61,6 +62,7 @@ class RemoteMarkerDataSource {
             track_id,
             name,
             is_shared,
+            is_time_synced,
             created_by_user_id,
             created_at,
             updated_at
@@ -99,6 +101,7 @@ class RemoteMarkerDataSource {
           .update({
             'name': markerSet.name,
             'is_shared': markerSet.isShared,
+            'is_time_synced': markerSet.isTimeSynced,
             'updated_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', markerSet.id);

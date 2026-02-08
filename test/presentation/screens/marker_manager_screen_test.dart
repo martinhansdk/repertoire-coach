@@ -438,10 +438,10 @@ void main() {
         await tester.tap(find.text('Structure'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Intro'), findsOneWidget);
-        expect(find.text('Verse 1'), findsOneWidget);
-        expect(find.text('0:00.000'), findsOneWidget);
-        expect(find.text('0:30.000'), findsOneWidget);
+        expect(find.textContaining('Intro'), findsOneWidget);
+        expect(find.textContaining('Verse 1'), findsOneWidget);
+        expect(find.text('0:00.000'), findsNothing);
+        expect(find.text('0:30.000'), findsNothing);
       });
 
       // SKIP: Same PopupMenuButton issue as Marker Set Actions tests above
@@ -612,7 +612,7 @@ void main() {
         updatedAt: DateTime.now(),
       );
 
-      testWidgets('should format marker time correctly', (tester) async {
+      testWidgets('should not display marker times in set text view', (tester) async {
         await repository.createMarkerSet(testMarkerSet);
 
         final marker = Marker(
@@ -632,7 +632,7 @@ void main() {
         await tester.tap(find.text('Test'));
         await tester.pumpAndSettle();
 
-        expect(find.text('2:05.500'), findsOneWidget);
+        expect(find.text('2:05.500'), findsNothing);
       });
     });
   });
