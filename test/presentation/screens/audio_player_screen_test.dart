@@ -86,7 +86,7 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
     streamController.add(PlaybackInfo.idle());
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 200));
 
     await streamController.close();
   });
@@ -132,6 +132,35 @@ void main() {
     ));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byIcon(Icons.loop), findsOneWidget);
+  });
+
+  testWidgets('marker selector shares row with playback controls', (tester) async {
+    final playbackInfo = PlaybackInfo.idle().copyWith(
+      currentTrack: tTrack1,
+      state: AudioPlayerState.paused,
+    );
+    final markerSet = MarkerSet(
+      id: 'set-1',
+      trackId: tTrack1.id,
+      name: 'Set 1',
+      isShared: false,
+      isTimeSynced: true,
+      createdByUserId: 'local-user-1',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    await tester.pumpWidget(
+      createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+        markerSetsTrack1: Future.value([markerSet]),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final loopRect = tester.getRect(find.byIcon(Icons.loop));
+    final playRect = tester.getRect(find.byIcon(Icons.play_circle_filled));
+    expect((loopRect.center.dy - playRect.center.dy).abs(), lessThan(6));
   });
 
   testWidgets('stop button is not present', (tester) async {

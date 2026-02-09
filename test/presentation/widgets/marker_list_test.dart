@@ -69,6 +69,60 @@ void main() {
     expect(find.text('0:10.000'), findsNothing);
   });
 
+  testWidgets('renders empty markers as blank lines', (tester) async {
+    final markers = [
+      Marker(
+        id: 'm1',
+        markerSetId: 'set-1',
+        label: 'Line 1',
+        positionMs: 0,
+        order: 0,
+        createdAt: DateTime(2024, 1, 1),
+      ),
+      Marker(
+        id: 'm2',
+        markerSetId: 'set-1',
+        label: '',
+        positionMs: 5000,
+        order: 1,
+        createdAt: DateTime(2024, 1, 1),
+      ),
+      Marker(
+        id: 'm3',
+        markerSetId: 'set-1',
+        label: 'Line 2',
+        positionMs: 10000,
+        order: 2,
+        createdAt: DateTime(2024, 1, 1),
+      ),
+    ];
+
+    await tester.pumpWidget(
+      buildWidget(
+        markers: markers,
+        currentPosition: Duration.zero,
+        onMarkerTap: (_) {},
+      ),
+    );
+
+    expect(find.text('Line 1'), findsOneWidget);
+    expect(find.text('Line 2'), findsOneWidget);
+    expect(find.byKey(const ValueKey('markerSpacer_1')), findsOneWidget);
+  });
+
+  testWidgets('uses compact row height', (tester) async {
+    await tester.pumpWidget(
+      buildWidget(
+        markers: buildMarkers(),
+        currentPosition: Duration.zero,
+        onMarkerTap: (_) {},
+      ),
+    );
+
+    final listView = tester.widget<ListView>(find.byKey(const ValueKey('markerListScroll')));
+    expect(listView.itemExtent, lessThanOrEqualTo(36));
+  });
+
   testWidgets('tapping marker calls onMarkerTap with position', (tester) async {
     Duration? tapped;
     await tester.pumpWidget(

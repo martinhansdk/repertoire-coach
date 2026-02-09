@@ -28,7 +28,7 @@ class MarkerList extends StatefulWidget {
 }
 
 class _MarkerListState extends State<MarkerList> {
-  static const double _itemExtent = 56.0;
+  static const double _itemExtent = 30.0;
   final ScrollController _scrollController = ScrollController();
   int _lastActiveIndex = -1;
 
@@ -152,6 +152,14 @@ class _MarkerListState extends State<MarkerList> {
             ? (elapsed / segmentDuration.inMilliseconds).clamp(0.0, 1.0)
             : 0.0;
 
+        if (marker.label.isEmpty) {
+          return Container(
+            key: ValueKey('markerSpacer_$index'),
+            height: _itemExtent,
+            color: theme.colorScheme.surfaceContainerHighest,
+          );
+        }
+
         return InkWell(
           onTap: widget.onMarkerTap != null ? () => widget.onMarkerTap!(markerPosition) : null,
           onLongPress: widget.onMarkerLongPress != null ? () => widget.onMarkerLongPress!(marker) : null,
@@ -173,7 +181,7 @@ class _MarkerListState extends State<MarkerList> {
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(

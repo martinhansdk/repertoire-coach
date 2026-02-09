@@ -104,60 +104,6 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: markerSetsAsync.when(
-                      data: (markerSets) {
-                        return MarkerSetSelector(
-                          markerSets: markerSets,
-                          onManageMarkers: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MarkerManagerScreen(
-                                  trackId: currentTrack.id,
-                                  trackName: currentTrack.name,
-                                  songTitle: widget.songTitle,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.loop),
-                    tooltip: 'A-B Loop (coming soon)',
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // Progress bar with markers
-              _buildProgressBar(currentTrack, playbackInfo),
-
-              const SizedBox(height: 4),
-
-              // Time display
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(_formatDuration(playbackInfo.position)),
-                  Text(_formatDuration(playbackInfo.duration)),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // Playback control buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
                   IconButton(
                     icon: const Icon(Icons.replay_10),
                     iconSize: 28,
@@ -201,6 +147,52 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       ref.read(audioPlayerControlsProvider).seek(seekPosition);
                     },
                   ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.loop),
+                    tooltip: 'A-B Loop (coming soon)',
+                    onPressed: () {},
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: markerSetsAsync.when(
+                      data: (markerSets) {
+                        return MarkerSetSelector(
+                          markerSets: markerSets,
+                          onManageMarkers: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MarkerManagerScreen(
+                                  trackId: currentTrack.id,
+                                  trackName: currentTrack.name,
+                                  songTitle: widget.songTitle,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 6),
+
+              // Progress bar with markers
+              _buildProgressBar(currentTrack, playbackInfo),
+
+              const SizedBox(height: 2),
+
+              // Time display
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(playbackInfo.position)),
+                  Text(_formatDuration(playbackInfo.duration)),
                 ],
               ),
             ],
