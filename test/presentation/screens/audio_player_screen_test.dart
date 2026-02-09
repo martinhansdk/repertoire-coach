@@ -122,30 +122,16 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsNothing);
   });
 
-  testWidgets('loop button is present and shows repeat_one initially', (tester) async {
+  testWidgets('A-B loop button is present', (tester) async {
     final playbackInfo = PlaybackInfo.idle().copyWith(
       currentTrack: tTrack1,
       state: AudioPlayerState.paused,
-      isTrackLooping: false,
     );
     await tester.pumpWidget(createWidgetUnderTest(
       playbackInfoStream: Stream.value(playbackInfo),
     ));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byIcon(Icons.repeat_one), findsOneWidget);
-  });
-
-  testWidgets('loop button shows repeat icon when looping', (tester) async {
-    final playbackInfo = PlaybackInfo.idle().copyWith(
-      currentTrack: tTrack1,
-      state: AudioPlayerState.paused,
-      isTrackLooping: true,
-    );
-    await tester.pumpWidget(createWidgetUnderTest(
-      playbackInfoStream: Stream.value(playbackInfo),
-    ));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byIcon(Icons.repeat), findsOneWidget);
+    expect(find.byIcon(Icons.loop), findsOneWidget);
   });
 
   testWidgets('stop button is not present', (tester) async {

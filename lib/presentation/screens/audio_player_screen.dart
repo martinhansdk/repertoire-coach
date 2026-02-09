@@ -6,7 +6,6 @@ import '../../domain/entities/track.dart';
 import '../providers/audio_player_provider.dart';
 import '../providers/marker_provider.dart';
 import '../providers/selected_marker_set_provider.dart';
-import '../widgets/loop_control_buttons.dart';
 import '../widgets/marker_list.dart';
 import '../widgets/marker_progress_bar.dart';
 import '../widgets/marker_set_selector.dart';
@@ -99,70 +98,69 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Current track name
-              Text(
-                currentTrack.name,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 16),
-
-              // Marker set selector
-              markerSetsAsync.when(
-                data: (markerSets) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: MarkerSetSelector(
-                      markerSets: markerSets,
-                      onManageMarkers: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MarkerManagerScreen(
-                              trackId: currentTrack.id,
-                              trackName: currentTrack.name,
-                              songTitle: widget.songTitle,
-                            ),
-                          ),
+              Row(
+                children: [
+                  Expanded(
+                    child: markerSetsAsync.when(
+                      data: (markerSets) {
+                        return MarkerSetSelector(
+                          markerSets: markerSets,
+                          onManageMarkers: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MarkerManagerScreen(
+                                  trackId: currentTrack.id,
+                                  trackName: currentTrack.name,
+                                  songTitle: widget.songTitle,
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
                     ),
-                  );
-                },
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.loop),
+                    tooltip: 'A-B Loop (coming soon)',
+                    onPressed: () {},
+                  ),
+                ],
               ),
+
+              const SizedBox(height: 8),
 
               // Progress bar with markers
               _buildProgressBar(currentTrack, playbackInfo),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
 
               // Time display
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(_formatDuration(playbackInfo.position)),
-                    Text(_formatDuration(playbackInfo.duration)),
-                  ],
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(playbackInfo.position)),
+                  Text(_formatDuration(playbackInfo.duration)),
+                ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // Playback control buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Rewind 10 seconds
                   IconButton(
                     icon: const Icon(Icons.replay_10),
-                    iconSize: 36,
+                    iconSize: 28,
                     onPressed: () {
                       final currentPosition = playbackInfo.position;
                       final newPosition = currentPosition - const Duration(seconds: 10);
@@ -172,15 +170,11 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       ref.read(audioPlayerControlsProvider).seek(seekPosition);
                     },
                   ),
-
-                  const SizedBox(width: 8),
-
-                  // Play/Pause button
                   IconButton(
                     icon: Icon(
                       playbackInfo.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
                     ),
-                    iconSize: 64,
+                    iconSize: 48,
                     onPressed: () {
                       if (playbackInfo.isPlaying) {
                         _audioControls.pause();
@@ -195,13 +189,9 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       }
                     },
                   ),
-
-                  const SizedBox(width: 8),
-
-                  // Forward 10 seconds
                   IconButton(
                     icon: const Icon(Icons.forward_10),
-                    iconSize: 36,
+                    iconSize: 28,
                     onPressed: () {
                       final currentPosition = playbackInfo.position;
                       final newPosition = currentPosition + const Duration(seconds: 10);
@@ -211,32 +201,14 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       ref.read(audioPlayerControlsProvider).seek(seekPosition);
                     },
                   ),
-
-                  const SizedBox(width: 8),
-
-                  // Loop toggle button
-                  IconButton(
-                    icon: Icon(
-                      playbackInfo.isTrackLooping ? Icons.repeat : Icons.repeat_one,
-                    ),
-                    tooltip: playbackInfo.isTrackLooping ? 'Loop on' : 'Loop off',
-                    color: playbackInfo.isTrackLooping
-                        ? Theme.of(context).colorScheme.primary
-                        : null,
-                    onPressed: () {
-                      ref.read(audioPlayerControlsProvider).toggleTrackLoop();
-                    },
-                  ),
                 ],
               ),
-
-              const SizedBox(height: 16),
             ],
           ),
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: _buildMarkerSection(currentTrack, playbackInfo),
           ),
         ),
@@ -454,28 +426,16 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             final visibleMarkers =
                 markers.where((marker) => marker.label.trim().isNotEmpty).toList();
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (markerSet.isTimeSynced) ...[
-                  // Loop control buttons
-                  LoopControlButtons(markers: visibleMarkers),
-                  const SizedBox(height: 8),
-                ],
-                Expanded(
-                  child: MarkerList(
-                    markers: visibleMarkers,
-                    currentPosition: playbackInfo.position,
-                    trackDuration: playbackInfo.duration,
-                    showPositions: markerSet.isTimeSynced,
-                    onMarkerTap: markerSet.isTimeSynced
-                        ? (position) {
-                            ref.read(audioPlayerControlsProvider).seek(position);
-                          }
-                        : null,
-                  ),
-                ),
-              ],
+            return MarkerList(
+              markers: visibleMarkers,
+              currentPosition: playbackInfo.position,
+              trackDuration: playbackInfo.duration,
+              showPositions: markerSet.isTimeSynced,
+              onMarkerTap: markerSet.isTimeSynced
+                  ? (position) {
+                      ref.read(audioPlayerControlsProvider).seek(position);
+                    }
+                  : null,
             );
           },
           loading: () => const Center(
