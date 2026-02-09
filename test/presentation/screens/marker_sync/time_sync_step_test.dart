@@ -239,6 +239,58 @@ void main() {
       );
     }
 
+    Future<(ProviderContainer, Widget)> createWidgetWithContainer({
+      List<String>? labels,
+    }) async {
+      Stream<PlaybackInfo> playbackStreamWithInitial() async* {
+        yield fakeAudioRepository.currentPlayback;
+        yield* fakeAudioRepository.playbackStream;
+      }
+
+      final container = ProviderContainer(
+        overrides: [
+          markerRepositoryProvider.overrideWithValue(mockMarkerRepository),
+          audioPlayerRepositoryProvider.overrideWithValue(fakeAudioRepository),
+          playbackInfoProvider.overrideWith((ref) => playbackStreamWithInitial()),
+        ],
+      );
+
+      notifier = container.read(
+        markerSyncNotifierProvider(
+          const MarkerSyncParams(trackId: 'track-1', markerSetId: 'set-1'),
+        ).notifier,
+      );
+
+      if (labels != null) {
+        notifier.setLabels(labels.join('\n'));
+      }
+      fakeAudioRepository.updatePosition(fakeAudioRepository.currentPlayback.position);
+
+      final keepAlive = container.listen(
+        markerSyncNotifierProvider(
+          const MarkerSyncParams(trackId: 'track-1', markerSetId: 'set-1'),
+        ),
+        (_, __) {},
+      );
+      addTearDown(keepAlive.close);
+
+      final widget = UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Scaffold(
+            body: TimeSyncStep(
+              params: const MarkerSyncParams(
+                trackId: 'track-1',
+                markerSetId: 'set-1',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      return (container, widget);
+    }
+
     group('UI Rendering', () {
       testWidgets('displays audio controls', (tester) async {
         await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
@@ -856,6 +908,43 @@ void main() {
 
         // Should call repository
         verify(mockMarkerRepository.createMarker(any)).called(1);
+      });
+
+      testWidgets('save updates marker set synced state in providers', (tester) async {
+        var markerSet = MarkerSet(
+          id: 'set-1',
+          trackId: 'track-1',
+          name: 'Test Set',
+          isShared: false,
+          isTimeSynced: false,
+          createdByUserId: 'user-1',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        );
+
+        when(mockMarkerRepository.createMarker(any)).thenAnswer((_) async {});
+        when(mockMarkerRepository.deleteMarkersByMarkerSet(any)).thenAnswer((_) async {});
+        when(mockMarkerRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
+        when(mockMarkerRepository.updateMarkerSet(any)).thenAnswer((invocation) async {
+          markerSet = invocation.positionalArguments.first as MarkerSet;
+          return true;
+        });
+
+        final (container, widget) = await createWidgetWithContainer(labels: ['verse']);
+        await tester.pumpWidget(widget);
+        await tester.pumpAndSettle();
+
+        final before = await container.read(markerSetByIdProvider('set-1').future);
+        expect(before?.isTimeSynced, false);
+
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('markerSyncSaveButton')));
+        await tester.pumpAndSettle();
+
+        final after = await container.read(markerSetByIdProvider('set-1').future);
+        expect(after?.isTimeSynced, true);
       });
 
       testWidgets('restart resets playback position to 0', (tester) async {

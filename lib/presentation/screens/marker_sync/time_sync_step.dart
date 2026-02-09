@@ -101,8 +101,10 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
 
   Future<void> _save() async {
     await ref.read(markerSyncNotifierProvider(widget.params).notifier).save();
-    // Invalidate marker cache to refresh parent screen
+    // Invalidate marker caches to refresh parent screen
     ref.invalidate(markersByMarkerSetProvider);
+    ref.invalidate(markerSetByIdProvider);
+    ref.invalidate(markerSetsByTrackProvider);
     if (mounted) {
       Navigator.pop(context);
     }
