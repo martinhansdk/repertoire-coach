@@ -141,7 +141,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
 
     // Check if sync button should be enabled
     final currentPositionMs = playbackInfoAsync.value?.position.inMilliseconds ?? 0;
-    final lastSyncedPositionMs = state.getLastSyncedPosition();
+    final lastSyncedPositionMs = state.getLastSyncedPositionUpTo(state.currentIndex);
     final canSync = !state.isComplete && currentPositionMs >= lastSyncedPositionMs;
 
     return Shortcuts(

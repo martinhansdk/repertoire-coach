@@ -494,6 +494,32 @@ void main() {
         expect(button.onPressed, isNotNull);
       });
 
+      testWidgets('sync button is enabled after jumping back to earlier marker', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync verse at 10s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 10));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+
+        // Sync chorus at 20s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 20));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+
+        // Jump back to verse (seeks to 10s)
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarker_0')));
+        await tester.pumpAndSettle();
+
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('markerSyncMarkHereButton')),
+        );
+        expect(button.onPressed, isNotNull);
+      });
+
       testWidgets('sync button is disabled when all markers synced', (tester) async {
         await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
         await tester.pumpAndSettle();

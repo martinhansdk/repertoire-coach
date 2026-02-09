@@ -89,6 +89,19 @@ class MarkerSyncState extends Equatable {
     return syncedPositions.values.reduce((a, b) => a > b ? a : b);
   }
 
+  /// Get the last synced position up to a given index (inclusive)
+  /// Returns 0 if no positions synced yet or index < 0
+  int getLastSyncedPositionUpTo(int index) {
+    if (index < 0 || syncedPositions.isEmpty) return 0;
+    int last = 0;
+    for (final entry in syncedPositions.entries) {
+      if (entry.key >= 0 && entry.key <= index && entry.value > last) {
+        last = entry.value;
+      }
+    }
+    return last;
+  }
+
   /// Create a copy with updated fields
   MarkerSyncState copyWith({
     SyncStep? step,
