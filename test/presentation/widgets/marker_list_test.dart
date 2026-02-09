@@ -147,6 +147,7 @@ void main() {
         onMarkerTap: (_) {},
       ),
     );
+    await tester.pump(const Duration(milliseconds: 200));
 
     final progress = tester.widget<FractionallySizedBox>(
       find.byKey(const ValueKey('markerProgress_0')),

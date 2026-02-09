@@ -156,7 +156,7 @@ class _MarkerListState extends State<MarkerList> {
           return Container(
             key: ValueKey('markerSpacer_$index'),
             height: _itemExtent,
-            color: theme.colorScheme.surfaceContainerHighest,
+            color: theme.scaffoldBackgroundColor,
           );
         }
 
@@ -167,16 +167,24 @@ class _MarkerListState extends State<MarkerList> {
             children: [
               Container(
                 height: _itemExtent,
-                color: theme.colorScheme.surfaceContainerHighest,
+                color: theme.scaffoldBackgroundColor,
               ),
               if (widget.showPositions && isActive)
                 Positioned.fill(
-                  child: FractionallySizedBox(
-                    key: ValueKey('markerProgress_$index'),
-                    alignment: Alignment.centerLeft,
-                    widthFactor: progress,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: progress),
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) {
+                      return FractionallySizedBox(
+                        key: ValueKey('markerProgress_$index'),
+                        alignment: Alignment.centerLeft,
+                        widthFactor: value,
+                        child: child,
+                      );
+                    },
                     child: Container(
-                      color: theme.colorScheme.surfaceContainerHigh,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.28),
                     ),
                   ),
                 ),
