@@ -275,12 +275,12 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
         return markersAsync.when(
           data: (markers) {
             final loopRange = playbackInfo.loopRange;
-            final visibleMarkers =
+            final progressMarkers =
                 markers.where((marker) => marker.label.trim().isNotEmpty).toList();
             return MarkerProgressBar(
               position: playbackInfo.position,
               duration: playbackInfo.duration,
-              markers: visibleMarkers,
+              markers: progressMarkers,
               loopStart: loopRange?.startPosition,
               loopEnd: loopRange?.endPosition,
               onSeek: (position) {
