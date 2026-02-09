@@ -44,6 +44,7 @@ void main() {
     Future<List<MarkerSet>>? markerSetsTrack2,
     Map<String, List<Marker>>? markersBySetId,
     Map<String, MarkerSet>? markerSetsById,
+    String? selectedMarkerSetId,
   }) {
     return ProviderScope(
       overrides: [
@@ -56,7 +57,9 @@ void main() {
         markerSetsByTrackProvider(('t2', 'local-user-1')).overrideWith(
           (ref) => markerSetsTrack2 ?? Future.value([]),
         ),
-        selectedMarkerSetProvider.overrideWith((ref) => null),
+        selectedMarkerSetProvider.overrideWithProvider(
+          StateProvider<String?>((ref) => selectedMarkerSetId),
+        ),
         markersByMarkerSetProvider('').overrideWith((ref) => Future.value([])),
         if (markersBySetId != null)
           ...markersBySetId.entries.map(
@@ -90,7 +93,7 @@ void main() {
 
   testWidgets('displays track name in subtitle', (tester) async {
     await tester.pumpWidget(createWidgetUnderTest());
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
     expect(find.text('Track 1'), findsWidgets);
   });
 
@@ -110,6 +113,13 @@ void main() {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byIcon(Icons.replay_10), findsOneWidget);
+  });
+
+  testWidgets('playback controls are not in a scroll view', (tester) async {
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.byType(SingleChildScrollView), findsNothing);
   });
 
   testWidgets('loop button is present and shows repeat_one initially', (tester) async {
@@ -243,7 +253,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Markers'), findsOneWidget);
+    expect(find.text('Intro'), findsOneWidget);
     expect(find.byType(MarkerProgressBar), findsOneWidget);
 
     controller.add(
@@ -254,7 +264,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Markers'), findsNothing);
+    expect(find.text('Intro'), findsNothing);
     expect(find.byType(MarkerProgressBar), findsNothing);
     expect(find.text('No marker sets'), findsOneWidget);
 

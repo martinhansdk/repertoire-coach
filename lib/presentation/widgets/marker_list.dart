@@ -5,12 +5,13 @@ import '../../domain/entities/marker.dart';
 ///
 /// Shows markers in chronological order with their labels and positions.
 /// Tapping a marker jumps to that position in the track.
-class MarkerList extends StatelessWidget {
+class MarkerList extends StatefulWidget {
   final List<Marker> markers;
   final Duration currentPosition;
   final ValueChanged<Duration>? onMarkerTap;
   final ValueChanged<Marker>? onMarkerLongPress;
   final bool showPositions;
+  final Duration? trackDuration;
 
   const MarkerList({
     super.key,
@@ -19,105 +20,175 @@ class MarkerList extends StatelessWidget {
     required this.onMarkerTap,
     this.onMarkerLongPress,
     this.showPositions = true,
+    this.trackDuration,
   });
 
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    final milliseconds = duration.inMilliseconds % 1000;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}.${milliseconds.toString().padLeft(3, '0')}';
+  @override
+  State<MarkerList> createState() => _MarkerListState();
+}
+
+class _MarkerListState extends State<MarkerList> {
+  static const double _itemExtent = 56.0;
+  final ScrollController _scrollController = ScrollController();
+  int _lastActiveIndex = -1;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  int _findActiveIndex(List<Marker> markers) {
+    if (!widget.showPositions || markers.isEmpty) return -1;
+    for (int i = 0; i < markers.length; i++) {
+      final markerPosition = Duration(milliseconds: markers[i].positionMs);
+      final nextPosition = i == markers.length - 1
+          ? (widget.trackDuration ?? markerPosition)
+          : Duration(milliseconds: markers[i + 1].positionMs);
+      if (widget.currentPosition >= markerPosition &&
+          (i == markers.length - 1 || widget.currentPosition < nextPosition)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  void _centerActiveMarker(int index) {
+    if (index < 0) return;
+    if (!_scrollController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _centerActiveMarker(index);
+      });
+      return;
+    }
+    final viewportHeight = _scrollController.position.viewportDimension;
+    final targetOffset = (index * _itemExtent) - (viewportHeight / 2) + (_itemExtent / 2);
+    final clampedOffset = targetOffset.clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      clampedOffset,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (markers.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'No markers in this set',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+    if (widget.markers.isEmpty) {
+      return ListView.builder(
+        key: const ValueKey('markerListScroll'),
+        controller: _scrollController,
+        itemCount: 1,
+        itemBuilder: (context, index) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'No markers in this set',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
     }
 
     // Sort markers by display order (empty labels preserved)
-    final sortedMarkers = List<Marker>.from(markers)
+    final sortedMarkers = List<Marker>.from(widget.markers)
       ..sort((a, b) => a.order.compareTo(b.order));
 
     if (sortedMarkers.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'No markers in this set',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+      return ListView.builder(
+        key: const ValueKey('markerListScroll'),
+        controller: _scrollController,
+        itemCount: 1,
+        itemBuilder: (context, index) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'No markers in this set',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
     }
 
+    final activeIndex = _findActiveIndex(sortedMarkers);
+    if (activeIndex != _lastActiveIndex) {
+      _lastActiveIndex = activeIndex;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _centerActiveMarker(activeIndex);
+      });
+    }
+
     return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+      key: const ValueKey('markerListScroll'),
+      controller: _scrollController,
+      itemExtent: _itemExtent,
       itemCount: sortedMarkers.length,
       itemBuilder: (context, index) {
         final marker = sortedMarkers[index];
         final markerPosition = Duration(milliseconds: marker.positionMs);
-        final isActive = showPositions &&
-            currentPosition >= markerPosition &&
-            (index == sortedMarkers.length - 1 ||
-                currentPosition < Duration(milliseconds: sortedMarkers[index + 1].positionMs));
+        final isActive = index == activeIndex;
+        final nextPosition = index == sortedMarkers.length - 1
+            ? (widget.trackDuration ?? markerPosition)
+            : Duration(milliseconds: sortedMarkers[index + 1].positionMs);
+        final segmentDuration = nextPosition > markerPosition
+            ? nextPosition - markerPosition
+            : const Duration(milliseconds: 1);
+        final elapsed = (widget.currentPosition - markerPosition).inMilliseconds;
+        final progress = widget.showPositions && isActive
+            ? (elapsed / segmentDuration.inMilliseconds).clamp(0.0, 1.0)
+            : 0.0;
 
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: isActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.surfaceContainerHighest,
-            foregroundColor: isActive
-                ? theme.colorScheme.onPrimary
-                : theme.colorScheme.onSurfaceVariant,
-            child: Text(
-              '${index + 1}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          title: Text(
-            marker.label,
-            style: TextStyle(
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface,
-            ),
-          ),
-          subtitle: showPositions
-              ? Text(
-                  _formatDuration(markerPosition),
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant,
+        return InkWell(
+          onTap: widget.onMarkerTap != null ? () => widget.onMarkerTap!(markerPosition) : null,
+          onLongPress: widget.onMarkerLongPress != null ? () => widget.onMarkerLongPress!(marker) : null,
+          child: Stack(
+            children: [
+              Container(
+                height: _itemExtent,
+                color: theme.colorScheme.surfaceContainerHighest,
+              ),
+              if (widget.showPositions && isActive)
+                Positioned.fill(
+                  child: FractionallySizedBox(
+                    key: ValueKey('markerProgress_$index'),
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress,
+                    child: Container(
+                      color: theme.colorScheme.surfaceContainerHigh,
+                    ),
                   ),
-                )
-              : null,
-          trailing: showPositions
-              ? Icon(
-                  Icons.play_arrow,
-                  color: isActive
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                )
-              : null,
-          onTap: onMarkerTap != null ? () => onMarkerTap!(markerPosition) : null,
-          onLongPress: onMarkerLongPress != null
-              ? () => onMarkerLongPress!(marker)
-              : null,
+                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    marker.label,
+                    style: TextStyle(
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                      color: isActive
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );

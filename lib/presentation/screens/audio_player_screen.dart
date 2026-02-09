@@ -96,146 +96,151 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       markerSetsByTrackProvider((currentTrack.id, _currentUserId)),
     );
 
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Current track name
-            Text(
-              currentTrack.name,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Current track name
+              Text(
+                currentTrack.name,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
 
-            // Marker set selector
-            markerSetsAsync.when(
-              data: (markerSets) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: MarkerSetSelector(
-                    markerSets: markerSets,
-                    onManageMarkers: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MarkerManagerScreen(
-                            trackId: currentTrack.id,
-                            trackName: currentTrack.name,
-                            songTitle: widget.songTitle,
+              // Marker set selector
+              markerSetsAsync.when(
+                data: (markerSets) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: MarkerSetSelector(
+                      markerSets: markerSets,
+                      onManageMarkers: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MarkerManagerScreen(
+                              trackId: currentTrack.id,
+                              trackName: currentTrack.name,
+                              songTitle: widget.songTitle,
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      },
+                    ),
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+              // Progress bar with markers
+              _buildProgressBar(currentTrack, playbackInfo),
+
+              const SizedBox(height: 8),
+
+              // Time display
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(_formatDuration(playbackInfo.position)),
+                    Text(_formatDuration(playbackInfo.duration)),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Playback control buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Rewind 10 seconds
+                  IconButton(
+                    icon: const Icon(Icons.replay_10),
+                    iconSize: 36,
+                    onPressed: () {
+                      final currentPosition = playbackInfo.position;
+                      final newPosition = currentPosition - const Duration(seconds: 10);
+                      final seekPosition = newPosition < Duration.zero
+                          ? Duration.zero
+                          : newPosition;
+                      ref.read(audioPlayerControlsProvider).seek(seekPosition);
                     },
                   ),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
 
-            // Progress bar with markers
-            _buildProgressBar(currentTrack, playbackInfo),
+                  const SizedBox(width: 8),
 
-            const SizedBox(height: 8),
+                  // Play/Pause button
+                  IconButton(
+                    icon: Icon(
+                      playbackInfo.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    ),
+                    iconSize: 64,
+                    onPressed: () {
+                      if (playbackInfo.isPlaying) {
+                        _audioControls.pause();
+                      } else if (playbackInfo.state == AudioPlayerState.idle) {
+                        _audioControls.playTrack(
+                          widget.track,
+                          songName: widget.songTitle,
+                          albumName: widget.concertName,
+                        );
+                      } else {
+                        _audioControls.resume();
+                      }
+                    },
+                  ),
 
-            // Time display
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(_formatDuration(playbackInfo.position)),
-                  Text(_formatDuration(playbackInfo.duration)),
+                  const SizedBox(width: 8),
+
+                  // Forward 10 seconds
+                  IconButton(
+                    icon: const Icon(Icons.forward_10),
+                    iconSize: 36,
+                    onPressed: () {
+                      final currentPosition = playbackInfo.position;
+                      final newPosition = currentPosition + const Duration(seconds: 10);
+                      final seekPosition = newPosition > playbackInfo.duration
+                          ? playbackInfo.duration
+                          : newPosition;
+                      ref.read(audioPlayerControlsProvider).seek(seekPosition);
+                    },
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // Loop toggle button
+                  IconButton(
+                    icon: Icon(
+                      playbackInfo.isTrackLooping ? Icons.repeat : Icons.repeat_one,
+                    ),
+                    tooltip: playbackInfo.isTrackLooping ? 'Loop on' : 'Loop off',
+                    color: playbackInfo.isTrackLooping
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    onPressed: () {
+                      ref.read(audioPlayerControlsProvider).toggleTrackLoop();
+                    },
+                  ),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 16),
-
-            // Playback control buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Rewind 10 seconds
-                IconButton(
-                  icon: const Icon(Icons.replay_10),
-                  iconSize: 36,
-                  onPressed: () {
-                    final currentPosition = playbackInfo.position;
-                    final newPosition = currentPosition - const Duration(seconds: 10);
-                    final seekPosition = newPosition < Duration.zero
-                        ? Duration.zero
-                        : newPosition;
-                    ref.read(audioPlayerControlsProvider).seek(seekPosition);
-                  },
-                ),
-
-                const SizedBox(width: 8),
-
-                // Play/Pause button
-                IconButton(
-                  icon: Icon(
-                    playbackInfo.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                  ),
-                  iconSize: 64,
-                  onPressed: () {
-                    if (playbackInfo.isPlaying) {
-                      _audioControls.pause();
-                    } else if (playbackInfo.state == AudioPlayerState.idle) {
-                      _audioControls.playTrack(
-                        widget.track,
-                        songName: widget.songTitle,
-                        albumName: widget.concertName,
-                      );
-                    } else {
-                      _audioControls.resume();
-                    }
-                  },
-                ),
-
-                const SizedBox(width: 8),
-
-                // Forward 10 seconds
-                IconButton(
-                  icon: const Icon(Icons.forward_10),
-                  iconSize: 36,
-                  onPressed: () {
-                    final currentPosition = playbackInfo.position;
-                    final newPosition = currentPosition + const Duration(seconds: 10);
-                    final seekPosition = newPosition > playbackInfo.duration
-                        ? playbackInfo.duration
-                        : newPosition;
-                    ref.read(audioPlayerControlsProvider).seek(seekPosition);
-                  },
-                ),
-
-                const SizedBox(width: 8),
-
-                // Loop toggle button
-                IconButton(
-                  icon: Icon(
-                    playbackInfo.isTrackLooping ? Icons.repeat : Icons.repeat_one,
-                  ),
-                  tooltip: playbackInfo.isTrackLooping ? 'Loop on' : 'Loop off',
-                  color: playbackInfo.isTrackLooping
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
-                  onPressed: () {
-                    ref.read(audioPlayerControlsProvider).toggleTrackLoop();
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Marker list and loop controls
-            _buildMarkerSection(currentTrack, playbackInfo),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
-      ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: _buildMarkerSection(currentTrack, playbackInfo),
+          ),
+        ),
+      ],
     );
   }
 
@@ -457,17 +462,11 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                   LoopControlButtons(markers: visibleMarkers),
                   const SizedBox(height: 8),
                 ],
-
-                // Marker list
-                if (visibleMarkers.isNotEmpty) ...[
-                  Text(
-                    'Markers',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  MarkerList(
+                Expanded(
+                  child: MarkerList(
                     markers: visibleMarkers,
                     currentPosition: playbackInfo.position,
+                    trackDuration: playbackInfo.duration,
                     showPositions: markerSet.isTimeSynced,
                     onMarkerTap: markerSet.isTimeSynced
                         ? (position) {
@@ -475,7 +474,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                           }
                         : null,
                   ),
-                ],
+                ),
               ],
             );
           },
