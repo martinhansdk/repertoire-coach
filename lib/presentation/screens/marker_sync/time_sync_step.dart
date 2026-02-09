@@ -399,6 +399,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
             subtitle: const Text('0:00.000'),
             onTap: () {
               ref.read(markerSyncNotifierProvider(widget.params).notifier).jumpToMarker(-1);
+              ref.read(audioPlayerControlsProvider).seek(Duration.zero);
             },
           );
         }
@@ -439,6 +440,11 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
           ),
           onTap: () {
             ref.read(markerSyncNotifierProvider(widget.params).notifier).jumpToMarker(markerIndex);
+            if (isSynced) {
+              ref
+                  .read(audioPlayerControlsProvider)
+                  .seek(Duration(milliseconds: positionMs));
+            }
           },
         );
       },

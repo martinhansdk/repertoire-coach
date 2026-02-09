@@ -398,6 +398,27 @@ void main() {
         expect(selectedTiles.length, 1);
         expect(selectedTiles.first.title, isA<Text>());
       });
+
+      testWidgets('tapping synced marker seeks playback to its position', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Sync first marker at 5s
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+
+        // Move playback elsewhere
+        fakeAudioRepository.updatePosition(const Duration(seconds: 12));
+        await tester.pumpAndSettle();
+
+        // Tap synced marker
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarker_0')));
+        await tester.pumpAndSettle();
+
+        expect(fakeAudioRepository.lastSeekPosition, const Duration(seconds: 5));
+      });
     });
 
     group('Sync Button State', () {
