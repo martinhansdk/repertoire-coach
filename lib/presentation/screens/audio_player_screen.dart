@@ -35,6 +35,19 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   void initState() {
     super.initState();
     _audioControls = ref.read(audioPlayerControlsProvider);
+    final playbackInfo = ref.read(currentPlaybackProvider);
+    if (playbackInfo.currentTrack?.id != null &&
+        playbackInfo.currentTrack?.id != widget.track.id) {
+      _audioControls.stop();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AudioPlayerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.track.id != widget.track.id) {
+      _audioControls.stop();
+    }
   }
 
   @override
@@ -102,9 +115,12 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  IconButton(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 420;
+                  return Row(
+                    children: [
+                      IconButton(
                     icon: const Icon(Icons.replay_10),
                     iconSize: 28,
                     onPressed: () {
@@ -116,7 +132,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       ref.read(audioPlayerControlsProvider).seek(seekPosition);
                     },
                   ),
-                  IconButton(
+                      IconButton(
                     icon: Icon(
                       playbackInfo.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
                     ),
@@ -135,7 +151,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       }
                     },
                   ),
-                  IconButton(
+                      IconButton(
                     icon: const Icon(Icons.forward_10),
                     iconSize: 28,
                     onPressed: () {
@@ -147,18 +163,19 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       ref.read(audioPlayerControlsProvider).seek(seekPosition);
                     },
                   ),
-                  const SizedBox(width: 4),
-                  IconButton(
+                      const SizedBox(width: 4),
+                      IconButton(
                     icon: const Icon(Icons.loop),
                     tooltip: 'A-B Loop (coming soon)',
                     onPressed: () {},
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
+                      const SizedBox(width: 8),
+                      Expanded(
                     child: markerSetsAsync.when(
                       data: (markerSets) {
                         return MarkerSetSelector(
                           markerSets: markerSets,
+                          compact: isCompact,
                           onManageMarkers: () {
                             Navigator.push(
                               context,
@@ -177,7 +194,9 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       error: (_, __) => const SizedBox.shrink(),
                     ),
                   ),
-                ],
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 6),

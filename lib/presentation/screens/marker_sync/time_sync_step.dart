@@ -22,6 +22,7 @@ class TimeSyncStep extends ConsumerStatefulWidget {
 class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   final _scrollController = ScrollController();
   bool _didResetPlayback = false;
+  static const double _markerItemExtent = 64.0;
 
   @override
   void dispose() {
@@ -46,24 +47,20 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
 
   void _scrollToCurrentMarker() {
     final state = ref.read(markerSyncNotifierProvider(widget.params));
-    if (!mounted || !_scrollController.hasClients) return;
+    if (!mounted) return;
 
-    // Calculate target scroll position
-    final itemHeight = 72.0; // ListTile height
+    if (!_scrollController.hasClients) return;
     final markerIndex = state.currentIndex + 1; // +1 because "..." is at index 0
     final viewportHeight = _scrollController.position.viewportDimension;
-    final targetOffset = (markerIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
-
-    // Clamp to valid range
+    final targetOffset =
+        (markerIndex * _markerItemExtent) - (viewportHeight / 2) + (_markerItemExtent / 2);
     final clampedOffset = targetOffset.clamp(
       0.0,
       _scrollController.position.maxScrollExtent,
     );
-
-    // Animate to position
     _scrollController.animateTo(
       clampedOffset,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
     );
   }
@@ -206,7 +203,9 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
 
               // Marker list
               Expanded(
-                child: _buildMarkerList(theme, state),
+                child: ClipRect(
+                  child: _buildMarkerList(theme, state),
+                ),
               ),
 
               const Divider(),
@@ -387,6 +386,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   Widget _buildMarkerList(ThemeData theme, MarkerSyncState state) {
     return ListView.builder(
       controller: _scrollController,
+      itemExtent: _markerItemExtent,
       itemCount: state.labels.length + 1, // +1 for leading "..." marker
       itemBuilder: (context, index) {
         final markerIndex = index - 1; // -1 = leading "..." marker
@@ -410,7 +410,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
 
         // Empty line - render as spacing
         if (label.isEmpty) {
-          return const SizedBox(height: 24);
+          return const SizedBox.shrink();
         }
 
         // Non-empty marker

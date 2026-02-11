@@ -700,6 +700,37 @@ void main() {
         expect(tileCenter, greaterThan(listRect.top));
         expect(tileCenter, lessThan(listRect.bottom));
       });
+
+      testWidgets('marker list stays below audio controls', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        final controlsRect = tester.getRect(find.byType(Row).first);
+        final listRect = tester.getRect(find.byType(ListView));
+
+        expect(listRect.top, greaterThan(controlsRect.bottom));
+      });
+
+      testWidgets('keeps last synced marker visible near end', (tester) async {
+        final labels = List.generate(50, (i) => 'label-$i');
+        await tester.pumpWidget(await createWidgetUnderTest(labels: labels));
+        await tester.pumpAndSettle();
+
+        for (var i = 0; i < labels.length; i++) {
+          await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+          await tester.pumpAndSettle();
+        }
+        await tester.pump(const Duration(milliseconds: 400));
+
+        final listRect = tester.getRect(find.byType(ListView));
+        final lastTileRect = tester.getRect(
+          find.byKey(const ValueKey('markerSyncMarker_49')),
+        );
+        final tileCenter = lastTileRect.center.dy;
+
+        expect(tileCenter, greaterThan(listRect.top));
+        expect(tileCenter, lessThan(listRect.bottom));
+      });
     });
 
     group('Keyboard Shortcuts', () {

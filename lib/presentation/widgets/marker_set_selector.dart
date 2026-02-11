@@ -10,11 +10,13 @@ import '../providers/selected_marker_set_provider.dart';
 class MarkerSetSelector extends ConsumerWidget {
   final List<MarkerSet> markerSets;
   final VoidCallback? onManageMarkers;
+  final bool compact;
 
   const MarkerSetSelector({
     super.key,
     required this.markerSets,
     this.onManageMarkers,
+    this.compact = false,
   });
 
   @override
@@ -50,22 +52,27 @@ class MarkerSetSelector extends ConsumerWidget {
             items: markerSets.map((markerSet) {
               return DropdownMenuItem<String>(
                 value: markerSet.id,
-                child: Row(
-                  children: [
-                    Icon(
-                      markerSet.isShared ? Icons.people : Icons.lock,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
+                child: compact
+                    ? Text(
                         markerSet.name,
                         overflow: TextOverflow.ellipsis,
+                      )
+                    : Row(
+                        children: [
+                          Icon(
+                            markerSet.isShared ? Icons.people : Icons.lock,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              markerSet.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               );
             }).toList(),
             onChanged: (String? newValue) {
@@ -75,7 +82,7 @@ class MarkerSetSelector extends ConsumerWidget {
             },
           ),
         ),
-        if (onManageMarkers != null) ...[
+        if (onManageMarkers != null && !compact) ...[
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.edit),

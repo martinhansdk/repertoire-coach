@@ -163,6 +163,36 @@ void main() {
     expect((loopRect.center.dy - playRect.center.dy).abs(), lessThan(6));
   });
 
+  testWidgets('marker selector hides manage button on narrow screens', (tester) async {
+    final playbackInfo = PlaybackInfo.idle().copyWith(
+      currentTrack: tTrack1,
+      state: AudioPlayerState.paused,
+    );
+    final markerSet = MarkerSet(
+      id: 'set-1',
+      trackId: tTrack1.id,
+      name: 'Set 1',
+      isShared: false,
+      isTimeSynced: true,
+      createdByUserId: 'local-user-1',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(size: Size(320, 640)),
+        child: createWidgetUnderTest(
+          playbackInfoStream: Stream.value(playbackInfo),
+          markerSetsTrack1: Future.value([markerSet]),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.byIcon(Icons.edit), findsNothing);
+  });
+
   testWidgets('stop button is not present', (tester) async {
     final playbackInfo = PlaybackInfo.idle().copyWith(
       currentTrack: tTrack1,
@@ -195,6 +225,24 @@ void main() {
 
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pump();
+
+    verify(mockAudioPlayerRepository.stop()).called(1);
+  });
+
+  testWidgets('stops playback if different track is already playing', (tester) async {
+    final playbackInfo = PlaybackInfo.idle().copyWith(
+      currentTrack: tTrack2,
+      state: AudioPlayerState.playing,
+    );
+    when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
+    when(mockAudioPlayerRepository.playbackStream).thenAnswer(
+      (_) => Stream.value(playbackInfo),
+    );
+
+    await tester.pumpWidget(createWidgetUnderTest(
+      playbackInfoStream: Stream.value(playbackInfo),
+    ));
+    await tester.pump(const Duration(milliseconds: 100));
 
     verify(mockAudioPlayerRepository.stop()).called(1);
   });
