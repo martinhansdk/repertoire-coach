@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
+import '../providers/auth_provider.dart';
 import '../providers/audio_player_provider.dart';
 import '../providers/marker_provider.dart';
 import '../providers/selected_marker_set_provider.dart';
@@ -10,9 +11,6 @@ import '../widgets/marker_list.dart';
 import '../widgets/marker_progress_bar.dart';
 import '../widgets/marker_set_selector.dart';
 import 'marker_manager_screen.dart';
-
-/// Hardcoded user ID for local-first mode
-const String _currentUserId = 'local-user-1';
 
 /// Audio player screen for playing a single track
 class AudioPlayerScreen extends ConsumerStatefulWidget {
@@ -103,9 +101,13 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
   Widget _buildPlaybackControls(playbackInfo) {
     final currentTrack = playbackInfo.currentTrack ?? widget.track;
+    final userId = ref.read(supabaseServiceProvider).currentUserId;
+    if (userId == null) {
+      return const Center(child: Text('Please sign in to view marker sets.'));
+    }
 
     final markerSetsAsync = ref.watch(
-      markerSetsByTrackProvider((currentTrack.id, _currentUserId)),
+      markerSetsByTrackProvider((currentTrack.id, userId)),
     );
 
     return Column(
@@ -138,9 +140,12 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                     ),
                     iconSize: 48,
                     onPressed: () {
+                      final isDifferentTrack =
+                          playbackInfo.currentTrack?.id != widget.track.id;
                       if (playbackInfo.isPlaying) {
                         _audioControls.pause();
-                      } else if (playbackInfo.state == AudioPlayerState.idle) {
+                      } else if (isDifferentTrack ||
+                          playbackInfo.state == AudioPlayerState.idle) {
                         _audioControls.playTrack(
                           widget.track,
                           songName: widget.songTitle,

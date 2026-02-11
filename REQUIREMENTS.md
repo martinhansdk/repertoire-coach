@@ -187,6 +187,8 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 ### Offline Support
 - Access to previously downloaded songs when offline
 - Queue uploads/sync operations for when connection available
+- Authentication session is cached across restarts; if the access token expires
+  while offline, the user must reauthenticate once online
 
 ### Security
 - Secure user authentication

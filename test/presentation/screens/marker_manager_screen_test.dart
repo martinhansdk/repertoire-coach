@@ -5,10 +5,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_marker_data_source.dart';
 import 'package:repertoire_coach/data/repositories/marker_repository_impl.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/domain/entities/marker.dart';
 import 'package:repertoire_coach/domain/entities/marker_set.dart';
+import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
 import 'package:repertoire_coach/presentation/screens/marker_manager_screen.dart';
+
+class _FakeSupabaseService extends Fake implements SupabaseService {
+  final String userId;
+
+  _FakeSupabaseService(this.userId);
+
+  @override
+  String? get currentUserId => userId;
+}
 
 void main() {
   group('MarkerManagerScreen Widget', () {
@@ -19,7 +30,7 @@ void main() {
     const String testTrackId = 'track-1';
     const String testTrackName = 'Test Track';
     const String testSongTitle = 'Test Song';
-    const String testUserId = 'local-user-1';
+    const String testUserId = 'user-1';
 
     setUp(() async {
       database = db.AppDatabase.forTesting(NativeDatabase.memory());
@@ -34,12 +45,14 @@ void main() {
     Widget createWidgetUnderTest({
       Future<List<MarkerSet>>? markerSetsFuture,
       Map<String, List<Marker>>? markersForSets,
+      String userId = testUserId,
     }) {
       return ProviderScope(
         overrides: [
+          supabaseServiceProvider.overrideWithValue(_FakeSupabaseService(userId)),
           markerRepositoryProvider.overrideWithValue(repository),
           if (markerSetsFuture != null)
-            markerSetsByTrackProvider((testTrackId, testUserId))
+            markerSetsByTrackProvider((testTrackId, userId))
                 .overrideWith((ref) => markerSetsFuture),
           // Override markers provider for each marker set
           if (markersForSets != null)
@@ -73,6 +86,8 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
+              supabaseServiceProvider
+                  .overrideWithValue(_FakeSupabaseService(testUserId)),
               markerRepositoryProvider.overrideWithValue(repository),
             ],
             child: MaterialApp(
@@ -217,6 +232,28 @@ void main() {
 
         expect(find.text('Structure'), findsOneWidget);
         expect(find.text('Rehearsal Marks'), findsOneWidget);
+      });
+
+      testWidgets('uses authenticated user id for marker sets', (tester) async {
+        const userId = 'user-42';
+        final remoteMarkerSet = MarkerSet(
+          id: 'set-remote',
+          trackId: testTrackId,
+          name: 'Remote Set',
+          isShared: false,
+          isTimeSynced: false,
+          createdByUserId: userId,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSetsFuture: Future.value([remoteMarkerSet]),
+          userId: userId,
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Remote Set'), findsOneWidget);
       });
 
       testWidgets('should show correct icons for private and shared marker sets', (tester) async {

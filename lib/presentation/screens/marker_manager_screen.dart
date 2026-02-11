@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../domain/entities/marker_set.dart';
+import '../providers/auth_provider.dart';
 import '../providers/marker_provider.dart';
 import 'marker_sync/marker_sync_screen.dart';
 import '../widgets/marker_set_dialog.dart';
-
-/// Hardcoded user ID for local-first mode
-const String _currentUserId = 'local-user-1';
 
 /// Marker Manager Screen
 ///
@@ -56,6 +54,7 @@ class MarkerManagerScreen extends ConsumerWidget {
     WidgetRef ref,
     String markerSetId,
     String markerSetName,
+    String userId,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -86,7 +85,7 @@ class MarkerManagerScreen extends ConsumerWidget {
         await repository.deleteMarkerSet(markerSetId);
 
         if (context.mounted) {
-          ref.invalidate(markerSetsByTrackProvider((trackId, _currentUserId)));
+          ref.invalidate(markerSetsByTrackProvider((trackId, userId)));
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Marker set deleted successfully'),
@@ -109,7 +108,13 @@ class MarkerManagerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final markerSetsAsync = ref.watch(markerSetsByTrackProvider((trackId, _currentUserId)));
+    final userId = ref.read(supabaseServiceProvider).currentUserId;
+    if (userId == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please sign in to manage marker sets.')),
+      );
+    }
+    final markerSetsAsync = ref.watch(markerSetsByTrackProvider((trackId, userId)));
 
     return Scaffold(
       appBar: AppBar(
@@ -164,6 +169,7 @@ class MarkerManagerScreen extends ConsumerWidget {
                     ref,
                     markerSet.id,
                     markerSet.name,
+                    userId,
                   ),
                 );
               },

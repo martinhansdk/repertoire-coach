@@ -811,6 +811,9 @@ MaterialApp(
 - Optional: Google Sign-In, Apple Sign-In, magic links
 - JWT-based authentication
 - Secure token management (handled by Supabase)
+- JWT expiry configured to 48 hours (172800 seconds) in Supabase Auth settings
+- Offline behavior: cached session persists across restarts, but if the access
+  token expires while offline the user must reauthenticate once back online
 
 ### Data Privacy
 - Private marker sets and playback states are user-specific (enforced by RLS)
