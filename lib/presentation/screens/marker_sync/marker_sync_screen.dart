@@ -118,7 +118,8 @@ class _MarkerSyncScreenState extends ConsumerState<MarkerSyncScreen> {
         return;
       }
 
-      ref.read(markerSyncNotifierProvider(params).notifier).setLabels(text);
+      // Use startSyncFromText to preserve existing timestamps when re-syncing
+      await ref.read(markerSyncNotifierProvider(params).notifier).startSyncFromText(text);
     });
   }
 
