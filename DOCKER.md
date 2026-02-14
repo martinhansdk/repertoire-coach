@@ -10,6 +10,23 @@ Use `Dockerfile.build` to build Flutter apps in a consistent, containerized envi
 - Docker installed
 - Project files ready
 
+### App Signing and Keystores
+
+**Important:** Local builds and GitHub Actions builds must use the **same signing key** to allow upgrades without data loss.
+
+By default:
+- Local builds use `android/upload-keystore.jks` and `android/key.properties`
+- GitHub builds use keystores from GitHub secrets
+
+If these differ, Android will clear app data when upgrading between local and GitHub builds.
+
+**To sync your local keystore to GitHub:**
+```bash
+./scripts/setup-github-keystore.sh
+```
+
+This uploads your local signing key to GitHub secrets, ensuring both local and CI builds use the same signature.
+
 ### Building the Container
 
 Build the image once (or when Flutter/Android SDK versions change).
