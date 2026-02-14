@@ -1,56 +1,90 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/constants.dart';
-import '../providers/concert_provider.dart';
-import '../widgets/concert_card.dart';
-import 'song_list_screen.dart';
 
-/// Concert List Screen
+import '../../core/constants.dart';
+import '../../domain/entities/track.dart';
+import '../providers/favorite_track_provider.dart';
+import '../widgets/favorite_track_card.dart';
+import 'audio_player_screen.dart';
+
+/// Favorite Tracks Screen
 ///
-/// Displays all concerts from all user's choirs, automatically sorted
-/// by date (upcoming first, then past).
-class ConcertListScreen extends ConsumerWidget {
-  const ConcertListScreen({super.key});
+/// Displays all user's favorite tracks with denormalized data
+/// (song title, track name, choir name) for quick access.
+/// Users can play tracks directly or remove from favorites.
+class FavoriteTracksScreen extends ConsumerWidget {
+  const FavoriteTracksScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final concertsAsync = ref.watch(concertsProvider);
+    final favoritesAsync = ref.watch(favoritesProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppConstants.appName),
       ),
-      body: concertsAsync.when(
-        data: (concerts) {
-          if (concerts.isEmpty) {
+      body: favoritesAsync.when(
+        data: (favorites) {
+          if (favorites.isEmpty) {
             return const _EmptyState();
           }
 
           return RefreshIndicator(
             onRefresh: () async {
-              // Refresh the concerts list
-              ref.invalidate(concertsProvider);
+              // Refresh the favorites list
+              ref.invalidate(favoritesProvider);
             },
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(
                 vertical: AppConstants.paddingSmall,
               ),
-              itemCount: concerts.length,
+              itemCount: favorites.length,
               itemBuilder: (context, index) {
-                final concert = concerts[index];
-                return ConcertCard(
-                  concert: concert,
+                final favorite = favorites[index];
+                return FavoriteTrackCard(
+                  favorite: favorite,
                   onTap: () {
-                    // Navigate to song list screen for this concert
+                    // Create a Track entity from favorite to pass to audio player
+                    final track = Track(
+                      id: favorite.trackId,
+                      songId: favorite.songId,
+                      name: favorite.trackName,
+                      audioUrl: favorite.audioUrl,
+                      storagePath: null,
+                      durationMs: favorite.durationMs,
+                      filePath: null,
+                      createdAt: favorite.addedAt,
+                      updatedAt: favorite.addedAt,
+                    );
+
+                    // Navigate to audio player screen
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => SongListScreen(
-                          concertId: concert.id,
-                          concertName: concert.name,
-                          choirId: concert.choirId,
+                        builder: (context) => AudioPlayerScreen(
+                          track: track,
+                          songTitle: favorite.songTitle,
+                          concertName: '', // Not shown in audio player
                         ),
                       ),
                     );
+                  },
+                  onRemove: () async {
+                    // Remove from favorites
+                    await ref
+                        .read(favoriteTrackActionsProvider)
+                        .removeFavorite(favorite.trackId);
+
+                    // Show snackbar confirmation
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Removed "${favorite.trackName}" from favorites',
+                          ),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   },
                 );
               },
@@ -63,7 +97,7 @@ class ConcertListScreen extends ConsumerWidget {
         error: (error, stack) => _ErrorState(
           error: error.toString(),
           onRetry: () {
-            ref.invalidate(concertsProvider);
+            ref.invalidate(favoritesProvider);
           },
         ),
       ),
@@ -71,7 +105,7 @@ class ConcertListScreen extends ConsumerWidget {
   }
 }
 
-/// Empty state when no concerts are available
+/// Empty state when no favorites exist
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -86,20 +120,20 @@ class _EmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.event_note_outlined,
+              Icons.favorite_outline,
               size: 80,
               color: theme.colorScheme.onSurfaceVariant.withAlpha(128),
             ),
             const SizedBox(height: AppConstants.paddingMedium),
             Text(
-              'No Concerts',
+              'No Favorite Tracks',
               style: theme.textTheme.headlineSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: AppConstants.paddingSmall),
             Text(
-              'Join a choir to see concerts',
+              'Tap the heart icon on any track to add it to your favorites',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -112,7 +146,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// Error state when concert loading fails
+/// Error state when favorite loading fails
 class _ErrorState extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
@@ -139,7 +173,7 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: AppConstants.paddingMedium),
             Text(
-              'Error Loading Concerts',
+              'Error Loading Favorites',
               style: theme.textTheme.headlineSmall?.copyWith(
                 color: theme.colorScheme.error,
               ),

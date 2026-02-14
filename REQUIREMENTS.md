@@ -67,23 +67,36 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 - **Section Looping**: Select any marker range from any set to loop/repeat continuously
 - **Collaborative Editing**: Any choir member can improve/correct shared marker sets
 
-### 7. Data Synchronization
+### 7. Favorite Tracks
+- **Quick Access**: Users can mark tracks as favorites for quick access
+- **Favorites Page**: Dedicated page in bottom navigation showing all favorited tracks
+- **Cross-Device Sync**: Favorites sync across all user devices via cloud
+- **Smart Startup**: App opens to Favorites page if user has favorites, otherwise opens to Choirs page
+- **Favorite From Anywhere**: Users can favorite/unfavorite tracks from:
+  - Audio player screen (heart icon in app bar)
+  - Track list screen (heart icon on track card)
+  - Favorites page itself (remove button)
+- **Display Format**: Each favorite shows song title (most prominent), track name, and choir name
+- **Direct Playback**: Tapping a favorite track immediately opens the audio player
+- **Context Preservation**: Concerts remain accessible from Choir Detail screen for browsing and organization
+
+### 8. Data Synchronization
 - **Choirs**: Choir data, membership synced to cloud
 - **Concerts**: Concert names, dates, song assignments synced to cloud (shared within choir)
 - **Songs**: Song metadata, track information synced to cloud (shared within choir)
 - **Audio Files**: Stored in cloud, accessible to all choir members
 - **Shared Marker Sets**: Marker sets and markers synced to cloud (shared within choir, editable by any member)
-- **Per-User Data**: Private marker sets, playback positions, most recently accessed concert synced per user
+- **Per-User Data**: Private marker sets, playback positions, most recently accessed concert, **favorite tracks** synced per user
 - **User Authentication**: Required for syncing data across devices
 
-### 8. Android Auto Integration
+### 9. Android Auto Integration
 - Display concerts and song library in Android Auto interface
 - Browse songs by concert
 - Show currently playing track and voice part
 - Playback controls accessible from car display
 - Follow Android Auto safety guidelines for in-car use
 
-### 9. Multi-Language Support
+### 10. Multi-Language Support
 - **Supported Languages**: English (default), Danish
 - **Language Detection**: Automatically detect language from device settings on first launch
 - **User Preference**: Language preference saved to user profile and synced across devices
@@ -171,6 +184,18 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 4. User selects preferred language
 5. App UI updates immediately to selected language
 6. Language preference syncs to cloud for use on other devices
+
+### Using Favorite Tracks
+1. User opens app
+   - If user has favorites: app opens to Favorites page
+   - If user has no favorites: app opens to Choirs page
+2. User navigates to a song's track list or audio player
+3. User taps the heart icon to favorite a track
+4. Track appears in Favorites page with song title, track name, and choir name
+5. User taps a favorite track to start playback immediately
+6. From audio player, user can unfavorite by tapping the filled heart icon
+7. Favorites sync across all user devices via cloud
+8. User can browse concerts and songs normally via Choirs page → Choir Detail → Concerts
 
 ## Technical Requirements
 

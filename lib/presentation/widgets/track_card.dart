@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../domain/entities/track.dart';
+import '../providers/favorite_track_provider.dart';
 import '../providers/track_provider.dart';
 import 'edit_track_dialog.dart';
 
@@ -121,6 +122,29 @@ class TrackCard extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+              ),
+
+              // Favorite toggle button
+              Consumer(
+                builder: (context, ref, _) {
+                  final isFavoriteAsync = ref.watch(isFavoriteProvider(track.id));
+                  return isFavoriteAsync.when(
+                    data: (isFavorite) => IconButton(
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                      ),
+                      tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                      onPressed: () async {
+                        await ref.read(favoriteTrackActionsProvider).toggleFavorite(
+                              track.id,
+                              track.songId,
+                            );
+                      },
+                    ),
+                    loading: () => const SizedBox(width: 48),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
               ),
 
               // Actions menu

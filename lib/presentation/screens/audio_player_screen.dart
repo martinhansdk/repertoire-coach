@@ -5,6 +5,7 @@ import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../providers/auth_provider.dart';
 import '../providers/audio_player_provider.dart';
+import '../providers/favorite_track_provider.dart';
 import '../providers/marker_provider.dart';
 import '../providers/selected_marker_set_provider.dart';
 import '../widgets/marker_list.dart';
@@ -86,6 +87,44 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             ),
           ],
         ),
+        actions: [
+          // Favorite toggle button
+          Consumer(
+            builder: (context, ref, _) {
+              final isFavoriteAsync = ref.watch(isFavoriteProvider(widget.track.id));
+              return isFavoriteAsync.when(
+                data: (isFavorite) => IconButton(
+                  icon: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                  ),
+                  tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                  onPressed: () async {
+                    await ref.read(favoriteTrackActionsProvider).toggleFavorite(
+                          widget.track.id,
+                          widget.track.songId,
+                        );
+
+                    // Show snackbar feedback
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isFavorite
+                                ? 'Removed from favorites'
+                                : 'Added to favorites',
+                          ),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                loading: () => const SizedBox(width: 48), // Placeholder for loading
+                error: (_, __) => const SizedBox.shrink(),
+              );
+            },
+          ),
+        ],
       ),
       body: playbackInfoAsync.when(
         data: (playbackInfo) {
