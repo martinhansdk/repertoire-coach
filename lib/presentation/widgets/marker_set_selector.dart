@@ -24,8 +24,8 @@ class MarkerSetSelector extends ConsumerWidget {
     final theme = Theme.of(context);
     final selectedId = ref.watch(selectedMarkerSetProvider);
     final screenWidth = MediaQuery.of(context).size.width;
-    // Use compact mode on typical mobile portrait widths and smaller landscape tablets
-    final isNarrowScreen = screenWidth < 768; // Narrow if width < 768dp (mobile + small tablets)
+    // Use compact mode on mobile devices (including high-DPI phones like 1080px)
+    final isNarrowScreen = screenWidth < 1200; // Narrow if width < 1200dp (mobile devices)
 
     if (markerSets.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -118,7 +118,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    final isNarrowScreen = screenWidth < 768;
+    final isNarrowScreen = screenWidth < 1200;
 
     // On narrow screens, just show the manage button without the container
     if (isNarrowScreen && onManageMarkers != null) {
