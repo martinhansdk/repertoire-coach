@@ -203,11 +203,20 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   }) async {
     await _ensureInitialized(); // ensure audio_service & audio_session are ready
 
+    print('[AudioPlayerRepository] playTrack called');
+    print('[AudioPlayerRepository] Track ID: ${track.id}');
+    print('[AudioPlayerRepository] Track name: ${track.name}');
+    print('[AudioPlayerRepository] Track audioUrl: ${track.audioUrl}');
+    print('[AudioPlayerRepository] Provided audioUrl parameter: $audioUrl');
+    print('[AudioPlayerRepository] Platform: ${kIsWeb ? "web" : "native"}');
+
     // Use provided audioUrl (e.g., signed URL) or fall back to track's stored URL
     final effectiveAudioUrl = audioUrl ?? track.audioUrl;
+    print('[AudioPlayerRepository] Effective audioUrl: $effectiveAudioUrl');
 
     // On web, we MUST have a URL - local files don't work
     if (kIsWeb && effectiveAudioUrl == null) {
+      print('[AudioPlayerRepository] ERROR: No audioUrl on web platform!');
       final errorInfo = PlaybackInfo.error(
         'Track has no cloud URL. Please upload the audio file to Supabase storage.',
       );
@@ -231,7 +240,9 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
       // Set audio source - prefer provided/cloud URL, fall back to local file
       if (effectiveAudioUrl != null) {
+        print('[AudioPlayerRepository] Setting URL: $effectiveAudioUrl');
         await _player.setUrl(effectiveAudioUrl);
+        print('[AudioPlayerRepository] URL loaded successfully');
       } else if (!kIsWeb && track.filePath != null) {
         // Play from local file (only works on mobile/desktop, not web)
         final file = File(track.filePath!);

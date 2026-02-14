@@ -29,15 +29,29 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
     // On web, skip local database entirely and fetch from remote
     // This avoids JOIN failures when tracks/songs/concerts tables don't exist in IndexedDB
     if (kIsWeb) {
+      debugPrint('[FavoriteTrackRepository] Web platform detected, fetching from remote');
+      debugPrint('[FavoriteTrackRepository] Auth status: ${_supabaseService.isAuthenticated}');
+      debugPrint('[FavoriteTrackRepository] Remote data source available: ${_remoteDataSource != null}');
+
       if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
         try {
           final remoteFavorites = await _remoteDataSource.getFavorites(userId);
-          return remoteFavorites.map((model) => model.toEntity()).toList();
+          debugPrint('[FavoriteTrackRepository] Received ${remoteFavorites.length} favorites from remote');
+
+          final entities = remoteFavorites.map((model) {
+            final entity = model.toEntity();
+            debugPrint('[FavoriteTrackRepository] Entity: trackName=${entity.trackName}, audioUrl=${entity.audioUrl}');
+            return entity;
+          }).toList();
+
+          debugPrint('[FavoriteTrackRepository] Returning ${entities.length} entities');
+          return entities;
         } catch (e) {
-          debugPrint('Failed to fetch favorites from remote on web: $e');
+          debugPrint('[FavoriteTrackRepository] ERROR fetching favorites from remote on web: $e');
           return [];
         }
       }
+      debugPrint('[FavoriteTrackRepository] Not authenticated or no remote data source, returning empty list');
       return [];
     }
 
