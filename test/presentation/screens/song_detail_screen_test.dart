@@ -3,10 +3,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
+import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/providers/track_provider.dart';
 import 'package:repertoire_coach/presentation/screens/song_detail_screen.dart';
 import 'package:repertoire_coach/presentation/widgets/add_track_dialog.dart';
+
+class _FakeSupabaseService extends Fake implements SupabaseService {
+  @override
+  bool get isAuthenticated => true;
+
+  @override
+  String? get currentUserId => 'test-user-1';
+}
 
 void main() {
   group('SongDetailScreen Widget', () {
@@ -351,6 +361,7 @@ void main() {
           overrides: [
             tracksBySongProvider('s1')
                 .overrideWith((ref) => Future.value([testTrack])),
+            supabaseServiceProvider.overrideWithValue(_FakeSupabaseService()),
           ],
           child: const MaterialApp(
             home: SongDetailScreen(

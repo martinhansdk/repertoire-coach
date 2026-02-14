@@ -19,6 +19,9 @@ class _FakeSupabaseService extends Fake implements SupabaseService {
 
   @override
   String? get currentUserId => userId;
+
+  @override
+  bool get isAuthenticated => true;
 }
 
 void main() {
