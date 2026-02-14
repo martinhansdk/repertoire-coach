@@ -95,6 +95,7 @@ class FlutterMCPServer:
                             "flavor": {"type": "string", "description": "Build flavor"},
                             "buildNumber": {"type": "string", "description": "Build number"},
                             "buildName": {"type": "string", "description": "Build name"},
+                            "dartDefines": {"type": "object", "description": "Key-value pairs for --dart-define flags (e.g., {\"SUPABASE_URL\": \"...\", \"SUPABASE_ANON_KEY\": \"...\"})"},
                             "dockerImage": {"type": "string", "description": "Docker image to use"},
                             "timeout": {"type": "number", "description": "Timeout in seconds"},
                             "async": {"type": "boolean", "description": "Run asynchronously (default: true)"}
@@ -604,6 +605,7 @@ class FlutterMCPServer:
         flavor = args.get("flavor")
         build_number = args.get("buildNumber")
         build_name = args.get("buildName")
+        dart_defines = args.get("dartDefines", {})
         timeout = args.get("timeout", 1200)
         async_mode = args.get("async", True)
 
@@ -629,6 +631,9 @@ class FlutterMCPServer:
                         args.extend(["--build-number", build_number])
                     if build_name:
                         args.extend(["--build-name", build_name])
+                    # Add --dart-define flags
+                    for key, value in dart_defines.items():
+                        args.extend(["--dart-define", f"{key}={value}"])
 
                     proc, cidfile = self.runner.start_flutter_command(
                         args,
@@ -693,6 +698,7 @@ class FlutterMCPServer:
             flavor=flavor,
             build_number=build_number,
             build_name=build_name,
+            dart_defines=dart_defines,
             timeout=timeout
         )
 

@@ -283,6 +283,7 @@ class FlutterRunner:
         flavor: Optional[str] = None,
         build_number: Optional[str] = None,
         build_name: Optional[str] = None,
+        dart_defines: Optional[dict] = None,
         timeout: int = 600
     ) -> Tuple[int, str, str]:
         """Run Flutter build in Docker."""
@@ -299,6 +300,11 @@ class FlutterRunner:
 
         if build_name:
             args.extend(["--build-name", build_name])
+
+        # Add --dart-define flags
+        if dart_defines:
+            for key, value in dart_defines.items():
+                args.extend(["--dart-define", f"{key}={value}"])
 
         return self.run_flutter_command(args, with_pub_get=True, timeout=timeout)
 
