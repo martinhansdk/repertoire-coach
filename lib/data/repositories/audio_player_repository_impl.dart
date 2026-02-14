@@ -410,6 +410,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   Future<void> setLoopMode(bool enabled) async {
     _isLooping = enabled;
     await _player.setLoopMode(enabled ? ja.LoopMode.one : ja.LoopMode.off);
+    _updatePlaybackInfo(); // Broadcast state change to UI
   }
 
   @override

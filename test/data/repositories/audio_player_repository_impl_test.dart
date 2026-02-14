@@ -3,6 +3,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:repertoire_coach/data/datasources/local/local_user_playback_state_data_source.dart';
 import 'package:repertoire_coach/data/repositories/audio_player_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
+import 'package:repertoire_coach/domain/entities/playback_info.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/data/models/user_playback_state_model.dart';
 
@@ -286,18 +287,37 @@ void main() {
         events.add(info.isTrackLooping);
       });
 
-      // Enable loop mode — this updates _isLooping but doesn't trigger a stream event by itself.
-      // A subsequent playback update (e.g., from a player state change) will broadcast
-      // the new isTrackLooping value. Verify that currentPlayback reflects the state correctly.
+      // Enable loop mode - should immediately emit updated state
       await repository.setLoopMode(true);
 
-      // Force a playback update by seeking (triggers positionStream → _updatePlaybackInfo)
-      await repository.seek(Duration.zero);
-
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 50));
 
       // The stream should have emitted at least one event with isTrackLooping: true
       expect(events, contains(true));
+
+      await subscription.cancel();
+    });
+
+    test('setLoopMode updates playback state immediately when paused', () async {
+      // This test verifies the loop button updates its appearance when clicked while paused
+      final events = <PlaybackInfo>[];
+      final subscription = repository.playbackStream.listen((info) {
+        events.add(info);
+      });
+
+      // Enable loop while paused
+      await repository.setLoopMode(true);
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // Should have emitted updated state
+      expect(events.last.isTrackLooping, true);
+
+      // Disable loop while still paused
+      await repository.setLoopMode(false);
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // Should have emitted updated state again
+      expect(events.last.isTrackLooping, false);
 
       await subscription.cancel();
     });
