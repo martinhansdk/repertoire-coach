@@ -173,8 +173,8 @@ class _MarkerListState extends State<MarkerList> {
                 Positioned.fill(
                   child: TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0.0, end: progress),
-                    duration: const Duration(milliseconds: 160),
-                    curve: Curves.easeOut,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.linear,
                     builder: (context, value, child) {
                       return FractionallySizedBox(
                         key: ValueKey('markerProgress_$index'),
