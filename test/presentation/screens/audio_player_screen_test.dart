@@ -69,9 +69,7 @@ void main() {
         markerSetsByTrackProvider(('t2', 'local-user-1')).overrideWith(
           (ref) => markerSetsTrack2 ?? Future.value([]),
         ),
-        selectedMarkerSetProvider.overrideWithProvider(
-          StateProvider<String?>((ref) => selectedMarkerSetId),
-        ),
+        selectedMarkerSetProvider.overrideWith((ref) => selectedMarkerSetId),
         markersByMarkerSetProvider('').overrideWith((ref) => Future.value([])),
         if (markersBySetId != null)
           ...markersBySetId.entries.map(
