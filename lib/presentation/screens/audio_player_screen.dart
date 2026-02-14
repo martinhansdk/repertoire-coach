@@ -170,9 +170,13 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                   ),
                       const SizedBox(width: 4),
                       IconButton(
-                    icon: const Icon(Icons.loop),
-                    tooltip: 'A-B Loop (coming soon)',
-                    onPressed: () {},
+                    icon: Icon(
+                      playbackInfo.isTrackLooping ? Icons.repeat_one : Icons.loop,
+                    ),
+                    tooltip: playbackInfo.isTrackLooping ? 'Disable loop' : 'Enable loop',
+                    onPressed: () {
+                      ref.read(audioPlayerControlsProvider).toggleTrackLoop();
+                    },
                   ),
                       const SizedBox(width: 8),
                       Expanded(

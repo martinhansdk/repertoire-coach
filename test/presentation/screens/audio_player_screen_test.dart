@@ -343,4 +343,79 @@ void main() {
 
     await controller.close();
   });
+
+  group('Loop Button', () {
+    testWidgets('tapping loop button toggles track loop', (tester) async {
+      final playbackInfo = PlaybackInfo.idle().copyWith(
+        currentTrack: tTrack1,
+        state: AudioPlayerState.playing,
+        isTrackLooping: false,
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Tap loop button
+      await tester.tap(find.byIcon(Icons.loop));
+      await tester.pump();
+
+      // Verify setLoopMode was called with true
+      verify(mockAudioPlayerRepository.setLoopMode(true)).called(1);
+    });
+
+    testWidgets('loop button shows filled icon when track is looping', (tester) async {
+      final playbackInfo = PlaybackInfo.idle().copyWith(
+        currentTrack: tTrack1,
+        state: AudioPlayerState.playing,
+        isTrackLooping: true,
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byIcon(Icons.repeat_one), findsOneWidget);
+      expect(find.byIcon(Icons.loop), findsNothing);
+    });
+
+    testWidgets('loop button shows outline icon when not looping', (tester) async {
+      final playbackInfo = PlaybackInfo.idle().copyWith(
+        currentTrack: tTrack1,
+        state: AudioPlayerState.playing,
+        isTrackLooping: false,
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byIcon(Icons.loop), findsOneWidget);
+      expect(find.byIcon(Icons.repeat_one), findsNothing);
+    });
+
+    testWidgets('tapping loop button when looping disables loop', (tester) async {
+      when(mockAudioPlayerRepository.isLooping).thenReturn(true);
+      final playbackInfo = PlaybackInfo.idle().copyWith(
+        currentTrack: tTrack1,
+        state: AudioPlayerState.playing,
+        isTrackLooping: true,
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Tap loop button to disable
+      await tester.tap(find.byIcon(Icons.repeat_one));
+      await tester.pump();
+
+      // Verify setLoopMode was called with false
+      verify(mockAudioPlayerRepository.setLoopMode(false)).called(1);
+    });
+  });
 }
