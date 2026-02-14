@@ -24,7 +24,8 @@ class MarkerSetSelector extends ConsumerWidget {
     final theme = Theme.of(context);
     final selectedId = ref.watch(selectedMarkerSetProvider);
     final screenWidth = MediaQuery.of(context).size.width;
-    final isNarrowScreen = screenWidth < 600; // Narrow if width < 600dp
+    // Use compact mode on typical mobile portrait widths and smaller landscape tablets
+    final isNarrowScreen = screenWidth < 768; // Narrow if width < 768dp (mobile + small tablets)
 
     if (markerSets.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -116,6 +117,17 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrowScreen = screenWidth < 768;
+
+    // On narrow screens, just show the manage button without the container
+    if (isNarrowScreen && onManageMarkers != null) {
+      return IconButton(
+        icon: const Icon(Icons.bookmarks_outlined),
+        tooltip: 'Create Marker Set',
+        onPressed: onManageMarkers,
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),
