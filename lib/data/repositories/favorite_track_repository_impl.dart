@@ -26,11 +26,31 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
 
   @override
   Future<List<FavoriteTrack>> getFavorites(String userId) async {
-    // Get all favorites from local database (already includes denormalized data)
-    final favoriteModels = await _localDataSource.getFavorites(userId);
+    // Try to get from local database first
+    final localFavorites = await _localDataSource.getFavorites(userId);
 
-    // Convert to domain entities
-    return favoriteModels.map((model) => model.toEntity()).toList();
+    // If local database is empty and user is authenticated, fetch from remote
+    if (localFavorites.isEmpty &&
+        _supabaseService.isAuthenticated &&
+        _remoteDataSource != null) {
+      try {
+        final remoteFavorites = await _remoteDataSource.getFavorites(userId);
+
+        // Sync remote favorites to local database
+        for (final favorite in remoteFavorites) {
+          await _localDataSource.addFavorite(favorite, markForSync: false);
+        }
+
+        // Return the remote favorites
+        return remoteFavorites.map((model) => model.toEntity()).toList();
+      } catch (e) {
+        debugPrint('Failed to fetch favorites from remote: $e');
+        // Fall through to return empty local list
+      }
+    }
+
+    // Convert local favorites to domain entities
+    return localFavorites.map((model) => model.toEntity()).toList();
   }
 
   @override
