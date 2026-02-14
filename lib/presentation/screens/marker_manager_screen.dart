@@ -209,40 +209,73 @@ class _MarkerSetCard extends ConsumerWidget {
 
   Future<void> _editMarkerSetName(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController(text: markerSet.name);
+    bool isShared = markerSet.isShared;
 
-    final newName = await showDialog<String>(
+    final result = await showDialog<({String name, bool isShared})?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Marker Set Name'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Marker Set'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: const Text('Share with choir'),
+                subtitle: Text(
+                  isShared
+                      ? 'All choir members can see and edit'
+                      : 'Only you can see and edit',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                value: isShared,
+                onChanged: (value) {
+                  setState(() {
+                    isShared = value;
+                  });
+                },
+              ),
+            ],
           ),
-          autofocus: true,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                context,
+                (name: controller.text.trim(), isShared: isShared),
+              ),
+              child: const Text('Save'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
 
-    if (newName != null && newName.isNotEmpty && newName != markerSet.name && context.mounted) {
+    if (result != null &&
+        result.name.isNotEmpty &&
+        (result.name != markerSet.name || result.isShared != markerSet.isShared) &&
+        context.mounted) {
       try {
         final repository = ref.read(markerRepositoryProvider);
         final updatedMarkerSet = MarkerSet(
           id: markerSet.id,
           trackId: markerSet.trackId,
-          name: newName,
-          isShared: markerSet.isShared,
+          name: result.name,
+          isShared: result.isShared,
           isTimeSynced: markerSet.isTimeSynced,
           createdByUserId: markerSet.createdByUserId,
           createdAt: markerSet.createdAt,
@@ -252,9 +285,17 @@ class _MarkerSetCard extends ConsumerWidget {
 
         if (context.mounted) {
           ref.invalidate(markerSetsByTrackProvider);
+
+          // Show appropriate message based on what changed
+          final message = result.isShared != markerSet.isShared
+              ? result.isShared
+                  ? 'Marker set shared with choir'
+                  : 'Marker set made private'
+              : 'Marker set updated';
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Marker set renamed successfully'),
+            SnackBar(
+              content: Text(message),
               backgroundColor: Colors.green,
             ),
           );
@@ -263,7 +304,7 @@ class _MarkerSetCard extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error renaming marker set: $e'),
+              content: Text('Error updating marker set: $e'),
               backgroundColor: Colors.red,
             ),
           );
