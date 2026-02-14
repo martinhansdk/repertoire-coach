@@ -387,6 +387,74 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 - [ ] Validate all tests pass (target 70%+ coverage)
 
 
+## Favorite Tracks Feature
+
+**Status:** 🔵 In Progress
+**Started:** 2026-02-14
+
+**Goal:** Replace the top-level Concerts page with a Favorite Tracks page, allowing users quick access to frequently-used tracks.
+
+### Database & Migration
+- [ ] Create Supabase migration `007_create_favorites_table.sql`
+- [ ] Add FavoriteTracks table to Drift database schema
+- [ ] Apply migration to Supabase (manual step)
+
+### Domain Layer
+- [ ] Create `FavoriteTrack` entity with denormalized fields (trackName, songTitle, choirName)
+- [ ] Create `FavoriteTrackRepository` interface
+
+### Data Layer
+- [ ] Create `FavoriteTrackModel` (Drift-compatible)
+- [ ] Create `LocalFavoriteTrackDataSource` (Drift operations)
+- [ ] Create `RemoteFavoriteTrackDataSource` (Supabase operations with joins)
+- [ ] Create `FavoriteTrackRepositoryImpl` (offline-first pattern)
+
+### Presentation Layer
+- [ ] Create `favorite_track_provider.dart` with providers:
+  - [ ] `favoritesProvider` - all user's favorites
+  - [ ] `isFavoriteProvider` - check if track is favorited
+  - [ ] `favoriteCountProvider` - for startup logic
+  - [ ] `favoriteTrackActionsProvider` - add/remove/toggle actions
+- [ ] Create `FavoriteTracksScreen` (list of favorites with empty/error states)
+- [ ] Create `FavoriteTrackCard` widget (displays song title, track name, choir name)
+- [ ] Update `AudioPlayerScreen` - add favorite toggle button in app bar
+- [ ] Update `TrackCard` - add favorite toggle button
+- [ ] Update `HomeScreen`:
+  - [ ] Replace ConcertListScreen with FavoriteTracksScreen in bottom nav
+  - [ ] Implement startup logic (show Favorites if any exist, else Choirs)
+  - [ ] Update navigation icons (Concerts → Favorites)
+
+### Sync & Cloud
+- [ ] Update `sync_provider.dart` to include favorites sync
+- [ ] Handle offline favoriting (queue for sync)
+- [ ] Handle sync conflicts (union of favorites)
+
+### Cleanup
+- [ ] Delete `concert_list_screen.dart`
+- [ ] Delete `concert_list_screen_test.dart`
+- [ ] Delete `concert_list_screen_test.mocks.dart` (if exists)
+- [ ] Remove concert list imports from home_screen.dart
+
+### Testing
+- [ ] Unit tests for FavoriteTrack entity
+- [ ] Unit tests for FavoriteTrackModel
+- [ ] Unit tests for LocalFavoriteTrackDataSource
+- [ ] Unit tests for FavoriteTrackRepositoryImpl
+- [ ] Unit tests for favorite_track_provider
+- [ ] Widget tests for FavoriteTracksScreen
+- [ ] Widget tests for FavoriteTrackCard
+- [ ] Update AudioPlayerScreen tests (favorite toggle)
+- [ ] Update TrackCard tests (favorite toggle)
+- [ ] Update HomeScreen tests (favorites nav, startup logic)
+- [ ] Integration test: end-to-end favoriting flow
+
+### Documentation
+- [ ] Update ARCHITECTURE.md (database schema, data models, navigation flow)
+- [ ] Update REQUIREMENTS.md (favorite tracks feature, navigation changes)
+- [ ] Mark this task complete in TODO.md
+
+**Estimated Effort:** ~22 hours
+
 ## Phase 3: Advanced Playback Features
 
 ### Section Marking

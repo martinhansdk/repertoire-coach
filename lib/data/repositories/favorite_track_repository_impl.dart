@@ -1,0 +1,93 @@
+import 'package:flutter/foundation.dart';
+
+import '../../core/services/supabase_service.dart';
+import '../../domain/entities/favorite_track.dart';
+import '../../domain/repositories/favorite_track_repository.dart';
+import '../datasources/local/local_favorite_track_data_source.dart';
+import '../datasources/remote/remote_favorite_track_data_source.dart';
+import '../models/favorite_track_model.dart';
+
+/// Favorite track repository implementation with offline-first sync
+///
+/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
+/// - Reads always from local DB (fast, works offline)
+/// - Writes to both local AND remote when authenticated
+/// - Background sync ensures data consistency
+class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
+  final LocalFavoriteTrackDataSource _localDataSource;
+  final RemoteFavoriteTrackDataSource? _remoteDataSource;
+  final SupabaseService _supabaseService;
+
+  FavoriteTrackRepositoryImpl(
+    this._localDataSource,
+    this._remoteDataSource,
+    this._supabaseService,
+  );
+
+  @override
+  Future<List<FavoriteTrack>> getFavorites(String userId) async {
+    // Get all favorites from local database (already includes denormalized data)
+    final favoriteModels = await _localDataSource.getFavorites(userId);
+
+    // Convert to domain entities
+    return favoriteModels.map((model) => model.toEntity()).toList();
+  }
+
+  @override
+  Future<bool> isFavorite(String userId, String trackId) async {
+    return await _localDataSource.isFavorite(userId, trackId);
+  }
+
+  @override
+  Future<void> addFavorite(
+    String userId,
+    String trackId,
+    String songId,
+  ) async {
+    final favorite = FavoriteTrackModel(
+      userId: userId,
+      trackId: trackId,
+      songId: songId,
+      addedAt: DateTime.now(),
+      // Denormalized fields will be populated by local data source query
+      trackName: '',
+      songTitle: '',
+      choirName: '',
+    );
+
+    // Save to local database (marks for sync)
+    await _localDataSource.addFavorite(favorite, markForSync: true);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource.addFavorite(userId, trackId, songId);
+        await _localDataSource.markAsSynced([trackId], userId);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        debugPrint('Failed to sync favorite to remote: $e');
+      }
+    }
+  }
+
+  @override
+  Future<void> removeFavorite(String userId, String trackId) async {
+    // Delete from local database
+    await _localDataSource.removeFavorite(userId, trackId);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource.removeFavorite(userId, trackId);
+      } catch (e) {
+        // Log error but don't fail the operation - will sync later
+        debugPrint('Failed to sync favorite removal to remote: $e');
+      }
+    }
+  }
+
+  @override
+  Future<int> getFavoriteCount(String userId) async {
+    return await _localDataSource.getFavoriteCount(userId);
+  }
+}

@@ -3476,6 +3476,324 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
   }
 }
 
+class $FavoriteTracksTable extends FavoriteTracks
+    with TableInfo<$FavoriteTracksTable, FavoriteTrack> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FavoriteTracksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _trackIdMeta =
+      const VerificationMeta('trackId');
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+      'track_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _songIdMeta = const VerificationMeta('songId');
+  @override
+  late final GeneratedColumn<String> songId = GeneratedColumn<String>(
+      'song_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _addedAtMeta =
+      const VerificationMeta('addedAt');
+  @override
+  late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
+      'added_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
+  @override
+  late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
+      'synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [userId, trackId, songId, addedAt, synced];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'favorite_tracks';
+  @override
+  VerificationContext validateIntegrity(Insertable<FavoriteTrack> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(_trackIdMeta,
+          trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta));
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('song_id')) {
+      context.handle(_songIdMeta,
+          songId.isAcceptableOrUnknown(data['song_id']!, _songIdMeta));
+    } else if (isInserting) {
+      context.missing(_songIdMeta);
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(_addedAtMeta,
+          addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta));
+    } else if (isInserting) {
+      context.missing(_addedAtMeta);
+    }
+    if (data.containsKey('synced')) {
+      context.handle(_syncedMeta,
+          synced.isAcceptableOrUnknown(data['synced']!, _syncedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {userId, trackId};
+  @override
+  FavoriteTrack map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FavoriteTrack(
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      trackId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
+      songId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}song_id'])!,
+      addedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}added_at'])!,
+      synced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}synced'])!,
+    );
+  }
+
+  @override
+  $FavoriteTracksTable createAlias(String alias) {
+    return $FavoriteTracksTable(attachedDatabase, alias);
+  }
+}
+
+class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
+  /// ID of the user who favorited this track
+  final String userId;
+
+  /// ID of the favorited track
+  final String trackId;
+
+  /// ID of the song containing this track (for efficient queries)
+  final String songId;
+
+  /// When this track was added to favorites
+  final DateTime addedAt;
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  final bool synced;
+  const FavoriteTrack(
+      {required this.userId,
+      required this.trackId,
+      required this.songId,
+      required this.addedAt,
+      required this.synced});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['user_id'] = Variable<String>(userId);
+    map['track_id'] = Variable<String>(trackId);
+    map['song_id'] = Variable<String>(songId);
+    map['added_at'] = Variable<DateTime>(addedAt);
+    map['synced'] = Variable<bool>(synced);
+    return map;
+  }
+
+  FavoriteTracksCompanion toCompanion(bool nullToAbsent) {
+    return FavoriteTracksCompanion(
+      userId: Value(userId),
+      trackId: Value(trackId),
+      songId: Value(songId),
+      addedAt: Value(addedAt),
+      synced: Value(synced),
+    );
+  }
+
+  factory FavoriteTrack.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FavoriteTrack(
+      userId: serializer.fromJson<String>(json['userId']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      songId: serializer.fromJson<String>(json['songId']),
+      addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+      synced: serializer.fromJson<bool>(json['synced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'userId': serializer.toJson<String>(userId),
+      'trackId': serializer.toJson<String>(trackId),
+      'songId': serializer.toJson<String>(songId),
+      'addedAt': serializer.toJson<DateTime>(addedAt),
+      'synced': serializer.toJson<bool>(synced),
+    };
+  }
+
+  FavoriteTrack copyWith(
+          {String? userId,
+          String? trackId,
+          String? songId,
+          DateTime? addedAt,
+          bool? synced}) =>
+      FavoriteTrack(
+        userId: userId ?? this.userId,
+        trackId: trackId ?? this.trackId,
+        songId: songId ?? this.songId,
+        addedAt: addedAt ?? this.addedAt,
+        synced: synced ?? this.synced,
+      );
+  FavoriteTrack copyWithCompanion(FavoriteTracksCompanion data) {
+    return FavoriteTrack(
+      userId: data.userId.present ? data.userId.value : this.userId,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      songId: data.songId.present ? data.songId.value : this.songId,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+      synced: data.synced.present ? data.synced.value : this.synced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteTrack(')
+          ..write('userId: $userId, ')
+          ..write('trackId: $trackId, ')
+          ..write('songId: $songId, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('synced: $synced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(userId, trackId, songId, addedAt, synced);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FavoriteTrack &&
+          other.userId == this.userId &&
+          other.trackId == this.trackId &&
+          other.songId == this.songId &&
+          other.addedAt == this.addedAt &&
+          other.synced == this.synced);
+}
+
+class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
+  final Value<String> userId;
+  final Value<String> trackId;
+  final Value<String> songId;
+  final Value<DateTime> addedAt;
+  final Value<bool> synced;
+  final Value<int> rowid;
+  const FavoriteTracksCompanion({
+    this.userId = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.songId = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.synced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FavoriteTracksCompanion.insert({
+    required String userId,
+    required String trackId,
+    required String songId,
+    required DateTime addedAt,
+    this.synced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : userId = Value(userId),
+        trackId = Value(trackId),
+        songId = Value(songId),
+        addedAt = Value(addedAt);
+  static Insertable<FavoriteTrack> custom({
+    Expression<String>? userId,
+    Expression<String>? trackId,
+    Expression<String>? songId,
+    Expression<DateTime>? addedAt,
+    Expression<bool>? synced,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (userId != null) 'user_id': userId,
+      if (trackId != null) 'track_id': trackId,
+      if (songId != null) 'song_id': songId,
+      if (addedAt != null) 'added_at': addedAt,
+      if (synced != null) 'synced': synced,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FavoriteTracksCompanion copyWith(
+      {Value<String>? userId,
+      Value<String>? trackId,
+      Value<String>? songId,
+      Value<DateTime>? addedAt,
+      Value<bool>? synced,
+      Value<int>? rowid}) {
+    return FavoriteTracksCompanion(
+      userId: userId ?? this.userId,
+      trackId: trackId ?? this.trackId,
+      songId: songId ?? this.songId,
+      addedAt: addedAt ?? this.addedAt,
+      synced: synced ?? this.synced,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (songId.present) {
+      map['song_id'] = Variable<String>(songId.value);
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<DateTime>(addedAt.value);
+    }
+    if (synced.present) {
+      map['synced'] = Variable<bool>(synced.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteTracksCompanion(')
+          ..write('userId: $userId, ')
+          ..write('trackId: $trackId, ')
+          ..write('songId: $songId, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('synced: $synced, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3488,6 +3806,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $UserPlaybackStatesTable(this);
   late final $MarkerSetsTable markerSets = $MarkerSetsTable(this);
   late final $MarkersTable markers = $MarkersTable(this);
+  late final $FavoriteTracksTable favoriteTracks = $FavoriteTracksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3500,7 +3819,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         tracks,
         userPlaybackStates,
         markerSets,
-        markers
+        markers,
+        favoriteTracks
       ];
 }
 
@@ -5175,6 +5495,180 @@ typedef $$MarkersTableProcessedTableManager = ProcessedTableManager<
     (Marker, BaseReferences<_$AppDatabase, $MarkersTable, Marker>),
     Marker,
     PrefetchHooks Function()>;
+typedef $$FavoriteTracksTableCreateCompanionBuilder = FavoriteTracksCompanion
+    Function({
+  required String userId,
+  required String trackId,
+  required String songId,
+  required DateTime addedAt,
+  Value<bool> synced,
+  Value<int> rowid,
+});
+typedef $$FavoriteTracksTableUpdateCompanionBuilder = FavoriteTracksCompanion
+    Function({
+  Value<String> userId,
+  Value<String> trackId,
+  Value<String> songId,
+  Value<DateTime> addedAt,
+  Value<bool> synced,
+  Value<int> rowid,
+});
+
+class $$FavoriteTracksTableFilterComposer
+    extends Composer<_$AppDatabase, $FavoriteTracksTable> {
+  $$FavoriteTracksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get songId => $composableBuilder(
+      column: $table.songId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get addedAt => $composableBuilder(
+      column: $table.addedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnFilters(column));
+}
+
+class $$FavoriteTracksTableOrderingComposer
+    extends Composer<_$AppDatabase, $FavoriteTracksTable> {
+  $$FavoriteTracksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get songId => $composableBuilder(
+      column: $table.songId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get addedAt => $composableBuilder(
+      column: $table.addedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnOrderings(column));
+}
+
+class $$FavoriteTracksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FavoriteTracksTable> {
+  $$FavoriteTracksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<String> get songId =>
+      $composableBuilder(column: $table.songId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get synced =>
+      $composableBuilder(column: $table.synced, builder: (column) => column);
+}
+
+class $$FavoriteTracksTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $FavoriteTracksTable,
+    FavoriteTrack,
+    $$FavoriteTracksTableFilterComposer,
+    $$FavoriteTracksTableOrderingComposer,
+    $$FavoriteTracksTableAnnotationComposer,
+    $$FavoriteTracksTableCreateCompanionBuilder,
+    $$FavoriteTracksTableUpdateCompanionBuilder,
+    (
+      FavoriteTrack,
+      BaseReferences<_$AppDatabase, $FavoriteTracksTable, FavoriteTrack>
+    ),
+    FavoriteTrack,
+    PrefetchHooks Function()> {
+  $$FavoriteTracksTableTableManager(
+      _$AppDatabase db, $FavoriteTracksTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FavoriteTracksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FavoriteTracksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FavoriteTracksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> userId = const Value.absent(),
+            Value<String> trackId = const Value.absent(),
+            Value<String> songId = const Value.absent(),
+            Value<DateTime> addedAt = const Value.absent(),
+            Value<bool> synced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FavoriteTracksCompanion(
+            userId: userId,
+            trackId: trackId,
+            songId: songId,
+            addedAt: addedAt,
+            synced: synced,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String userId,
+            required String trackId,
+            required String songId,
+            required DateTime addedAt,
+            Value<bool> synced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FavoriteTracksCompanion.insert(
+            userId: userId,
+            trackId: trackId,
+            songId: songId,
+            addedAt: addedAt,
+            synced: synced,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$FavoriteTracksTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $FavoriteTracksTable,
+    FavoriteTrack,
+    $$FavoriteTracksTableFilterComposer,
+    $$FavoriteTracksTableOrderingComposer,
+    $$FavoriteTracksTableAnnotationComposer,
+    $$FavoriteTracksTableCreateCompanionBuilder,
+    $$FavoriteTracksTableUpdateCompanionBuilder,
+    (
+      FavoriteTrack,
+      BaseReferences<_$AppDatabase, $FavoriteTracksTable, FavoriteTrack>
+    ),
+    FavoriteTrack,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5195,4 +5689,6 @@ class $AppDatabaseManager {
       $$MarkerSetsTableTableManager(_db, _db.markerSets);
   $$MarkersTableTableManager get markers =>
       $$MarkersTableTableManager(_db, _db.markers);
+  $$FavoriteTracksTableTableManager get favoriteTracks =>
+      $$FavoriteTracksTableTableManager(_db, _db.favoriteTracks);
 }

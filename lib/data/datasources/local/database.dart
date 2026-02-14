@@ -237,6 +237,27 @@ class Markers extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Table definition for favorite tracks (per-user, synced across devices)
+class FavoriteTracks extends Table {
+  /// ID of the user who favorited this track
+  TextColumn get userId => text()();
+
+  /// ID of the favorited track
+  TextColumn get trackId => text()();
+
+  /// ID of the song containing this track (for efficient queries)
+  TextColumn get songId => text()();
+
+  /// When this track was added to favorites
+  DateTimeColumn get addedAt => dateTime()();
+
+  /// Sync tracking flag (true = synced to cloud, false = needs sync)
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {userId, trackId};
+}
+
 /// Main application database
 @DriftDatabase(tables: [
   Choirs,
@@ -247,6 +268,7 @@ class Markers extends Table {
   UserPlaybackStates,
   MarkerSets,
   Markers,
+  FavoriteTracks,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());

@@ -297,6 +297,15 @@ CREATE TABLE playback_states (
   PRIMARY KEY (user_id, song_id, track_id)
 );
 
+-- Favorite tracks table (per-user, synced across devices)
+CREATE TABLE favorite_tracks (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+  added_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, track_id)
+);
+
 -- Indexes for performance
 CREATE INDEX idx_choir_members_user ON choir_members(user_id);
 CREATE INDEX idx_choir_members_choir ON choir_members(choir_id);
@@ -307,6 +316,9 @@ CREATE INDEX idx_marker_sets_track ON marker_sets(track_id);
 CREATE INDEX idx_marker_sets_user ON marker_sets(created_by_user_id);
 CREATE INDEX idx_markers_set ON markers(marker_set_id);
 CREATE INDEX idx_playback_states_user ON playback_states(user_id);
+CREATE INDEX idx_favorite_tracks_user ON favorite_tracks(user_id);
+CREATE INDEX idx_favorite_tracks_track ON favorite_tracks(track_id);
+CREATE INDEX idx_favorite_tracks_user_added ON favorite_tracks(user_id, added_at DESC);
 
 -- Updated_at triggers
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -379,6 +391,27 @@ VALUES ($1, $2, $3, $4)
 ON CONFLICT (user_id, song_id, track_id)
 DO UPDATE SET position_ms = $4, updated_at = NOW()
 RETURNING *;
+```
+
+**Get user's favorite tracks (with denormalized display data):**
+```sql
+SELECT
+  ft.user_id,
+  ft.track_id,
+  ft.song_id,
+  ft.added_at,
+  t.name as track_name,
+  t.audio_url,
+  t.duration_ms,
+  s.title as song_title,
+  c.name as choir_name
+FROM favorite_tracks ft
+JOIN tracks t ON ft.track_id = t.id
+JOIN songs s ON ft.song_id = s.id
+JOIN concerts co ON s.concert_id = co.id
+JOIN choirs c ON co.choir_id = c.id
+WHERE ft.user_id = $1
+ORDER BY ft.added_at DESC;
 ```
 
 ### Row Level Security (RLS) Policies
