@@ -7,6 +7,7 @@ import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_marker_data_source.dart';
 import 'package:repertoire_coach/data/repositories/marker_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/marker_set.dart';
+import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
 import 'package:repertoire_coach/presentation/widgets/marker_set_dialog.dart';
 
@@ -15,7 +16,7 @@ class _FakeSupabaseService extends Fake implements SupabaseService {
   bool get isAuthenticated => false;
 
   @override
-  String? get currentUserId => null;
+  String? get currentUserId => 'test-user-1';
 }
 
 void main() {
@@ -41,6 +42,7 @@ void main() {
       return ProviderScope(
         overrides: [
           markerRepositoryProvider.overrideWithValue(repository),
+          supabaseServiceProvider.overrideWithValue(fakeSupabaseService),
         ],
         child: MaterialApp(
           home: Scaffold(
