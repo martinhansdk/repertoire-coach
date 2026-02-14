@@ -277,7 +277,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   /// Migration strategy for database upgrades
   @override
@@ -381,6 +381,21 @@ class AppDatabase extends _$AppDatabase {
             // Add is_time_synced to marker_sets
             await customStatement(
               'ALTER TABLE marker_sets ADD COLUMN is_time_synced INTEGER NOT NULL DEFAULT 1',
+            );
+          }
+          if (from == 8 && to == 9) {
+            // Add FavoriteTracks table
+            await m.createTable(favoriteTracks);
+
+            // Create indexes for performance
+            await customStatement(
+              'CREATE INDEX idx_favorite_tracks_user ON favorite_tracks(user_id)',
+            );
+            await customStatement(
+              'CREATE INDEX idx_favorite_tracks_track ON favorite_tracks(track_id)',
+            );
+            await customStatement(
+              'CREATE INDEX idx_favorite_tracks_user_added ON favorite_tracks(user_id, added_at DESC)',
             );
           }
           // Handle multi-version upgrade (e.g., 1 -> 5)
