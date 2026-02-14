@@ -113,6 +113,82 @@ void main() {
         expect(notifier.state.step, SyncStep.timeSync);
         expect(notifier.state.labels, ['intro', '', 'verse']);
       });
+
+      test('should preserve timestamps when text unchanged', () async {
+        final existingMarkers = [
+          Marker(
+            id: 'm1',
+            markerSetId: 'set-1',
+            label: 'intro',
+            positionMs: 1000,
+            order: 0,
+            createdAt: DateTime(2024, 1, 1),
+          ),
+          Marker(
+            id: 'm2',
+            markerSetId: 'set-1',
+            label: '',
+            positionMs: 2000,
+            order: 1,
+            createdAt: DateTime(2024, 1, 1),
+          ),
+          Marker(
+            id: 'm3',
+            markerSetId: 'set-1',
+            label: 'verse',
+            positionMs: 3000,
+            order: 2,
+            createdAt: DateTime(2024, 1, 1),
+          ),
+        ];
+
+        when(mockRepository.getMarkersByMarkerSet(any)).thenAnswer((_) async => existingMarkers);
+
+        await notifier.startSyncFromText('intro\n\nverse');
+
+        // Should NOT update database when text unchanged
+        verifyNever(mockRepository.createMarker(any));
+        verifyNever(mockRepository.updateMarker(any));
+        verifyNever(mockRepository.deleteMarker(any));
+        verifyNever(mockRepository.updateMarkerSet(any));
+
+        // Should load existing timestamps into state
+        expect(notifier.state.step, SyncStep.timeSync);
+        expect(notifier.state.labels, ['intro', '', 'verse']);
+        expect(notifier.state.syncedPositions[-1], 0); // "..." marker
+        expect(notifier.state.syncedPositions[0], 1000); // intro
+        expect(notifier.state.syncedPositions[1], 2000); // empty
+        expect(notifier.state.syncedPositions[2], 3000); // verse
+        expect(notifier.state.currentIndex, 2); // Last non-empty marker
+        expect(notifier.state.isDirty, false);
+      });
+
+      test('should update database when text changed', () async {
+        final existingMarkers = [
+          Marker(
+            id: 'm1',
+            markerSetId: 'set-1',
+            label: 'intro',
+            positionMs: 1000,
+            order: 0,
+            createdAt: DateTime(2024, 1, 1),
+          ),
+        ];
+
+        when(mockRepository.getMarkersByMarkerSet(any)).thenAnswer((_) async => existingMarkers);
+        when(mockRepository.updateMarker(any)).thenAnswer((_) async => true);
+        when(mockRepository.createMarker(any)).thenAnswer((_) async {});
+        when(mockRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
+        when(mockRepository.updateMarkerSet(any)).thenAnswer((_) async => true);
+
+        // Change the text
+        await notifier.startSyncFromText('intro\nverse');
+
+        // Should update database when text changed
+        verify(mockRepository.updateMarker(any)).called(1); // Update existing
+        verify(mockRepository.createMarker(any)).called(1); // Create new
+        verify(mockRepository.updateMarkerSet(any)).called(1); // Set isTimeSynced=false
+      });
     });
 
     group('syncNextMarker', () {

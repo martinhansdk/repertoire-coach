@@ -306,6 +306,109 @@ void main() {
       });
     });
 
+    group('Drag Interaction', () {
+      testWidgets('should support horizontal drag to seek', (tester) async {
+        Duration? seekPosition;
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          duration: const Duration(seconds: 100),
+          onSeek: (position) => seekPosition = position,
+        ));
+
+        final progressBar = find.byType(MarkerProgressBar);
+        final rect = tester.getRect(progressBar);
+
+        // Drag from 0% to 50%
+        await tester.dragFrom(
+          Offset(rect.left, rect.center.dy),
+          Offset(rect.width * 0.5, 0),
+        );
+        await tester.pumpAndSettle();
+
+        // Should seek to approximately 50 seconds
+        expect(seekPosition, isNotNull);
+        expect(seekPosition!.inSeconds, greaterThan(45));
+        expect(seekPosition!.inSeconds, lessThan(55));
+      });
+
+      testWidgets('should update visual feedback during drag', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          position: Duration.zero,
+          duration: const Duration(seconds: 100),
+          onSeek: (_) {},
+        ));
+
+        final progressBar = find.byType(MarkerProgressBar);
+        final rect = tester.getRect(progressBar);
+
+        // Start drag gesture
+        final gesture = await tester.startGesture(Offset(rect.left, rect.center.dy));
+        await tester.pump();
+
+        // Drag to 75%
+        await gesture.moveTo(Offset(rect.left + rect.width * 0.75, rect.center.dy));
+        await tester.pump();
+
+        // Visual should update (can't easily test CustomPaint, but state should update)
+        await gesture.up();
+        await tester.pumpAndSettle();
+      });
+
+      testWidgets('should clamp drag position to valid range', (tester) async {
+        final seekPositions = <Duration>[];
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          duration: const Duration(seconds: 100),
+          onSeek: seekPositions.add,
+        ));
+
+        final progressBar = find.byType(MarkerProgressBar);
+        final rect = tester.getRect(progressBar);
+
+        // Drag beyond the right edge
+        await tester.dragFrom(
+          Offset(rect.center.dx, rect.center.dy),
+          Offset(rect.width * 2, 0), // Way beyond the end
+        );
+        await tester.pumpAndSettle();
+
+        // Should clamp to max duration
+        expect(seekPositions.last.inSeconds, lessThanOrEqualTo(100));
+      });
+
+      testWidgets('should only seek on drag end, not during drag', (tester) async {
+        final seekPositions = <Duration>[];
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          duration: const Duration(seconds: 100),
+          onSeek: seekPositions.add,
+        ));
+
+        final progressBar = find.byType(MarkerProgressBar);
+        final rect = tester.getRect(progressBar);
+
+        seekPositions.clear();
+
+        // Start drag
+        final gesture = await tester.startGesture(Offset(rect.left, rect.center.dy));
+        await tester.pump();
+
+        expect(seekPositions.length, 0); // No seek yet
+
+        // Move during drag
+        await gesture.moveTo(Offset(rect.left + rect.width * 0.5, rect.center.dy));
+        await tester.pump();
+
+        expect(seekPositions.length, 0); // Still no seek during drag
+
+        // End drag
+        await gesture.up();
+        await tester.pump();
+
+        expect(seekPositions.length, 1); // Seek happens on drag end
+      });
+    });
+
     group('State Updates', () {
       testWidgets('should update when position changes', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(

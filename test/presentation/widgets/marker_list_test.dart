@@ -37,6 +37,8 @@ void main() {
     required List<Marker> markers,
     required Duration currentPosition,
     ValueChanged<Duration>? onMarkerTap,
+    bool isPlaying = false,
+    Duration? trackDuration,
   }) {
     return MaterialApp(
       home: Scaffold(
@@ -45,6 +47,8 @@ void main() {
           currentPosition: currentPosition,
           onMarkerTap: onMarkerTap,
           showPositions: true,
+          isPlaying: isPlaying,
+          trackDuration: trackDuration,
         ),
       ),
     );
@@ -183,5 +187,173 @@ void main() {
       ),
     );
     expect(scrollable.position.pixels, greaterThan(0));
+  });
+
+  group('Animation Pause Behavior', () {
+    testWidgets('pauses animation when isPlaying changes from true to false', (tester) async {
+      await tester.pumpWidget(
+        buildWidget(
+          markers: buildMarkers(),
+          currentPosition: const Duration(seconds: 5),
+          onMarkerTap: (_) {},
+          isPlaying: true,
+          trackDuration: const Duration(seconds: 30),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Animation should be running - verify progress is visible
+      expect(find.byKey(const ValueKey('markerProgress_0')), findsOneWidget);
+
+      // Change to paused
+      await tester.pumpWidget(
+        buildWidget(
+          markers: buildMarkers(),
+          currentPosition: const Duration(seconds: 5),
+          onMarkerTap: (_) {},
+          isPlaying: false,
+          trackDuration: const Duration(seconds: 30),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Progress should still be visible at current position
+      final progress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      expect(progress.widthFactor, closeTo(0.5, 0.05));
+    });
+
+    testWidgets('resumes animation when isPlaying changes from false to true', (tester) async {
+      await tester.pumpWidget(
+        buildWidget(
+          markers: buildMarkers(),
+          currentPosition: const Duration(seconds: 5),
+          onMarkerTap: (_) {},
+          isPlaying: false,
+          trackDuration: const Duration(seconds: 30),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Get initial progress value
+      final initialProgress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      final initialWidth = initialProgress.widthFactor;
+
+      // Change to playing
+      await tester.pumpWidget(
+        buildWidget(
+          markers: buildMarkers(),
+          currentPosition: const Duration(seconds: 5),
+          onMarkerTap: (_) {},
+          isPlaying: true,
+          trackDuration: const Duration(seconds: 30),
+        ),
+      );
+
+      // Let animation run a bit
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Progress should have advanced
+      final newProgress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      expect(newProgress.widthFactor, greaterThan(initialWidth!));
+    });
+
+    testWidgets('respects isPlaying state on initial render when paused', (tester) async {
+      await tester.pumpWidget(
+        buildWidget(
+          markers: buildMarkers(),
+          currentPosition: const Duration(seconds: 5),
+          onMarkerTap: (_) {},
+          isPlaying: false,
+          trackDuration: const Duration(seconds: 30),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Progress should be visible at current position
+      final progress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      expect(progress.widthFactor, closeTo(0.5, 0.05));
+
+      // Wait and verify it doesn't advance (since paused)
+      final initialWidth = progress.widthFactor;
+      await tester.pump(const Duration(milliseconds: 500));
+
+      final unchangedProgress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      expect(unchangedProgress.widthFactor, equals(initialWidth));
+    });
+
+    testWidgets('respects isPlaying state on initial render when playing', (tester) async {
+      await tester.pumpWidget(
+        buildWidget(
+          markers: buildMarkers(),
+          currentPosition: const Duration(seconds: 5),
+          onMarkerTap: (_) {},
+          isPlaying: true,
+          trackDuration: const Duration(seconds: 30),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Get initial progress value
+      final initialProgress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      final initialWidth = initialProgress.widthFactor;
+
+      // Let animation run
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Progress should have advanced
+      final newProgress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      expect(newProgress.widthFactor, greaterThan(initialWidth!));
+    });
+
+    testWidgets('maintains correct position when paused and position changes', (tester) async {
+      await tester.pumpWidget(
+        buildWidget(
+          markers: buildMarkers(),
+          currentPosition: const Duration(seconds: 5),
+          onMarkerTap: (_) {},
+          isPlaying: false,
+          trackDuration: const Duration(seconds: 30),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Verify initial position
+      final initialProgress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      expect(initialProgress.widthFactor, closeTo(0.5, 0.05));
+
+      // Change position while still paused
+      await tester.pumpWidget(
+        buildWidget(
+          markers: buildMarkers(),
+          currentPosition: const Duration(seconds: 7),
+          onMarkerTap: (_) {},
+          isPlaying: false,
+          trackDuration: const Duration(seconds: 30),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Progress should reflect new position
+      final newProgress = tester.widget<FractionallySizedBox>(
+        find.byKey(const ValueKey('markerProgress_0')),
+      );
+      expect(newProgress.widthFactor, closeTo(0.7, 0.05));
+    });
   });
 }
