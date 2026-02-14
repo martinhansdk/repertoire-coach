@@ -209,6 +209,8 @@ class _MarkerSetCard extends ConsumerWidget {
 
   Future<void> _editMarkerSetName(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController(text: markerSet.name);
+    final userId = ref.read(supabaseServiceProvider).currentUserId;
+    final isOwner = userId == markerSet.createdByUserId;
     bool isShared = markerSet.isShared;
 
     final result = await showDialog<({String name, bool isShared})?>(
@@ -231,20 +233,24 @@ class _MarkerSetCard extends ConsumerWidget {
               SwitchListTile(
                 title: const Text('Share with choir'),
                 subtitle: Text(
-                  isShared
-                      ? 'All choir members can see and edit'
-                      : 'Only you can see and edit',
+                  isOwner
+                      ? (isShared
+                          ? 'All choir members can see and edit'
+                          : 'Only you can see and edit')
+                      : 'Only the owner can change sharing',
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 value: isShared,
-                onChanged: (value) {
-                  setState(() {
-                    isShared = value;
-                  });
-                },
+                onChanged: isOwner
+                    ? (value) {
+                        setState(() {
+                          isShared = value;
+                        });
+                      }
+                    : null,
               ),
             ],
           ),
@@ -342,6 +348,8 @@ class _MarkerSetCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final markersAsync = ref.watch(markersByMarkerSetProvider(markerSet.id));
+    final userId = ref.read(supabaseServiceProvider).currentUserId;
+    final isOwner = userId == markerSet.createdByUserId;
 
     return Card(
       margin: const EdgeInsets.symmetric(
@@ -364,7 +372,7 @@ class _MarkerSetCard extends ConsumerWidget {
                   Text(markerSet.name),
                   const SizedBox(height: 2),
                   Text(
-                    markerSet.isTimeSynced ? 'Synced to audio' : 'Not synced to audio',
+                    '${markerSet.isTimeSynced ? 'Synced to audio' : 'Not synced to audio'} • ${isOwner ? 'Owned by you' : 'Shared with you'}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
