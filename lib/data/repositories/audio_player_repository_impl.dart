@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:just_audio/just_audio.dart' as ja;
 import 'package:audio_session/audio_session.dart';
 import 'package:audio_service/audio_service.dart';
@@ -205,6 +206,16 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     // Use provided audioUrl (e.g., signed URL) or fall back to track's stored URL
     final effectiveAudioUrl = audioUrl ?? track.audioUrl;
 
+    // On web, we MUST have a URL - local files don't work
+    if (kIsWeb && effectiveAudioUrl == null) {
+      final errorInfo = PlaybackInfo.error(
+        'Track has no cloud URL. Please upload the audio file to Supabase storage.',
+      );
+      _currentPlaybackInfo = errorInfo;
+      _playbackController.add(errorInfo);
+      throw Exception('Track has no cloud URL (required for web playback)');
+    }
+
     if (effectiveAudioUrl == null && track.filePath == null) {
       final errorInfo = PlaybackInfo.error('Track has no audio file');
       _currentPlaybackInfo = errorInfo;
@@ -221,8 +232,8 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       // Set audio source - prefer provided/cloud URL, fall back to local file
       if (effectiveAudioUrl != null) {
         await _player.setUrl(effectiveAudioUrl);
-      } else if (track.filePath != null) {
-        // Play from local file
+      } else if (!kIsWeb && track.filePath != null) {
+        // Play from local file (only works on mobile/desktop, not web)
         final file = File(track.filePath!);
         if (!await file.exists()) {
           final errorInfo = PlaybackInfo.error('Audio file not found: ${track.filePath}');
