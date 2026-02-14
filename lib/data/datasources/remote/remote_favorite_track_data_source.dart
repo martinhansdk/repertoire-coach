@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/favorite_track_model.dart';
@@ -18,7 +17,7 @@ class RemoteFavoriteTrackDataSource {
   /// Sorted by added_at descending (most recent first).
   Future<List<FavoriteTrackModel>> getFavorites(String userId) async {
     try {
-      debugPrint('[RemoteFavoriteTrackDataSource] Fetching favorites for user: $userId');
+      print('[RemoteFavoriteTrackDataSource] Fetching favorites for user: $userId');
 
       final response = await _supabase
           .from('favorite_tracks')
@@ -42,7 +41,7 @@ class RemoteFavoriteTrackDataSource {
           .eq('user_id', userId)
           .order('added_at', ascending: false) as List;
 
-      debugPrint('[RemoteFavoriteTrackDataSource] Received ${response.length} favorites from Supabase');
+      print('[RemoteFavoriteTrackDataSource] Received ${response.length} favorites from Supabase');
 
       final favorites = response.map((json) {
         final favoriteJson = Map<String, dynamic>.from(json);
@@ -54,7 +53,7 @@ class RemoteFavoriteTrackDataSource {
         favoriteJson['audio_url'] = audioUrl;
         favoriteJson['duration_ms'] = trackData['duration_ms'];
 
-        debugPrint('[RemoteFavoriteTrackDataSource] Track: ${trackData['name']}, audioUrl: $audioUrl');
+        print('[RemoteFavoriteTrackDataSource] Track: ${trackData['name']}, audioUrl: $audioUrl');
 
         // Extract song title
         final songData = json['songs'];
@@ -72,7 +71,7 @@ class RemoteFavoriteTrackDataSource {
         return FavoriteTrackModel.fromJson(favoriteJson);
       }).toList();
 
-      debugPrint('[RemoteFavoriteTrackDataSource] Returning ${favorites.length} favorites');
+      print('[RemoteFavoriteTrackDataSource] Returning ${favorites.length} favorites');
       return favorites;
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch favorites from Supabase: ${e.message}');
