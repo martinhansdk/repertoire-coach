@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/local/local_marker_data_source.dart';
+import '../../data/datasources/remote/remote_marker_data_source.dart';
 import '../../data/repositories/marker_repository_impl.dart';
 import '../../domain/entities/marker.dart';
 import '../../domain/entities/marker_set.dart';
 import '../../domain/repositories/marker_repository.dart';
+import 'auth_provider.dart';
 import 'concert_provider.dart';
 
 /// Provider for the local marker data source
@@ -14,13 +16,28 @@ final localMarkerDataSourceProvider = Provider<LocalMarkerDataSource>((ref) {
   return LocalMarkerDataSource(database);
 });
 
+/// Provider for the remote marker data source
+///
+/// Provides Supabase-backed storage for markers and marker sets.
+/// Returns null if not authenticated.
+final remoteMarkerDataSourceProvider = Provider<RemoteMarkerDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (!supabaseService.isAuthenticated) {
+    return null;
+  }
+  return RemoteMarkerDataSource(supabaseService.client);
+});
+
 /// Provider for the marker repository
 ///
-/// This provides a single instance of the repository throughout the app.
-/// Currently uses local Drift database. Future versions will add Supabase sync.
+/// Provides offline-first data persistence with automatic cloud sync.
+/// - Writes go to both local database and Supabase (when authenticated)
+/// - Reads always come from local database for fast access
 final markerRepositoryProvider = Provider<MarkerRepository>((ref) {
   final localDataSource = ref.watch(localMarkerDataSourceProvider);
-  return MarkerRepositoryImpl(localDataSource);
+  final remoteDataSource = ref.watch(remoteMarkerDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return MarkerRepositoryImpl(localDataSource, remoteDataSource, supabaseService);
 });
 
 /// Provider for marker sets filtered by a specific track

@@ -2,12 +2,21 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_marker_data_source.dart';
 import 'package:repertoire_coach/data/repositories/marker_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/marker_set.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
 import 'package:repertoire_coach/presentation/widgets/marker_set_dialog.dart';
+
+class _FakeSupabaseService extends Fake implements SupabaseService {
+  @override
+  bool get isAuthenticated => false;
+
+  @override
+  String? get currentUserId => null;
+}
 
 void main() {
   group('MarkerSetDialog Widget', () {
@@ -26,7 +35,8 @@ void main() {
       MarkerSet? markerSet,
     }) {
       final dataSource = LocalMarkerDataSource(database);
-      final repository = MarkerRepositoryImpl(dataSource);
+      final fakeSupabaseService = _FakeSupabaseService();
+      final repository = MarkerRepositoryImpl(dataSource, null, fakeSupabaseService);
 
       return ProviderScope(
         overrides: [

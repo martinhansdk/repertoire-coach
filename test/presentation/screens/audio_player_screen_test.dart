@@ -2,12 +2,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
 import 'package:repertoire_coach/domain/entities/playback_info.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/domain/entities/marker.dart';
 import 'package:repertoire_coach/domain/entities/marker_set.dart';
+import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/providers/audio_player_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
 import 'package:repertoire_coach/presentation/providers/selected_marker_set_provider.dart';
@@ -15,9 +18,12 @@ import 'package:repertoire_coach/presentation/screens/audio_player_screen.dart';
 import 'package:repertoire_coach/presentation/widgets/marker_progress_bar.dart';
 
 import '../providers/audio_player_provider_test.mocks.dart';
+import 'audio_player_screen_test.mocks.dart';
 
+@GenerateMocks([SupabaseService])
 void main() {
   late MockAudioPlayerRepository mockAudioPlayerRepository;
+  late MockSupabaseService mockSupabaseService;
 
   final tTrack1 = Track(id: 't1', songId: 's1', name: 'Track 1', filePath: '/path/to/track1.mp3', createdAt: DateTime.now(), updatedAt: DateTime.now());
   final tTrack2 = Track(id: 't2', songId: 's1', name: 'Track 2', filePath: '/path/to/track2.mp3', createdAt: DateTime.now(), updatedAt: DateTime.now());
@@ -36,6 +42,11 @@ void main() {
     when(mockAudioPlayerRepository.playTrack(any)).thenAnswer((_) async {});
     when(mockAudioPlayerRepository.isLooping).thenReturn(false);
     when(mockAudioPlayerRepository.setLoopMode(any)).thenAnswer((_) async {});
+
+    // Mock SupabaseService to return a valid user ID
+    mockSupabaseService = MockSupabaseService();
+    when(mockSupabaseService.currentUserId).thenReturn('local-user-1');
+    when(mockSupabaseService.isAuthenticated).thenReturn(true);
   });
 
   Widget createWidgetUnderTest({
@@ -50,6 +61,7 @@ void main() {
       overrides: [
         playbackInfoProvider.overrideWith((ref) => playbackInfoStream ?? Stream.value(PlaybackInfo.idle())),
         audioPlayerRepositoryProvider.overrideWithValue(mockAudioPlayerRepository),
+        supabaseServiceProvider.overrideWithValue(mockSupabaseService),
         // Mock marker-related providers to prevent database access
         markerSetsByTrackProvider(('t1', 'local-user-1')).overrideWith(
           (ref) => markerSetsTrack1 ?? Future.value([]),
