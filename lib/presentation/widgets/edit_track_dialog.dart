@@ -6,7 +6,8 @@ import '../providers/track_provider.dart';
 
 /// Dialog for editing an existing track
 ///
-/// Allows the user to update the track name and file path.
+/// Allows the user to update the track name only.
+/// Audio files cannot be changed - delete and recreate the track instead.
 class EditTrackDialog extends ConsumerStatefulWidget {
   final Track track;
 
@@ -22,7 +23,6 @@ class EditTrackDialog extends ConsumerStatefulWidget {
 class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _filePathController;
 
   bool _isUpdating = false;
 
@@ -30,13 +30,11 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.track.name);
-    _filePathController = TextEditingController(text: widget.track.filePath ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _filePathController.dispose();
     super.dispose();
   }
 
@@ -47,10 +45,8 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
 
     // Check if anything changed
     final newName = _nameController.text.trim();
-    final newFilePath = _filePathController.text.trim();
 
-    if (newName == widget.track.name &&
-        (newFilePath.isEmpty ? null : newFilePath) == widget.track.filePath) {
+    if (newName == widget.track.name) {
       Navigator.of(context).pop(false);
       return;
     }
@@ -62,11 +58,15 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
     try {
       final repository = ref.read(trackRepositoryProvider);
 
+      // Preserve ALL existing fields except name and updatedAt
       final updatedTrack = Track(
         id: widget.track.id,
         songId: widget.track.songId,
         name: newName,
-        filePath: newFilePath.isEmpty ? null : newFilePath,
+        audioUrl: widget.track.audioUrl,
+        storagePath: widget.track.storagePath,
+        durationMs: widget.track.durationMs,
+        filePath: widget.track.filePath,
         createdAt: widget.track.createdAt,
         updatedAt: DateTime.now().toUtc(),
       );
@@ -149,19 +149,6 @@ class _EditTrackDialogState extends ConsumerState<EditTrackDialog> {
                   }
                   return null;
                 },
-              ),
-              const SizedBox(height: 16),
-
-              // File path field (optional)
-              TextFormField(
-                controller: _filePathController,
-                decoration: const InputDecoration(
-                  labelText: 'File Path (Optional)',
-                  hintText: 'Enter file path to audio file',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.file_present),
-                ),
-                enabled: !_isUpdating,
               ),
             ],
           ),
