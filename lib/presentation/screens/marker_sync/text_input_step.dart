@@ -125,23 +125,6 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const Spacer(),
-              // Show example button
-              TextButton(
-                key: const ValueKey('markerSyncLoadExampleButton'),
-                onPressed: () {
-                  _textController.text = 'intro\n\nverse 1\nchorus\n\nverse 2\nchorus\n\nbridge\n\nchorus\noutro';
-                  setState(() {});
-                },
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_fix_high),
-                    SizedBox(width: 8),
-                    Text('Load Example'),
-                  ],
-                ),
-              ),
             ],
           ),
 

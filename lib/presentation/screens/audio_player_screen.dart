@@ -274,6 +274,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
               ? _dragValue
               : playbackInfo.progress.clamp(0.0, 1.0);
           return Slider(
+            key: const ValueKey('progressSlider'),
             value: sliderValue,
             onChangeStart: (value) {
               setState(() {
@@ -317,6 +318,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                 ? _dragValue
                 : playbackInfo.progress.clamp(0.0, 1.0);
             return Slider(
+              key: const ValueKey('progressSlider'),
               value: sliderValue,
               onChangeStart: (value) {
                 setState(() {
@@ -343,6 +345,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                 ? _dragValue
                 : playbackInfo.progress.clamp(0.0, 1.0);
             return Slider(
+              key: const ValueKey('progressSlider'),
               value: sliderValue,
               onChangeStart: (value) {
                 setState(() {
@@ -371,6 +374,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             ? _dragValue
             : playbackInfo.progress.clamp(0.0, 1.0);
         return Slider(
+          key: const ValueKey('progressSlider'),
           value: sliderValue,
           onChangeStart: (value) {
             setState(() {
@@ -397,6 +401,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             ? _dragValue
             : playbackInfo.progress.clamp(0.0, 1.0);
         return Slider(
+          key: const ValueKey('progressSlider'),
           value: sliderValue,
           onChangeStart: (value) {
             setState(() {
@@ -447,6 +452,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
               currentPosition: playbackInfo.position,
               trackDuration: playbackInfo.duration,
               showPositions: markerSet.isTimeSynced,
+              isPlaying: playbackInfo.isPlaying,
               onMarkerTap: markerSet.isTimeSynced
                   ? (position) {
                       ref.read(audioPlayerControlsProvider).seek(position);

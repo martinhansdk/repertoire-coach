@@ -3,9 +3,9 @@ import '../../domain/entities/marker.dart';
 
 /// Custom progress bar that displays markers along the timeline
 ///
-/// Shows the current playback position and allows seeking by tapping.
+/// Shows the current playback position and allows seeking by tapping or dragging.
 /// Markers are displayed as vertical lines at their positions.
-class MarkerProgressBar extends StatelessWidget {
+class MarkerProgressBar extends StatefulWidget {
   final Duration position;
   final Duration duration;
   final List<Marker> markers;
@@ -24,22 +24,56 @@ class MarkerProgressBar extends StatelessWidget {
   });
 
   @override
+  State<MarkerProgressBar> createState() => _MarkerProgressBarState();
+}
+
+class _MarkerProgressBarState extends State<MarkerProgressBar> {
+  bool _isDragging = false;
+  double _dragProgress = 0.0;
+
+  void _handleSeek(double localX, double width) {
+    final seekFraction = (localX / width).clamp(0.0, 1.0);
+    final seekPosition = Duration(
+      microseconds: (widget.duration.inMicroseconds * seekFraction).round(),
+    );
+    widget.onSeek(seekPosition);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final double progress = duration.inMicroseconds > 0
-        ? position.inMicroseconds / duration.inMicroseconds
-        : 0.0;
+    final double progress = _isDragging
+        ? _dragProgress
+        : (widget.duration.inMicroseconds > 0
+            ? widget.position.inMicroseconds / widget.duration.inMicroseconds
+            : 0.0);
 
     return GestureDetector(
       onTapDown: (details) {
         final RenderBox box = context.findRenderObject() as RenderBox;
-        final localPosition = details.localPosition.dx;
-        final width = box.size.width;
-        final seekFraction = (localPosition / width).clamp(0.0, 1.0);
-        final seekPosition = Duration(
-          microseconds: (duration.inMicroseconds * seekFraction).round(),
-        );
-        onSeek(seekPosition);
+        _handleSeek(details.localPosition.dx, box.size.width);
+      },
+      onHorizontalDragStart: (details) {
+        setState(() {
+          _isDragging = true;
+          final RenderBox box = context.findRenderObject() as RenderBox;
+          final width = box.size.width;
+          _dragProgress = (details.localPosition.dx / width).clamp(0.0, 1.0);
+        });
+      },
+      onHorizontalDragUpdate: (details) {
+        setState(() {
+          final RenderBox box = context.findRenderObject() as RenderBox;
+          final width = box.size.width;
+          _dragProgress = (details.localPosition.dx / width).clamp(0.0, 1.0);
+        });
+      },
+      onHorizontalDragEnd: (details) {
+        final RenderBox box = context.findRenderObject() as RenderBox;
+        _handleSeek(box.size.width * _dragProgress, box.size.width);
+        setState(() {
+          _isDragging = false;
+        });
       },
       child: SizedBox(
         height: 48,
@@ -47,10 +81,10 @@ class MarkerProgressBar extends StatelessWidget {
           size: const Size(double.infinity, 48),
           painter: _MarkerProgressPainter(
             progress: progress,
-            markers: markers,
-            duration: duration,
-            loopStart: loopStart,
-            loopEnd: loopEnd,
+            markers: widget.markers,
+            duration: widget.duration,
+            loopStart: widget.loopStart,
+            loopEnd: widget.loopEnd,
             progressColor: theme.colorScheme.primary,
             backgroundColor: theme.colorScheme.surfaceContainerHighest,
             markerColor: theme.colorScheme.secondary,

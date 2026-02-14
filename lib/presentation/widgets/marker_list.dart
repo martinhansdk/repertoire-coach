@@ -12,6 +12,7 @@ class _AnimatedMarkerItem extends StatefulWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final bool showPositions;
+  final bool isPlaying;
 
   const _AnimatedMarkerItem({
     required this.index,
@@ -23,6 +24,7 @@ class _AnimatedMarkerItem extends StatefulWidget {
     this.onTap,
     this.onLongPress,
     required this.showPositions,
+    required this.isPlaying,
   });
 
   @override
@@ -54,6 +56,10 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
     if (widget.isActive != oldWidget.isActive) {
       _updateAnimation();
     }
+    // Update if playing state changed
+    else if (widget.isPlaying != oldWidget.isPlaying) {
+      _updateAnimation();
+    }
     // Update if segment duration changed
     else if (widget.segmentDuration != oldWidget.segmentDuration) {
       _controller.duration = widget.segmentDuration;
@@ -68,7 +74,7 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
         // If position jumped significantly, reset animation
         if ((targetProgress - _controller.value).abs() > 0.1) {
           _controller.value = targetProgress;
-          if (targetProgress < 1.0) {
+          if (targetProgress < 1.0 && widget.isPlaying) {
             _controller.forward(from: targetProgress);
           }
         }
@@ -87,9 +93,12 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
         _controller.duration = widget.segmentDuration;
         _controller.value = progress;
 
-        // Start animation from current position
-        if (progress < 1.0) {
+        // Start animation from current position only if playing
+        if (progress < 1.0 && widget.isPlaying) {
           _controller.forward(from: progress);
+        } else if (!widget.isPlaying) {
+          // Pause at current position
+          _controller.stop();
         }
       } else {
         _controller.reset();
@@ -177,6 +186,7 @@ class MarkerList extends StatefulWidget {
   final ValueChanged<Marker>? onMarkerLongPress;
   final bool showPositions;
   final Duration? trackDuration;
+  final bool isPlaying;
 
   const MarkerList({
     super.key,
@@ -186,6 +196,7 @@ class MarkerList extends StatefulWidget {
     this.onMarkerLongPress,
     this.showPositions = true,
     this.trackDuration,
+    this.isPlaying = false,
   });
 
   @override
@@ -323,6 +334,7 @@ class _MarkerListState extends State<MarkerList> {
           onTap: widget.onMarkerTap != null ? () => widget.onMarkerTap!(markerPosition) : null,
           onLongPress: widget.onMarkerLongPress != null ? () => widget.onMarkerLongPress!(marker) : null,
           showPositions: widget.showPositions,
+          isPlaying: widget.isPlaying,
         );
       },
     );

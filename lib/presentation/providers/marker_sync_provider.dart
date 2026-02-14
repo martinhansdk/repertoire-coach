@@ -89,57 +89,92 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       return;
     }
 
-    // Persist labels but keep existing positions until save.
+    // Load existing markers to check if text changed
     final existingMarkers =
         await _markerRepository.getMarkersByMarkerSet(state.markerSetId);
 
-    for (int i = 0; i < lines.length; i++) {
-      final label = lines[i];
-      if (i < existingMarkers.length) {
-        final existing = existingMarkers[i];
-        final updated = Marker(
-          id: existing.id,
-          markerSetId: existing.markerSetId,
-          label: label,
-          positionMs: existing.positionMs,
-          order: i,
-          createdAt: existing.createdAt,
-        );
-        await _markerRepository.updateMarker(updated);
-      } else {
-        final marker = Marker(
-          id: const Uuid().v4(),
-          markerSetId: state.markerSetId,
-          label: label,
-          positionMs: 0,
-          order: i,
-          createdAt: DateTime.now().toUtc(),
-        );
-        await _markerRepository.createMarker(marker);
+    // Check if text changed
+    final existingText = existingMarkers.map((m) => m.label).toList();
+    final textChanged = existingText.length != lines.length ||
+        !List.generate(lines.length, (i) => existingText[i] == lines[i]).every((e) => e);
+
+    if (textChanged) {
+      debugPrint('[MarkerSync] Text changed - updating database');
+
+      // Update existing markers, create new ones, delete extras
+      for (int i = 0; i < lines.length; i++) {
+        final label = lines[i];
+        if (i < existingMarkers.length) {
+          final existing = existingMarkers[i];
+          final updated = Marker(
+            id: existing.id,
+            markerSetId: existing.markerSetId,
+            label: label,
+            positionMs: existing.positionMs,
+            order: i,
+            createdAt: existing.createdAt,
+          );
+          await _markerRepository.updateMarker(updated);
+        } else {
+          final marker = Marker(
+            id: const Uuid().v4(),
+            markerSetId: state.markerSetId,
+            label: label,
+            positionMs: 0,
+            order: i,
+            createdAt: DateTime.now().toUtc(),
+          );
+          await _markerRepository.createMarker(marker);
+        }
       }
-    }
 
-    for (int i = lines.length; i < existingMarkers.length; i++) {
-      await _markerRepository.deleteMarker(existingMarkers[i].id);
-    }
+      for (int i = lines.length; i < existingMarkers.length; i++) {
+        await _markerRepository.deleteMarker(existingMarkers[i].id);
+      }
 
-    final markerSet = await _markerRepository.getMarkerSetById(state.markerSetId);
-    if (markerSet != null) {
-      await _markerRepository.updateMarkerSet(
-        MarkerSet(
-          id: markerSet.id,
-          trackId: markerSet.trackId,
-          name: markerSet.name,
-          isShared: markerSet.isShared,
-          isTimeSynced: false,
-          createdByUserId: markerSet.createdByUserId,
-          createdAt: markerSet.createdAt,
-          updatedAt: DateTime.now().toUtc(),
-        ),
+      final markerSet = await _markerRepository.getMarkerSetById(state.markerSetId);
+      if (markerSet != null) {
+        await _markerRepository.updateMarkerSet(
+          MarkerSet(
+            id: markerSet.id,
+            trackId: markerSet.trackId,
+            name: markerSet.name,
+            isShared: markerSet.isShared,
+            isTimeSynced: false,
+            createdByUserId: markerSet.createdByUserId,
+            createdAt: markerSet.createdAt,
+            updatedAt: DateTime.now().toUtc(),
+          ),
+        );
+      }
+
+      setLabels(text);
+    } else {
+      debugPrint('[MarkerSync] Text unchanged - loading existing timestamps');
+
+      // Text unchanged - load existing timestamps into state
+      final syncedPositions = <int, int>{-1: 0}; // Start with "..." marker
+      for (int i = 0; i < existingMarkers.length; i++) {
+        syncedPositions[i] = existingMarkers[i].positionMs;
+      }
+
+      // Find the last synced marker
+      int lastSyncedIndex = -1;
+      for (int i = existingMarkers.length - 1; i >= 0; i--) {
+        if (existingMarkers[i].label.isNotEmpty) {
+          lastSyncedIndex = i;
+          break;
+        }
+      }
+
+      state = state.copyWith(
+        step: SyncStep.timeSync,
+        labels: lines,
+        currentIndex: lastSyncedIndex,
+        syncedPositions: syncedPositions,
+        isDirty: false,
       );
     }
-
-    setLabels(text);
   }
 
   /// Sync the next non-empty marker to the given position

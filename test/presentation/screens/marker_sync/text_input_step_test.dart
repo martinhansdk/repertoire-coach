@@ -80,13 +80,6 @@ void main() {
         expect(find.text('1 lines (0 non-empty)'), findsOneWidget);
       });
 
-      testWidgets('displays load example button', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-
-        expect(find.byKey(const ValueKey('markerSyncLoadExampleButton')),
-            findsOneWidget);
-      });
-
       testWidgets('text field is autofocused', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
@@ -269,87 +262,6 @@ void main() {
         await tester.enterText(find.byType(TextField), 'verse');
         await tester.pump();
         expect(find.text('Please enter at least one non-empty line'), findsNothing);
-      });
-    });
-
-    group('Load Example Button', () {
-      testWidgets('loads example text when tapped', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-
-        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
-        await tester.pump();
-
-        final textField = tester.widget<TextField>(find.byType(TextField));
-        final exampleText = textField.controller?.text ?? '';
-
-        expect(exampleText, contains('intro'));
-        expect(exampleText, contains('verse 1'));
-        expect(exampleText, contains('chorus'));
-        expect(exampleText, contains('verse 2'));
-        expect(exampleText, contains('bridge'));
-        expect(exampleText, contains('outro'));
-      });
-
-      testWidgets('example text includes empty lines', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-
-        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
-        await tester.pump();
-
-        final textField = tester.widget<TextField>(find.byType(TextField));
-        final exampleText = textField.controller?.text ?? '';
-        final lines = exampleText.split('\n');
-
-        final emptyLineCount = lines.where((line) => line.trim().isEmpty).length;
-        expect(emptyLineCount, greaterThan(0));
-      });
-
-      testWidgets('loads example and updates line counter', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-
-        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
-        await tester.pump();
-
-        expect(find.textContaining('non-empty)'), findsOneWidget);
-      });
-
-      testWidgets('loads example and enables next button', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-
-        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
-        await tester.pump();
-
-        final button = tester.widget<FilledButton>(
-          find.byKey(const ValueKey('markerSyncNextButton')),
-        );
-        expect(button.onPressed, isNotNull);
-      });
-
-      testWidgets('can load example multiple times', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-
-        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
-        await tester.pump();
-        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
-        await tester.pump();
-
-        // Should still have example text
-        final textField = tester.widget<TextField>(find.byType(TextField));
-        expect(textField.controller?.text, contains('intro'));
-      });
-
-      testWidgets('example overwrites existing text', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-
-        await tester.enterText(find.byType(TextField), 'my custom text');
-        await tester.pump();
-
-        await tester.tap(find.byKey(const ValueKey('markerSyncLoadExampleButton')));
-        await tester.pump();
-
-        final textField = tester.widget<TextField>(find.byType(TextField));
-        expect(textField.controller?.text, isNot(contains('my custom text')));
-        expect(textField.controller?.text, contains('intro'));
       });
     });
 
