@@ -784,10 +784,6 @@ Examples:
             builds = [b for b in builds if
                      (b.run_number and str(b.run_number) == args.run_id) or
                      b.run_id == args.run_id]
-
-        # Filter by build type if specified
-        if args.build_type:
-            builds = [b for b in builds if b.build_type == args.build_type]
     else:
         # All builds
         if platform_choice == Platform.ANDROID:
@@ -799,6 +795,10 @@ Examples:
         if DependencyChecker.check_command("gh"):
             builds.extend(finder.find_github_builds(args.allow_failed, platform_choice))
 
+    # Filter by build type if specified (applies to all sources)
+    if args.build_type:
+        builds = [b for b in builds if b.build_type == args.build_type]
+
     # Sort builds by date (newest first)
     builds.sort(key=lambda b: b.date or datetime.min, reverse=True)
 
@@ -808,8 +808,10 @@ Examples:
         print(f"\nTry building first with: {Color.CYAN}scripts/build.sh {args.platform}{Color.RESET}")
         return 1
 
-    # Auto-select if only one build or specific run/build-type given
-    auto_select = len(builds) == 1 or (args.run_id and args.build_type)
+    # Auto-select if only one build or specific criteria given
+    auto_select = (len(builds) == 1 or
+                   (args.run_id and args.build_type) or
+                   (args.local and args.build_type))
 
     if auto_select:
         selected_build = builds[0]
