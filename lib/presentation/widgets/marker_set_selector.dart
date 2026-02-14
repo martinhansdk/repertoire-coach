@@ -23,6 +23,8 @@ class MarkerSetSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final selectedId = ref.watch(selectedMarkerSetProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrowScreen = screenWidth < 600; // Narrow if width < 600dp
 
     if (markerSets.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -43,6 +45,16 @@ class MarkerSetSelector extends ConsumerWidget {
       });
     }
 
+    // On narrow screens, only show the manage button (bookmarks icon)
+    if (isNarrowScreen && onManageMarkers != null) {
+      return IconButton(
+        icon: const Icon(Icons.bookmarks),
+        tooltip: 'Manage Markers',
+        onPressed: onManageMarkers,
+      );
+    }
+
+    // On wider screens, show full dropdown + manage button
     return Row(
       children: [
         Expanded(

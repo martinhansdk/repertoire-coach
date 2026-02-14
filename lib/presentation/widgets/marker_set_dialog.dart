@@ -3,10 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/marker_set.dart';
+import '../providers/auth_provider.dart';
 import '../providers/marker_provider.dart';
-
-/// Hardcoded user ID for local-first mode (before authentication)
-const String _currentUserId = 'local-user-1';
 
 /// Dialog for creating or editing a marker set
 ///
@@ -71,13 +69,15 @@ class _MarkerSetDialogState extends ConsumerState<MarkerSetDialog> {
 
       if (widget.markerSet == null) {
         // Create new marker set
+        final currentUserId = ref.read(supabaseServiceProvider).currentUserId ?? 'local-user-1';
+
         final markerSet = MarkerSet(
           id: const Uuid().v4(),
           trackId: widget.trackId,
           name: _nameController.text.trim(),
           isShared: _isShared,
           isTimeSynced: false,
-          createdByUserId: _currentUserId,
+          createdByUserId: currentUserId,
           createdAt: now,
           updatedAt: now,
         );
