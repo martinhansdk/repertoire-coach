@@ -9,6 +9,9 @@ import 'auth_provider.dart'; // For supabaseServiceProvider
 import 'concert_provider.dart'; // For databaseProvider
 
 /// Provider for the user playback state data source
+///
+/// Used by the sync service for cloud sync of playback positions.
+/// The audio player itself does not persist positions.
 final playbackStateDataSourceProvider = Provider<LocalUserPlaybackStateDataSource>((ref) {
   final database = ref.watch(databaseProvider);
   return LocalUserPlaybackStateDataSource(database);
@@ -19,8 +22,7 @@ final playbackStateDataSourceProvider = Provider<LocalUserPlaybackStateDataSourc
 /// This provides a single instance of the audio player throughout the app.
 /// The repository manages all playback operations using just_audio.
 final audioPlayerRepositoryProvider = Provider<AudioPlayerRepository>((ref) {
-  final playbackStateDataSource = ref.watch(playbackStateDataSourceProvider);
-  final repository = AudioPlayerRepositoryImpl(playbackStateDataSource);
+  final repository = AudioPlayerRepositoryImpl();
 
   // Dispose the audio player when the provider is disposed
   ref.onDispose(() {
@@ -60,14 +62,12 @@ class AudioPlayerControls {
   AudioPlayerRepository get _repository =>
       _ref.read(audioPlayerRepositoryProvider);
 
-  /// Play a track from the beginning or a specific position
+  /// Play a track from the beginning
   ///
   /// If the track has a cloud storage path, generates a signed URL for
   /// authenticated access (valid for 24 hours).
   Future<void> playTrack(
     Track track, {
-    Duration startPosition = Duration.zero,
-    bool ignoreSavedPosition = false,
     String? songName,
     String? albumName,
   }) async {
@@ -88,8 +88,6 @@ class AudioPlayerControls {
 
     await _repository.playTrack(
       track,
-      startPosition: startPosition,
-      ignoreSavedPosition: ignoreSavedPosition,
       audioUrl: signedUrl,
       songName: songName,
       albumName: albumName,
@@ -129,16 +127,6 @@ class AudioPlayerControls {
   /// Toggle full-track loop on/off
   Future<void> toggleTrackLoop() async {
     await _repository.setLoopMode(!_repository.isLooping);
-  }
-
-  /// Save the current playback position
-  Future<void> savePosition() async {
-    await _repository.savePlaybackPosition();
-  }
-
-  /// Load the saved position for a track
-  Future<Duration> loadPosition(String trackId) async {
-    return await _repository.loadPlaybackPosition(trackId);
   }
 }
 

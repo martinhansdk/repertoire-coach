@@ -10,25 +10,17 @@ import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
 import '../../core/services/error_reporter.dart';
-import '../datasources/local/local_user_playback_state_data_source.dart';
-import '../models/user_playback_state_model.dart';
-
-/// Hardcoded user ID for local-first mode (before authentication)
-const String _currentUserId = 'local-user-1';
 
 /// Implementation of AudioPlayerRepository using just_audio
 class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   final ja.AudioPlayer _player;
   final StreamController<PlaybackInfo> _playbackController;
-  final LocalUserPlaybackStateDataSource _playbackStateDataSource;
   AudioHandler? _audioHandler;
 
   Track? _currentTrack;
-  String? _currentSongId;
   String? _currentSongName;
   String? _currentAlbumName;
   PlaybackInfo _currentPlaybackInfo;
-  Timer? _autoSaveTimer;
   bool _isLooping = false;
   LoopRange? _loopRange;
   StreamSubscription<Duration>? _loopSubscription;
@@ -46,7 +38,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     return _initFuture!;
   }
 
-  AudioPlayerRepositoryImpl(this._playbackStateDataSource)
+  AudioPlayerRepositoryImpl()
       : _player = ja.AudioPlayer(
           // Explicitly disable audio offload.  just_audio 0.10.5 defaults to
           // disabled, but be explicit: offload hands the DSP off to a
@@ -132,16 +124,11 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
           !_isLooping) {
         // Track finished naturally — pause and keep track info intact so the
         // UI shows "paused" (not "idle").  This lets the play button call
-        // resume() instead of playTrack(), avoiding a full audio reload and
-        // the duration race condition that came with it.
+        // resume() instead of playTrack(), avoiding a full audio reload.
         _player.pause();
-        _stopAutoSaveTimer();
-        savePlaybackPosition();
         _audioHandler?.stop(); // dismiss media notification
-        _updatePlaybackInfo();
-      } else {
-        _updatePlaybackInfo();
       }
+      _updatePlaybackInfo();
     });
 
     // Listen to position changes
@@ -208,8 +195,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   @override
   Future<void> playTrack(
     Track track, {
-    Duration startPosition = Duration.zero,
-    bool ignoreSavedPosition = false,
     String? audioUrl,
     String? songName,
     String? albumName,
@@ -238,7 +223,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
     try {
       _currentTrack = track;
-      _currentSongId = track.songId;
       _currentSongName = songName;
       _currentAlbumName = albumName;
 
@@ -257,26 +241,8 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
         await _player.setFilePath(track.filePath!);
       }
 
-      // Load saved position if no start position specified
-      Duration seekPosition = startPosition;
-      if (!ignoreSavedPosition && startPosition == Duration.zero) {
-        seekPosition = await loadPlaybackPosition(track.id);
-      }
-
-      // If the saved position is at or past the end of the track the previous
-      // session finished playing it — start from the beginning instead of
-      // immediately hitting ProcessingState.completed again.
-      if (_player.duration != null && seekPosition >= _player.duration!) {
-        seekPosition = Duration.zero;
-      }
-
-      // Seek to position if needed
-      if (seekPosition > Duration.zero) {
-        await _player.seek(seekPosition);
-      } else if (_player.position > Duration.zero) {
-        // Force reset to start when ignoring saved position
-        await _player.seek(Duration.zero);
-      }
+      // Always start from the beginning
+      await _player.seek(Duration.zero);
 
       // Set the MediaItem before play() so the notification has a title.
       await _updateMediaItem();
@@ -291,9 +257,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       // A second update after play() guarantees the MediaSession is
       // populated once the notification becomes visible.
       await _updateMediaItem();
-
-      // Start auto-save timer (save position every 5 seconds while playing)
-      _startAutoSaveTimer();
 
       _updatePlaybackInfo();
     } catch (e, stackTrace) {
@@ -310,8 +273,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     await _ensureInitialized(); // ensure audio_service & audio_session are ready
 
     // If we're at or near the end of the track, restart from the beginning.
-    // Check position instead of processingState because just_audio transitions
-    // from completed -> idle, so processingState.completed is fleeting.
     final duration = _player.duration ?? Duration.zero;
     final position = _player.position;
 
@@ -320,24 +281,19 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     }
 
     await _player.play();
-    _startAutoSaveTimer();
     _updatePlaybackInfo();
   }
 
   @override
   Future<void> pause() async {
     await _player.pause();
-    _stopAutoSaveTimer();
-    await savePlaybackPosition(); // Save position on pause
     _updatePlaybackInfo();
   }
 
   @override
   Future<void> stop() async {
-    await savePlaybackPosition(); // Save BEFORE stopping so we capture the real position
     await _player.stop();
     await _player.seek(Duration.zero); // Reset position to prevent leaking to the next track
-    _stopAutoSaveTimer();
     // Tell audio_service to stop the foreground service so the notification
     // is dismissed.  Without this the notification lingers after the track
     // finishes, showing a stale play button.  The handler's stop() calls
@@ -345,7 +301,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     // _player.stop() again — that second call is a harmless no-op.
     await _audioHandler?.stop();
     _currentTrack = null;
-    _currentSongId = null;
     _currentSongName = null;
     _currentAlbumName = null;
     _updatePlaybackInfo();
@@ -356,61 +311,6 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     await _player.seek(position);
     _updatePlaybackInfo();
     return _player.position;
-  }
-
-  @override
-  Future<void> savePlaybackPosition() async {
-    if (_currentTrack == null || _currentSongId == null) {
-      return; // Nothing to save
-    }
-
-    final position = _player.position;
-    if (position == Duration.zero) {
-      return; // Don't save if at the beginning
-    }
-
-    final state = UserPlaybackStateModel(
-      id: '${_currentUserId}_${_currentTrack!.id}',
-      userId: _currentUserId,
-      songId: _currentSongId!,
-      trackId: _currentTrack!.id,
-      position: position.inMilliseconds,
-      updatedAt: DateTime.now(),
-    );
-
-    await _playbackStateDataSource.savePlaybackState(state);
-  }
-
-  @override
-  Future<Duration> loadPlaybackPosition(String trackId) async {
-    try {
-      final state = await _playbackStateDataSource.getPlaybackState(
-        _currentUserId,
-        trackId,
-      );
-
-      if (state != null) {
-        return Duration(milliseconds: state.position);
-      }
-    } catch (e) {
-      // Ignore errors loading position - just start from beginning
-    }
-
-    return Duration.zero;
-  }
-
-  /// Start periodic auto-save timer
-  void _startAutoSaveTimer() {
-    _stopAutoSaveTimer(); // Cancel any existing timer
-    _autoSaveTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      savePlaybackPosition();
-    });
-  }
-
-  /// Stop auto-save timer
-  void _stopAutoSaveTimer() {
-    _autoSaveTimer?.cancel();
-    _autoSaveTimer = null;
   }
 
   /// Update the media item shown in the notification
@@ -471,9 +371,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> dispose() async {
-    _stopAutoSaveTimer();
     await _loopSubscription?.cancel();
-    await savePlaybackPosition(); // Save one last time before disposing
     await _player.dispose();
     await _playbackController.close();
   }

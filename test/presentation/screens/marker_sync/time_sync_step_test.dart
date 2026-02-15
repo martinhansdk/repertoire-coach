@@ -24,8 +24,6 @@ import 'time_sync_step_test.mocks.dart';
 class FakeAudioPlayerRepository implements AudioPlayerRepository {
   PlaybackInfo _currentPlayback;
   late final StreamController<PlaybackInfo> _controller;
-  Duration? lastPlayStartPosition;
-  bool? lastIgnoreSavedPosition;
   Duration? lastSeekPosition;
   int resumeCallCount = 0;
   int seekCallCount = 0;
@@ -66,8 +64,6 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   }
 
   void resetCallTracking() {
-    lastPlayStartPosition = null;
-    lastIgnoreSavedPosition = null;
     lastSeekPosition = null;
     resumeCallCount = 0;
     seekCallCount = 0;
@@ -76,17 +72,13 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   @override
   Future<void> playTrack(
     Track track, {
-    Duration startPosition = Duration.zero,
-    bool ignoreSavedPosition = false,
     String? audioUrl,
     String? songName,
     String? albumName,
   }) async {
-    lastPlayStartPosition = startPosition;
-    lastIgnoreSavedPosition = ignoreSavedPosition;
     _currentPlayback = _currentPlayback.copyWith(
       currentTrack: track,
-      position: startPosition,
+      position: Duration.zero,
       state: AudioPlayerState.playing,
     );
     _controller.add(_currentPlayback);
@@ -123,12 +115,6 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
     updatePosition(position);
     return position;
   }
-
-  @override
-  Future<void> savePlaybackPosition() async {}
-
-  @override
-  Future<Duration> loadPlaybackPosition(String trackId) async => Duration.zero;
 
   @override
   Future<void> setLoopMode(bool enabled) async {}
@@ -1037,7 +1023,7 @@ void main() {
         expect(fakeAudioRepository.currentPlayback.position, const Duration(seconds: 18));
       });
 
-      testWidgets('play starts from 0 and ignores saved position', (tester) async {
+      testWidgets('play starts from beginning', (tester) async {
         fakeAudioRepository.updatePosition(const Duration(seconds: 20));
 
         await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
@@ -1046,8 +1032,8 @@ void main() {
         await tester.tap(find.byIcon(Icons.play_circle));
         await tester.pumpAndSettle();
 
-        expect(fakeAudioRepository.lastPlayStartPosition, Duration.zero);
-        expect(fakeAudioRepository.lastIgnoreSavedPosition, true);
+        // playTrack always starts from the beginning
+        expect(fakeAudioRepository.currentPlayback.state, AudioPlayerState.playing);
       });
 
       testWidgets('discard button closes screen without saving', (tester) async {

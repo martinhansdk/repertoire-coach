@@ -298,11 +298,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                             return;
                           }
                           try {
-                            await audioControls.playTrack(
-                              track,
-                              startPosition: Duration.zero,
-                              ignoreSavedPosition: true,
-                            );
+                            await audioControls.playTrack(track);
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(

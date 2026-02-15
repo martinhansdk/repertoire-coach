@@ -81,7 +81,7 @@ void main() {
       test('playTrack calls repository', () async {
         final track = Track(id: 't1', songId: 's1', name: 'Track 1', createdAt: DateTime.now(), updatedAt: DateTime.now());
         await controls.playTrack(track);
-        verify(mockRepository.playTrack(track, startPosition: Duration.zero, ignoreSavedPosition: false)).called(1);
+        verify(mockRepository.playTrack(track)).called(1);
       });
 
       test('resume calls repository', () async {
@@ -118,18 +118,6 @@ void main() {
         await controls.togglePlayPause();
         verify(mockRepository.resume()).called(1);
         verifyNever(mockRepository.pause());
-      });
-
-      test('savePosition calls repository', () async {
-        await controls.savePosition();
-        verify(mockRepository.savePlaybackPosition()).called(1);
-      });
-
-      test('loadPosition calls repository', () async {
-        const trackId = 't1';
-        when(mockRepository.loadPlaybackPosition(trackId)).thenAnswer((_) async => Duration.zero);
-        await controls.loadPosition(trackId);
-        verify(mockRepository.loadPlaybackPosition(trackId)).called(1);
       });
 
       test('toggleTrackLoop calls setLoopMode(true) when not looping', () async {

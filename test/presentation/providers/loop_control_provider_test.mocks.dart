@@ -86,8 +86,6 @@ class MockAudioPlayerRepository extends _i1.Mock
   @override
   _i4.Future<void> playTrack(
     _i5.Track? track, {
-    Duration? startPosition = Duration.zero,
-    bool? ignoreSavedPosition = false,
     String? audioUrl,
     String? songName,
     String? albumName,
@@ -97,8 +95,6 @@ class MockAudioPlayerRepository extends _i1.Mock
           #playTrack,
           [track],
           {
-            #startPosition: startPosition,
-            #ignoreSavedPosition: ignoreSavedPosition,
             #audioUrl: audioUrl,
             #songName: songName,
             #albumName: albumName,
@@ -149,32 +145,6 @@ class MockAudioPlayerRepository extends _i1.Mock
           Invocation.method(
             #seek,
             [position],
-          ),
-        )),
-      ) as _i4.Future<Duration>);
-
-  @override
-  _i4.Future<void> savePlaybackPosition() => (super.noSuchMethod(
-        Invocation.method(
-          #savePlaybackPosition,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<Duration> loadPlaybackPosition(String? trackId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #loadPlaybackPosition,
-          [trackId],
-        ),
-        returnValue: _i4.Future<Duration>.value(_FakeDuration_1(
-          this,
-          Invocation.method(
-            #loadPlaybackPosition,
-            [trackId],
           ),
         )),
       ) as _i4.Future<Duration>);

@@ -185,14 +185,8 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                         _audioControls.pause();
                       } else if (isDifferentTrack ||
                           playbackInfo.state == AudioPlayerState.idle) {
-                        // Pass the current position so that a prior slider
-                        // seek is honoured instead of being overwritten by
-                        // the saved position from the database.
-                        final pos = playbackInfo.position;
                         _audioControls.playTrack(
                           widget.track,
-                          startPosition: pos,
-                          ignoreSavedPosition: pos > Duration.zero,
                           songName: widget.songTitle,
                           albumName: widget.concertName,
                         );

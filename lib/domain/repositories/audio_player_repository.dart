@@ -16,10 +16,9 @@ abstract class AudioPlayerRepository {
   /// Get the current playback information synchronously
   PlaybackInfo get currentPlayback;
 
-  /// Load and play a track
+  /// Load and play a track from the beginning
   ///
   /// [track] - The track to play
-  /// [startPosition] - Optional position to start playback from
   /// [audioUrl] - Optional URL to use instead of track's stored URL (e.g., signed URL)
   /// [songName] - Optional song name to display in notification (title field)
   /// [albumName] - Optional album name (concert name) to display in notification
@@ -27,8 +26,6 @@ abstract class AudioPlayerRepository {
   /// Throws an exception if the track has no audio source
   Future<void> playTrack(
     Track track, {
-    Duration startPosition = Duration.zero,
-    bool ignoreSavedPosition = false,
     String? audioUrl,
     String? songName,
     String? albumName,
@@ -48,17 +45,6 @@ abstract class AudioPlayerRepository {
   /// [position] - The position to seek to
   /// Returns the actual position seeked to (may differ if position is out of bounds)
   Future<Duration> seek(Duration position);
-
-  /// Save the current playback position for the current track
-  ///
-  /// This is used to remember where the user left off
-  Future<void> savePlaybackPosition();
-
-  /// Load the saved playback position for a track
-  ///
-  /// [trackId] - The track to load the position for
-  /// Returns the saved position, or Duration.zero if none exists
-  Future<Duration> loadPlaybackPosition(String trackId);
 
   /// Set the loop mode for playback
   ///

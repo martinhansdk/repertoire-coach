@@ -30,8 +30,6 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   @override
   Future<void> playTrack(
     Track track, {
-    Duration startPosition = Duration.zero,
-    bool ignoreSavedPosition = false,
     String? audioUrl,
     String? songName,
     String? albumName,
@@ -48,12 +46,6 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
 
   @override
   Future<Duration> seek(Duration position) async => position;
-
-  @override
-  Future<void> savePlaybackPosition() async {}
-
-  @override
-  Future<Duration> loadPlaybackPosition(String trackId) async => Duration.zero;
 
   @override
   Future<void> setLoopMode(bool enabled) async {}
