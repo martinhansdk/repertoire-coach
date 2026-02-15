@@ -13,110 +13,38 @@ class RemoteFavoriteTrackDataSource {
 
   /// Get all favorite tracks for a user from Supabase
   ///
-  /// Returns favorites with denormalized data (track name, song title, choir name).
+  /// Returns favorites with full Track objects.
   /// Sorted by added_at descending (most recent first).
   Future<List<FavoriteTrackModel>> getFavorites(String userId) async {
     try {
-      print('[RemoteFavoriteTrackDataSource] Fetching favorites for user: $userId');
-      print('[RemoteFavoriteTrackDataSource] About to call Supabase...');
-
-      // Test if Supabase is working with a simple count query first
-      try {
-        print('[RemoteFavoriteTrackDataSource] Testing Supabase with count query...');
-        final countResponse = await _supabase
-            .from('favorite_tracks')
-            .select('user_id')
-            .eq('user_id', userId)
-            .count()
-            .timeout(Duration(seconds: 5));
-        print('[RemoteFavoriteTrackDataSource] Count query succeeded: ${countResponse.count} favorites');
-      } catch (e) {
-        print('[RemoteFavoriteTrackDataSource] Count query failed: $e');
-        // Continue anyway to try the full query
-      }
-
-      final responseFuture = _supabase
+      final response = await _supabase
           .from('favorite_tracks')
           .select('''
-            user_id,
             track_id,
             song_id,
             added_at,
             tracks!inner(
               name,
               audio_url,
-              duration_ms
-            ),
-            songs!inner(
-              title,
-              concerts!inner(
-                choirs!inner(name)
-              )
+              storage_path,
+              duration_ms,
+              created_at,
+              updated_at
             )
           ''')
           .eq('user_id', userId)
           .order('added_at', ascending: false);
 
-      print('[RemoteFavoriteTrackDataSource] Waiting for response with 10s timeout...');
-
-      final response = await responseFuture.timeout(
-        Duration(seconds: 10),
-        onTimeout: () {
-          print('[RemoteFavoriteTrackDataSource] TIMEOUT after 10 seconds!');
-          throw Exception('Supabase query timed out after 10 seconds');
-        },
-      );
-
-      print('[RemoteFavoriteTrackDataSource] Supabase query completed');
-      print('[RemoteFavoriteTrackDataSource] Response type: ${response.runtimeType}');
-      print('[RemoteFavoriteTrackDataSource] Response: $response');
-
       if (response is! List) {
-        print('[RemoteFavoriteTrackDataSource] ERROR: Response is not a List!');
         throw Exception('Expected List but got ${response.runtimeType}');
       }
 
-      final responseList = response as List;
-
-      print('[RemoteFavoriteTrackDataSource] Received ${responseList.length} favorites from Supabase');
-
-      final favorites = responseList.map((json) {
-        final favoriteJson = Map<String, dynamic>.from(json);
-
-        // Extract track data
-        final trackData = json['tracks'];
-        final audioUrl = trackData['audio_url'];
-        favoriteJson['track_name'] = trackData['name'];
-        favoriteJson['audio_url'] = audioUrl;
-        favoriteJson['duration_ms'] = trackData['duration_ms'];
-
-        print('[RemoteFavoriteTrackDataSource] Track: ${trackData['name']}, audioUrl: $audioUrl');
-
-        // Extract song title
-        final songData = json['songs'];
-        favoriteJson['song_title'] = songData['title'];
-
-        // Extract choir name (nested: songs -> concerts -> choirs)
-        final concertData = songData['concerts'];
-        final choirData = concertData['choirs'];
-        favoriteJson['choir_name'] = choirData['name'];
-
-        // Remove nested objects
-        favoriteJson.remove('tracks');
-        favoriteJson.remove('songs');
-
-        return FavoriteTrackModel.fromJson(favoriteJson);
-      }).toList();
-
-      print('[RemoteFavoriteTrackDataSource] Returning ${favorites.length} favorites');
-      return favorites;
+      return (response as List)
+          .map((json) => FavoriteTrackModel.fromJson(json))
+          .toList();
     } on PostgrestException catch (e) {
-      print('[RemoteFavoriteTrackDataSource] PostgrestException: ${e.message}');
-      print('[RemoteFavoriteTrackDataSource] Error details: $e');
       throw Exception('Failed to fetch favorites from Supabase: ${e.message}');
-    } catch (e, stackTrace) {
-      print('[RemoteFavoriteTrackDataSource] Unexpected error: $e');
-      print('[RemoteFavoriteTrackDataSource] Stack trace: $stackTrace');
+    } catch (e) {
       throw Exception('Unexpected error fetching favorites: $e');
     }
   }

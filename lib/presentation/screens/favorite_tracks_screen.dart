@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
-import '../../domain/entities/track.dart';
 import '../providers/favorite_track_provider.dart';
 import '../widgets/favorite_track_card.dart';
 import 'audio_player_screen.dart';
@@ -44,24 +43,11 @@ class FavoriteTracksScreen extends ConsumerWidget {
                 return FavoriteTrackCard(
                   favorite: favorite,
                   onTap: () {
-                    // Create a Track entity from favorite to pass to audio player
-                    final track = Track(
-                      id: favorite.trackId,
-                      songId: favorite.songId,
-                      name: favorite.trackName,
-                      audioUrl: favorite.audioUrl,
-                      storagePath: null,
-                      durationMs: favorite.durationMs,
-                      filePath: null,
-                      createdAt: favorite.addedAt,
-                      updatedAt: favorite.addedAt,
-                    );
-
-                    // Navigate to audio player screen
+                    // Navigate to audio player with the Track from favorite
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => AudioPlayerScreen(
-                          track: track,
+                          track: favorite.track,
                           songTitle: favorite.songTitle,
                           concertName: '', // Not shown in audio player
                         ),
@@ -72,14 +58,14 @@ class FavoriteTracksScreen extends ConsumerWidget {
                     // Remove from favorites
                     await ref
                         .read(favoriteTrackActionsProvider)
-                        .removeFavorite(favorite.trackId);
+                        .removeFavorite(favorite.track.id);
 
                     // Show snackbar confirmation
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Removed "${favorite.trackName}" from favorites',
+                            'Removed "${favorite.track.name}" from favorites',
                           ),
                           duration: const Duration(seconds: 2),
                         ),

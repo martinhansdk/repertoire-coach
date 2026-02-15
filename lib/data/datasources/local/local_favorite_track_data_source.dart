@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../domain/entities/track.dart';
 import '../../models/favorite_track_model.dart';
 import 'database.dart' as db;
 
@@ -12,29 +13,16 @@ class LocalFavoriteTrackDataSource {
 
   LocalFavoriteTrackDataSource(this._database);
 
-  /// Watch all favorite tracks for a user with denormalized data
+  /// Watch all favorite tracks for a user
   ///
   /// Returns a stream that emits whenever favorites change.
   /// Results are sorted by added_at descending (most recent first).
-  /// Includes denormalized data: track name, song title, choir name, audio URL, duration.
   Stream<List<FavoriteTrackModel>> watchFavorites(String userId) {
-    // Custom query with joins to get denormalized data
+    // Query with join to tracks table to get full Track data
     final query = _database.select(_database.favoriteTracks).join([
       innerJoin(
         _database.tracks,
         _database.tracks.id.equalsExp(_database.favoriteTracks.trackId),
-      ),
-      innerJoin(
-        _database.songs,
-        _database.songs.id.equalsExp(_database.favoriteTracks.songId),
-      ),
-      innerJoin(
-        _database.concerts,
-        _database.concerts.id.equalsExp(_database.songs.concertId),
-      ),
-      innerJoin(
-        _database.choirs,
-        _database.choirs.id.equalsExp(_database.concerts.choirId),
       ),
     ])
       ..where(_database.favoriteTracks.userId.equals(userId))
@@ -43,17 +31,24 @@ class LocalFavoriteTrackDataSource {
     return query.watch().map((rows) {
       return rows.map((row) {
         final favorite = row.readTable(_database.favoriteTracks);
-        final track = row.readTable(_database.tracks);
-        final song = row.readTable(_database.songs);
-        final choir = row.readTable(_database.choirs);
+        final trackRow = row.readTable(_database.tracks);
+
+        // Create Track entity from Drift data
+        final track = Track(
+          id: trackRow.id,
+          songId: trackRow.songId,
+          name: trackRow.name,
+          audioUrl: trackRow.audioUrl,
+          storagePath: trackRow.storagePath,
+          durationMs: trackRow.durationMs,
+          filePath: trackRow.filePath,
+          createdAt: trackRow.createdAt,
+          updatedAt: trackRow.updatedAt,
+        );
 
         return FavoriteTrackModel.fromDrift(
           driftFavorite: favorite,
-          trackName: track.name,
-          songTitle: song.title,
-          choirName: choir.name,
-          audioUrl: track.audioUrl,
-          durationMs: track.durationMs,
+          track: track,
         );
       }).toList();
     });
@@ -69,18 +64,6 @@ class LocalFavoriteTrackDataSource {
         _database.tracks,
         _database.tracks.id.equalsExp(_database.favoriteTracks.trackId),
       ),
-      innerJoin(
-        _database.songs,
-        _database.songs.id.equalsExp(_database.favoriteTracks.songId),
-      ),
-      innerJoin(
-        _database.concerts,
-        _database.concerts.id.equalsExp(_database.songs.concertId),
-      ),
-      innerJoin(
-        _database.choirs,
-        _database.choirs.id.equalsExp(_database.concerts.choirId),
-      ),
     ])
       ..where(_database.favoriteTracks.userId.equals(userId))
       ..orderBy([OrderingTerm.desc(_database.favoriteTracks.addedAt)]);
@@ -88,17 +71,24 @@ class LocalFavoriteTrackDataSource {
     final rows = await query.get();
     return rows.map((row) {
       final favorite = row.readTable(_database.favoriteTracks);
-      final track = row.readTable(_database.tracks);
-      final song = row.readTable(_database.songs);
-      final choir = row.readTable(_database.choirs);
+      final trackRow = row.readTable(_database.tracks);
+
+      // Create Track entity from Drift data
+      final track = Track(
+        id: trackRow.id,
+        songId: trackRow.songId,
+        name: trackRow.name,
+        audioUrl: trackRow.audioUrl,
+        storagePath: trackRow.storagePath,
+        durationMs: trackRow.durationMs,
+        filePath: trackRow.filePath,
+        createdAt: trackRow.createdAt,
+        updatedAt: trackRow.updatedAt,
+      );
 
       return FavoriteTrackModel.fromDrift(
         driftFavorite: favorite,
-        trackName: track.name,
-        songTitle: song.title,
-        choirName: choir.name,
-        audioUrl: track.audioUrl,
-        durationMs: track.durationMs,
+        track: track,
       );
     }).toList();
   }
@@ -120,11 +110,13 @@ class LocalFavoriteTrackDataSource {
   ///
   /// Creates a favorite relationship. Idempotent - no error if already favorited.
   /// [markForSync] determines if this should sync to cloud (default: true).
+  /// Requires userId to identify which user's favorites to modify.
   Future<void> addFavorite(
+    String userId,
     FavoriteTrackModel favorite, {
     bool markForSync = true,
   }) async {
-    final companion = favorite.toDriftCompanion().copyWith(
+    final companion = favorite.toDriftCompanion(userId).copyWith(
           synced: Value(!markForSync), // If markForSync=true, synced=false
         );
 
@@ -171,18 +163,6 @@ class LocalFavoriteTrackDataSource {
         _database.tracks,
         _database.tracks.id.equalsExp(_database.favoriteTracks.trackId),
       ),
-      innerJoin(
-        _database.songs,
-        _database.songs.id.equalsExp(_database.favoriteTracks.songId),
-      ),
-      innerJoin(
-        _database.concerts,
-        _database.concerts.id.equalsExp(_database.songs.concertId),
-      ),
-      innerJoin(
-        _database.choirs,
-        _database.choirs.id.equalsExp(_database.concerts.choirId),
-      ),
     ])
       ..where(_database.favoriteTracks.userId.equals(userId))
       ..where(_database.favoriteTracks.synced.equals(false));
@@ -190,17 +170,24 @@ class LocalFavoriteTrackDataSource {
     final rows = await query.get();
     return rows.map((row) {
       final favorite = row.readTable(_database.favoriteTracks);
-      final track = row.readTable(_database.tracks);
-      final song = row.readTable(_database.songs);
-      final choir = row.readTable(_database.choirs);
+      final trackRow = row.readTable(_database.tracks);
+
+      // Create Track entity from Drift data
+      final track = Track(
+        id: trackRow.id,
+        songId: trackRow.songId,
+        name: trackRow.name,
+        audioUrl: trackRow.audioUrl,
+        storagePath: trackRow.storagePath,
+        durationMs: trackRow.durationMs,
+        filePath: trackRow.filePath,
+        createdAt: trackRow.createdAt,
+        updatedAt: trackRow.updatedAt,
+      );
 
       return FavoriteTrackModel.fromDrift(
         driftFavorite: favorite,
-        trackName: track.name,
-        songTitle: song.title,
-        choirName: choir.name,
-        audioUrl: track.audioUrl,
-        durationMs: track.durationMs,
+        track: track,
       );
     }).toList();
   }

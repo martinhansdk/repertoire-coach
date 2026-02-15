@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../domain/entities/favorite_track.dart';
+import '../../domain/entities/track.dart';
 import '../datasources/local/database.dart' as db;
 
 /// Favorite track data model
@@ -10,112 +11,87 @@ import '../datasources/local/database.dart' as db;
 /// and JSON for Supabase integration.
 class FavoriteTrackModel extends FavoriteTrack {
   const FavoriteTrackModel({
-    required super.userId,
-    required super.trackId,
-    required super.songId,
     required super.addedAt,
-    required super.trackName,
-    required super.songTitle,
-    required super.choirName,
-    super.audioUrl,
-    super.durationMs,
+    required super.track,
   });
 
   /// Create a FavoriteTrackModel from a domain FavoriteTrack entity
   factory FavoriteTrackModel.fromEntity(FavoriteTrack favorite) {
     return FavoriteTrackModel(
-      userId: favorite.userId,
-      trackId: favorite.trackId,
-      songId: favorite.songId,
       addedAt: favorite.addedAt,
-      trackName: favorite.trackName,
-      songTitle: favorite.songTitle,
-      choirName: favorite.choirName,
-      audioUrl: favorite.audioUrl,
-      durationMs: favorite.durationMs,
+      track: favorite.track,
     );
   }
 
   /// Convert to domain entity
   FavoriteTrack toEntity() {
     return FavoriteTrack(
-      userId: userId,
-      trackId: trackId,
-      songId: songId,
       addedAt: addedAt,
-      trackName: trackName,
-      songTitle: songTitle,
-      choirName: choirName,
-      audioUrl: audioUrl,
-      durationMs: durationMs,
+      track: track,
     );
   }
 
   /// Create a FavoriteTrackModel from a Drift database record
   ///
-  /// Note: Drift only stores the core favorite relationship (user_id, track_id, song_id, added_at).
-  /// Denormalized fields (track_name, song_title, choir_name, audio_url, duration_ms)
-  /// must be provided separately from joined queries.
+  /// Note: Drift stores the favorite relationship (user_id, track_id, song_id, added_at).
+  /// The full Track object must be provided from joined queries.
   factory FavoriteTrackModel.fromDrift({
     required db.FavoriteTrack driftFavorite,
-    required String trackName,
-    required String songTitle,
-    required String choirName,
-    String? audioUrl,
-    int? durationMs,
+    required Track track,
   }) {
     return FavoriteTrackModel(
-      userId: driftFavorite.userId,
-      trackId: driftFavorite.trackId,
-      songId: driftFavorite.songId,
       addedAt: driftFavorite.addedAt,
-      trackName: trackName,
-      songTitle: songTitle,
-      choirName: choirName,
-      audioUrl: audioUrl,
-      durationMs: durationMs,
+      track: track,
     );
   }
 
   /// Convert to Drift companion for database writes
   ///
-  /// Only writes the core favorite relationship.
-  /// Denormalized fields are not stored in the favorite_tracks table.
-  db.FavoriteTracksCompanion toDriftCompanion() {
+  /// Requires userId to be passed explicitly (not stored in entity).
+  /// Writes the core favorite relationship to the database.
+  db.FavoriteTracksCompanion toDriftCompanion(String userId) {
     return db.FavoriteTracksCompanion(
       userId: Value(userId),
-      trackId: Value(trackId),
-      songId: Value(songId),
+      trackId: Value(track.id),
+      songId: Value(track.songId),
       addedAt: Value(addedAt),
     );
   }
 
   /// Create a FavoriteTrackModel from Supabase JSON
   ///
-  /// Expects JSON from the denormalized query with joins to tracks, songs, concerts, and choirs.
+  /// Expects JSON from query with join to tracks table.
+  /// The 'tracks' field should contain the full track data.
   factory FavoriteTrackModel.fromJson(Map<String, dynamic> json) {
-    return FavoriteTrackModel(
-      userId: json['user_id'] as String,
-      trackId: json['track_id'] as String,
+    // Extract track data and create Track object
+    final trackData = json['tracks'] as Map<String, dynamic>;
+    final track = Track(
+      id: json['track_id'] as String,
       songId: json['song_id'] as String,
+      name: trackData['name'] as String,
+      audioUrl: trackData['audio_url'] as String?,
+      storagePath: trackData['storage_path'] as String?,
+      durationMs: trackData['duration_ms'] as int?,
+      filePath: null, // Not stored in Supabase
+      createdAt: DateTime.parse(trackData['created_at'] as String),
+      updatedAt: DateTime.parse(trackData['updated_at'] as String),
+    );
+
+    return FavoriteTrackModel(
       addedAt: DateTime.parse(json['added_at'] as String),
-      trackName: json['track_name'] as String,
-      songTitle: json['song_title'] as String,
-      choirName: json['choir_name'] as String,
-      audioUrl: json['audio_url'] as String?,
-      durationMs: json['duration_ms'] as int?,
+      track: track,
     );
   }
 
-  /// Convert to JSON for Supabase
+  /// Convert to JSON for Supabase writes
   ///
-  /// Only includes the core favorite relationship fields.
-  /// The denormalized fields are computed by Supabase queries with joins.
-  Map<String, dynamic> toJson() {
+  /// Requires userId to be passed explicitly (not stored in entity).
+  /// Returns the data needed for INSERT/UPDATE operations.
+  Map<String, dynamic> toJson(String userId) {
     return {
       'user_id': userId,
-      'track_id': trackId,
-      'song_id': songId,
+      'track_id': track.id,
+      'song_id': track.songId,
       'added_at': addedAt.toIso8601String(),
     };
   }
