@@ -138,7 +138,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     );
   }
 
-  Widget _buildPlaybackControls(playbackInfo) {
+  Widget _buildPlaybackControls(PlaybackInfo playbackInfo) {
     final currentTrack = playbackInfo.currentTrack ?? widget.track;
     final userId = ref.read(supabaseServiceProvider).currentUserId;
     if (userId == null) {
@@ -275,36 +275,40 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     );
   }
 
-  Widget _buildProgressBar(Track track, playbackInfo) {
+  Widget _buildSlider(PlaybackInfo playbackInfo) {
+    final double sliderValue = _isDraggingSlider
+        ? _dragValue
+        : playbackInfo.progress.clamp(0.0, 1.0);
+
+    return Slider(
+      key: const ValueKey('progressSlider'),
+      value: sliderValue,
+      onChangeStart: (value) {
+        setState(() {
+          _isDraggingSlider = true;
+          _dragValue = value;
+        });
+      },
+      onChanged: (value) {
+        setState(() {
+          _dragValue = value;
+        });
+      },
+      onChangeEnd: (value) {
+        final newPosition = playbackInfo.duration * value;
+        ref.read(audioPlayerControlsProvider).seek(newPosition);
+        setState(() {
+          _isDraggingSlider = false;
+        });
+      },
+    );
+  }
+
+  Widget _buildProgressBar(Track track, PlaybackInfo playbackInfo) {
     final selectedMarkerSetId = ref.watch(selectedMarkerSetProvider);
 
     if (selectedMarkerSetId == null) {
-      // No marker set selected, use simple slider
-      final double sliderValue = _isDraggingSlider
-          ? _dragValue
-          : playbackInfo.progress.clamp(0.0, 1.0);
-
-      return Slider(
-        value: sliderValue,
-        onChangeStart: (value) {
-          setState(() {
-            _isDraggingSlider = true;
-            _dragValue = value;
-          });
-        },
-        onChanged: (value) {
-          setState(() {
-            _dragValue = value;
-          });
-        },
-        onChangeEnd: (value) {
-          final newPosition = playbackInfo.duration * value;
-          ref.read(audioPlayerControlsProvider).seek(newPosition);
-          setState(() {
-            _isDraggingSlider = false;
-          });
-        },
-      );
+      return _buildSlider(playbackInfo);
     }
 
     final markerSetAsync = ref.watch(markerSetByIdProvider(selectedMarkerSetId));
@@ -313,31 +317,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     return markerSetAsync.when(
       data: (markerSet) {
         if (markerSet == null || !markerSet.isTimeSynced) {
-          final double sliderValue = _isDraggingSlider
-              ? _dragValue
-              : playbackInfo.progress.clamp(0.0, 1.0);
-          return Slider(
-            key: const ValueKey('progressSlider'),
-            value: sliderValue,
-            onChangeStart: (value) {
-              setState(() {
-                _isDraggingSlider = true;
-                _dragValue = value;
-              });
-            },
-            onChanged: (value) {
-              setState(() {
-                _dragValue = value;
-              });
-            },
-            onChangeEnd: (value) {
-              final newPosition = playbackInfo.duration * value;
-              ref.read(audioPlayerControlsProvider).seek(newPosition);
-              setState(() {
-                _isDraggingSlider = false;
-              });
-            },
-          );
+          return _buildSlider(playbackInfo);
         }
 
         return markersAsync.when(
@@ -356,120 +336,16 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
               },
             );
           },
-          loading: () {
-            final double sliderValue = _isDraggingSlider
-                ? _dragValue
-                : playbackInfo.progress.clamp(0.0, 1.0);
-            return Slider(
-              key: const ValueKey('progressSlider'),
-              value: sliderValue,
-              onChangeStart: (value) {
-                setState(() {
-                  _isDraggingSlider = true;
-                  _dragValue = value;
-                });
-              },
-              onChanged: (value) {
-                setState(() {
-                  _dragValue = value;
-                });
-              },
-              onChangeEnd: (value) {
-                final newPosition = playbackInfo.duration * value;
-                ref.read(audioPlayerControlsProvider).seek(newPosition);
-                setState(() {
-                  _isDraggingSlider = false;
-                });
-              },
-            );
-          },
-          error: (_, __) {
-            final double sliderValue = _isDraggingSlider
-                ? _dragValue
-                : playbackInfo.progress.clamp(0.0, 1.0);
-            return Slider(
-              key: const ValueKey('progressSlider'),
-              value: sliderValue,
-              onChangeStart: (value) {
-                setState(() {
-                  _isDraggingSlider = true;
-                  _dragValue = value;
-                });
-              },
-              onChanged: (value) {
-                setState(() {
-                  _dragValue = value;
-                });
-              },
-              onChangeEnd: (value) {
-                final newPosition = playbackInfo.duration * value;
-                ref.read(audioPlayerControlsProvider).seek(newPosition);
-                setState(() {
-                  _isDraggingSlider = false;
-                });
-              },
-            );
-          },
+          loading: () => _buildSlider(playbackInfo),
+          error: (_, __) => _buildSlider(playbackInfo),
         );
       },
-      loading: () {
-        final double sliderValue = _isDraggingSlider
-            ? _dragValue
-            : playbackInfo.progress.clamp(0.0, 1.0);
-        return Slider(
-          key: const ValueKey('progressSlider'),
-          value: sliderValue,
-          onChangeStart: (value) {
-            setState(() {
-              _isDraggingSlider = true;
-              _dragValue = value;
-            });
-          },
-          onChanged: (value) {
-            setState(() {
-              _dragValue = value;
-            });
-          },
-          onChangeEnd: (value) {
-            final newPosition = playbackInfo.duration * value;
-            ref.read(audioPlayerControlsProvider).seek(newPosition);
-            setState(() {
-              _isDraggingSlider = false;
-            });
-          },
-        );
-      },
-      error: (_, __) {
-        final double sliderValue = _isDraggingSlider
-            ? _dragValue
-            : playbackInfo.progress.clamp(0.0, 1.0);
-        return Slider(
-          key: const ValueKey('progressSlider'),
-          value: sliderValue,
-          onChangeStart: (value) {
-            setState(() {
-              _isDraggingSlider = true;
-              _dragValue = value;
-            });
-          },
-          onChanged: (value) {
-            setState(() {
-              _dragValue = value;
-            });
-          },
-          onChangeEnd: (value) {
-            final newPosition = playbackInfo.duration * value;
-            ref.read(audioPlayerControlsProvider).seek(newPosition);
-            setState(() {
-              _isDraggingSlider = false;
-            });
-          },
-        );
-      },
+      loading: () => _buildSlider(playbackInfo),
+      error: (_, __) => _buildSlider(playbackInfo),
     );
   }
 
-  Widget _buildMarkerSection(Track track, playbackInfo) {
+  Widget _buildMarkerSection(Track track, PlaybackInfo playbackInfo) {
     final selectedMarkerSetId = ref.watch(selectedMarkerSetProvider);
 
     if (selectedMarkerSetId == null) {

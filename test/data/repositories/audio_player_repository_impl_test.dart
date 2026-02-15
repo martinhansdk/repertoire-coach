@@ -181,12 +181,11 @@ void main() {
       // Act
       await repository.dispose();
 
-      // Assert: Should not throw
-      // Stream controller should be closed, so listening should fail
-      expect(
-        repository.playbackStream.first,
-        throwsA(isA<StateError>()),
-      );
+      // Assert: After dispose, the stream still emits the cached current state
+      // (from the async* generator) but the underlying broadcast controller
+      // is closed. Verify we can still read the last known state.
+      final info = await repository.playbackStream.first;
+      expect(info.state, AudioPlayerState.idle);
     });
 
     // Integration test with actual audio file
@@ -382,5 +381,84 @@ void main() {
       expect(playback.state, AudioPlayerState.error);
       expect(playback.errorMessage, isNotNull);
     });
+  });
+
+  group('Bug reproductions', () {
+    late AudioPlayerRepositoryImpl repository;
+    late MockPlaybackStateDataSource mockDataSource;
+
+    setUp(() {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      PathProviderPlatform.instance = _MockPathProviderPlatform();
+      mockDataSource = MockPlaybackStateDataSource();
+      repository = AudioPlayerRepositoryImpl(mockDataSource);
+    });
+
+    tearDown(() async {
+      await repository.dispose();
+    });
+
+    // Bug 1: Markers not shown when navigating to audio player.
+    // Root cause: playbackStream is a broadcast stream that doesn't emit
+    // the current state to new subscribers. StreamProvider stays in loading
+    // state until the first player event (e.g., pressing play).
+    test('playbackStream should emit initial state to late subscribers', () async {
+      // In the real app, the StreamProvider subscribes AFTER the repository
+      // is created and initial just_audio events have already fired.
+      // Wait for initial just_audio events to pass, then subscribe "late."
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // A late subscriber should still get the current state immediately.
+      // With a plain broadcast stream, this times out because past events
+      // aren't replayed to new subscribers.
+      final info = await repository.playbackStream.first
+          .timeout(const Duration(milliseconds: 500));
+
+      expect(info.state, AudioPlayerState.idle);
+      expect(info.currentTrack, isNull);
+      expect(info.position, Duration.zero);
+    });
+
+    // Bug 4: Track B shows Track A's position (0:50) when navigating.
+    // Root cause: just_audio's stop() doesn't reset the player's internal
+    // position. _updatePlaybackInfo() reads _player.position which still
+    // returns Track A's last position after stop().
+    test('stop() should reset position to zero', () async {
+      // Seek to a non-zero position (works even without a loaded track)
+      await repository.seek(const Duration(seconds: 30));
+
+      // Verify position is non-zero
+      final beforeStop = repository.currentPlayback;
+      expect(beforeStop.position, greaterThan(Duration.zero),
+          reason: 'Position should be non-zero before stop');
+
+      // Stop playback
+      await repository.stop();
+
+      // Position should be zero after stop
+      final afterStop = repository.currentPlayback;
+      expect(afterStop.position, Duration.zero,
+          reason: 'Position should reset to zero after stop() to prevent '
+              'leaking stale position to the next track');
+    });
+
+    // Bug 2: After track plays to end and stops, seeking to middle and pressing
+    // play jumps to beginning.
+    // Bug 3: Navigating to player with saved position at end, pressing play
+    // stays stopped.
+    // Root cause: On track completion, stop() is called which clears
+    // _currentTrack and sets state to idle. When play is pressed, the screen
+    // sees idle state and calls playTrack() instead of resume(), reloading the
+    // audio from scratch with race conditions around duration availability.
+    //
+    // These bugs require simulating ProcessingState.completed which needs a
+    // mock just_audio player. Skipped for now but documented for future
+    // implementation if the player is refactored to accept an injectable player.
+    test('track completion should keep track info intact (not go to idle)',
+        () async {
+      // Cannot test without mocking just_audio's ProcessingState.completed
+      // The fix: on natural completion, pause instead of stop, keeping
+      // _currentTrack and state as "paused" rather than "idle".
+    }, skip: 'Requires mock just_audio player to simulate track completion');
   });
 }

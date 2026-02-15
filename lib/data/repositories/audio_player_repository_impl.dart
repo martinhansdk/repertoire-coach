@@ -130,8 +130,15 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     _player.playerStateStream.listen((playerState) {
       if (playerState.processingState == ja.ProcessingState.completed &&
           !_isLooping) {
-        // Track finished without loop — stop and clear state
-        stop();
+        // Track finished naturally — pause and keep track info intact so the
+        // UI shows "paused" (not "idle").  This lets the play button call
+        // resume() instead of playTrack(), avoiding a full audio reload and
+        // the duration race condition that came with it.
+        _player.pause();
+        _stopAutoSaveTimer();
+        savePlaybackPosition();
+        _audioHandler?.stop(); // dismiss media notification
+        _updatePlaybackInfo();
       } else {
         _updatePlaybackInfo();
       }
@@ -187,7 +194,13 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   }
 
   @override
-  Stream<PlaybackInfo> get playbackStream => _playbackController.stream;
+  Stream<PlaybackInfo> get playbackStream async* {
+    // Emit the current state immediately so that late subscribers (e.g.
+    // Riverpod StreamProvider) get data without waiting for a player event.
+    // A plain broadcast stream would lose all past events.
+    yield _currentPlaybackInfo;
+    yield* _playbackController.stream;
+  }
 
   @override
   PlaybackInfo get currentPlayback => _currentPlaybackInfo;
@@ -321,9 +334,10 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   Future<void> stop() async {
+    await savePlaybackPosition(); // Save BEFORE stopping so we capture the real position
     await _player.stop();
+    await _player.seek(Duration.zero); // Reset position to prevent leaking to the next track
     _stopAutoSaveTimer();
-    await savePlaybackPosition(); // Save position on stop
     // Tell audio_service to stop the foreground service so the notification
     // is dismissed.  Without this the notification lingers after the track
     // finishes, showing a stale play button.  The handler's stop() calls
