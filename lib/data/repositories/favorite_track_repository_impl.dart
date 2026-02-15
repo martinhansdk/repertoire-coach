@@ -53,7 +53,7 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
 
         // Sync remote favorites to local database
         for (final favorite in remoteFavorites) {
-          await _localDataSource.addFavorite(favorite, markForSync: false);
+          await _localDataSource.addFavorite(userId, favorite, markForSync: false);
         }
 
         // Return the remote favorites
@@ -75,7 +75,7 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
       if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
         try {
           final favorites = await _remoteDataSource.getFavorites(userId);
-          return favorites.any((f) => f.trackId == trackId);
+          return favorites.any((f) => f.track.id == trackId);
         } catch (e) {
           debugPrint('Failed to check favorite status from remote on web: $e');
           return false;

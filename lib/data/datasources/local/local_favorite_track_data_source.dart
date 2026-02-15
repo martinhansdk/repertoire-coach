@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../domain/entities/track.dart';
+import '../../../domain/entities/track.dart';
 import '../../models/favorite_track_model.dart';
 import 'database.dart' as db;
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
 import '../providers/favorite_track_provider.dart';
+import '../providers/song_provider.dart';
 import '../widgets/favorite_track_card.dart';
 import 'audio_player_screen.dart';
 
@@ -42,17 +43,23 @@ class FavoriteTracksScreen extends ConsumerWidget {
                 final favorite = favorites[index];
                 return FavoriteTrackCard(
                   favorite: favorite,
-                  onTap: () {
+                  onTap: () async {
+                    // Look up song to get title
+                    final song = await ref.read(songByIdProvider(favorite.track.songId).future);
+                    final songTitle = song?.title ?? 'Unknown Song';
+
                     // Navigate to audio player with the Track from favorite
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AudioPlayerScreen(
-                          track: favorite.track,
-                          songTitle: favorite.songTitle,
-                          concertName: '', // Not shown in audio player
+                    if (context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AudioPlayerScreen(
+                            track: favorite.track,
+                            songTitle: songTitle,
+                            concertName: '', // Not shown in audio player
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   },
                   onRemove: () async {
                     // Remove from favorites
