@@ -87,10 +87,24 @@ class LocalMarkerDataSource {
   /// If a marker set with the same ID exists, it will be updated.
   /// Otherwise, a new marker set is created.
   /// [markForSync] determines if this change should be synced to cloud (default: true)
+  ///
+  /// When a remote upsert ([markForSync] = false) encounters a locally
+  /// soft-deleted row that has not yet been synced, the upsert is skipped
+  /// so that stale remote data cannot resurrect deleted marker sets.
   Future<void> upsertMarkerSet(
     MarkerSetModel markerSet, {
     bool markForSync = true,
   }) async {
+    if (!markForSync) {
+      final existing = await (_database.select(_database.markerSets)
+            ..where((ms) => ms.id.equals(markerSet.id)))
+          .getSingleOrNull();
+
+      if (existing != null && existing.deleted && !existing.synced) {
+        return;
+      }
+    }
+
     await _database.into(_database.markerSets).insertOnConflictUpdate(
           markerSet.toDriftCompanion(markForSync: markForSync),
         );
@@ -218,10 +232,27 @@ class LocalMarkerDataSource {
   /// If a marker with the same ID exists, it will be updated.
   /// Otherwise, a new marker is created.
   /// [markForSync] determines if this change should be synced to cloud (default: true)
+  ///
+  /// When a remote upsert ([markForSync] = false) encounters a locally
+  /// soft-deleted row that has not yet been synced, the upsert is skipped
+  /// so that stale remote data cannot resurrect markers the user deleted.
   Future<void> upsertMarker(
     MarkerModel marker, {
     bool markForSync = true,
   }) async {
+    if (!markForSync) {
+      // Remote data arriving – check whether the local row was soft-deleted
+      // but the deletion hasn't been pushed to the server yet.
+      final existing = await (_database.select(_database.markers)
+            ..where((m) => m.id.equals(marker.id)))
+          .getSingleOrNull();
+
+      if (existing != null && existing.deleted && !existing.synced) {
+        // Local delete pending sync – don't let remote data resurrect it.
+        return;
+      }
+    }
+
     await _database.into(_database.markers).insertOnConflictUpdate(
           marker.toDriftCompanion(markForSync: markForSync),
         );

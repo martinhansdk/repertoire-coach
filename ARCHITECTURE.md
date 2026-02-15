@@ -545,9 +545,18 @@ CREATE POLICY marker_sets_update ON marker_sets
     OR (is_shared = false AND created_by_user_id = auth.uid())
   );
 
--- Only creators can delete their own marker sets
+-- Choir members can delete shared marker sets; private sets only by creator
 CREATE POLICY marker_sets_delete ON marker_sets
-  FOR DELETE USING (created_by_user_id = auth.uid());
+  FOR DELETE USING (
+    (is_shared = true AND EXISTS (
+      SELECT 1 FROM tracks t
+      JOIN songs s ON t.song_id = s.id
+      JOIN concerts c ON s.concert_id = c.id
+      JOIN choir_members cm ON c.choir_id = cm.choir_id
+      WHERE t.id = track_id AND cm.user_id = auth.uid()
+    ))
+    OR (is_shared = false AND created_by_user_id = auth.uid())
+  );
 
 -- Markers inherit access from their marker set
 CREATE POLICY markers_select ON markers
@@ -608,7 +617,17 @@ CREATE POLICY markers_delete ON markers
   FOR DELETE USING (
     EXISTS (
       SELECT 1 FROM marker_sets ms
-      WHERE ms.id = marker_set_id AND ms.created_by_user_id = auth.uid()
+      WHERE ms.id = marker_set_id
+      AND (
+        (ms.is_shared = true AND EXISTS (
+          SELECT 1 FROM tracks t
+          JOIN songs s ON t.song_id = s.id
+          JOIN concerts c ON s.concert_id = c.id
+          JOIN choir_members cm ON c.choir_id = cm.choir_id
+          WHERE t.id = ms.track_id AND cm.user_id = auth.uid()
+        ))
+        OR (ms.is_shared = false AND ms.created_by_user_id = auth.uid())
+      )
     )
   );
 ```
