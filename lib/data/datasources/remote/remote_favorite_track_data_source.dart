@@ -20,6 +20,21 @@ class RemoteFavoriteTrackDataSource {
       print('[RemoteFavoriteTrackDataSource] Fetching favorites for user: $userId');
       print('[RemoteFavoriteTrackDataSource] About to call Supabase...');
 
+      // Test if Supabase is working with a simple count query first
+      try {
+        print('[RemoteFavoriteTrackDataSource] Testing Supabase with count query...');
+        final countResponse = await _supabase
+            .from('favorite_tracks')
+            .select('user_id')
+            .eq('user_id', userId)
+            .count()
+            .timeout(Duration(seconds: 5));
+        print('[RemoteFavoriteTrackDataSource] Count query succeeded: ${countResponse.count} favorites');
+      } catch (e) {
+        print('[RemoteFavoriteTrackDataSource] Count query failed: $e');
+        // Continue anyway to try the full query
+      }
+
       final responseFuture = _supabase
           .from('favorite_tracks')
           .select('''
