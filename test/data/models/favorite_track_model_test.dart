@@ -74,7 +74,6 @@ void main() {
             'storage_path': 'choirs/choir-1/tracks/track-1.mp3',
             'duration_ms': 180000,
             'created_at': '2024-01-01T00:00:00.000',
-            'updated_at': '2024-01-10T00:00:00.000',
           },
         };
 
@@ -87,6 +86,8 @@ void main() {
         expect(model.track.audioUrl, 'https://example.com/audio.mp3');
         expect(model.track.storagePath, 'choirs/choir-1/tracks/track-1.mp3');
         expect(model.track.durationMs, 180000);
+        expect(model.track.createdAt, DateTime.parse('2024-01-01T00:00:00.000'));
+        expect(model.track.updatedAt, DateTime.parse('2024-01-01T00:00:00.000')); // Same as created_at
       });
 
       test('handles null optional track fields', () {
@@ -100,7 +101,6 @@ void main() {
             'storage_path': null,
             'duration_ms': null,
             'created_at': '2024-01-01T00:00:00.000',
-            'updated_at': '2024-01-10T00:00:00.000',
           },
         };
 

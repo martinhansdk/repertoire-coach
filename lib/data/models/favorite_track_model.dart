@@ -65,6 +65,8 @@ class FavoriteTrackModel extends FavoriteTrack {
   factory FavoriteTrackModel.fromJson(Map<String, dynamic> json) {
     // Extract track data and create Track object
     final trackData = json['tracks'] as Map<String, dynamic>;
+    final createdAt = DateTime.parse(trackData['created_at'] as String);
+
     final track = Track(
       id: json['track_id'] as String,
       songId: json['song_id'] as String,
@@ -73,8 +75,8 @@ class FavoriteTrackModel extends FavoriteTrack {
       storagePath: trackData['storage_path'] as String?,
       durationMs: trackData['duration_ms'] as int?,
       filePath: null, // Not stored in Supabase
-      createdAt: DateTime.parse(trackData['created_at'] as String),
-      updatedAt: DateTime.parse(trackData['updated_at'] as String),
+      createdAt: createdAt,
+      updatedAt: createdAt, // Supabase tracks table doesn't have updated_at, use created_at
     );
 
     return FavoriteTrackModel(

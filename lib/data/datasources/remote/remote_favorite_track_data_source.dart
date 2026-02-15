@@ -28,8 +28,7 @@ class RemoteFavoriteTrackDataSource {
               audio_url,
               storage_path,
               duration_ms,
-              created_at,
-              updated_at
+              created_at
             )
           ''')
           .eq('user_id', userId)
