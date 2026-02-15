@@ -5,7 +5,6 @@ import '../../domain/entities/favorite_track.dart';
 import '../../domain/repositories/favorite_track_repository.dart';
 import '../datasources/local/local_favorite_track_data_source.dart';
 import '../datasources/remote/remote_favorite_track_data_source.dart';
-import '../models/favorite_track_model.dart';
 
 /// Favorite track repository implementation with offline-first sync
 ///

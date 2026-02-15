@@ -393,23 +393,21 @@ DO UPDATE SET position_ms = $4, updated_at = NOW()
 RETURNING *;
 ```
 
-**Get user's favorite tracks (with denormalized display data):**
+**Get user's favorite tracks (with track data):**
 ```sql
+-- Joins only to tracks table for basic track data
+-- Song/concert/choir lookups done via providers in UI for real-time consistency
 SELECT
-  ft.user_id,
   ft.track_id,
   ft.song_id,
   ft.added_at,
-  t.name as track_name,
+  t.name,
   t.audio_url,
+  t.storage_path,
   t.duration_ms,
-  s.title as song_title,
-  c.name as choir_name
+  t.created_at
 FROM favorite_tracks ft
 JOIN tracks t ON ft.track_id = t.id
-JOIN songs s ON ft.song_id = s.id
-JOIN concerts co ON s.concert_id = co.id
-JOIN choirs c ON co.choir_id = c.id
 WHERE ft.user_id = $1
 ORDER BY ft.added_at DESC;
 ```

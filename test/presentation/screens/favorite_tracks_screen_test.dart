@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
+import 'package:repertoire_coach/domain/entities/choir.dart';
+import 'package:repertoire_coach/domain/entities/concert.dart';
 import 'package:repertoire_coach/domain/entities/favorite_track.dart';
+import 'package:repertoire_coach/domain/entities/song.dart';
+import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/domain/repositories/favorite_track_repository.dart';
+import 'package:repertoire_coach/presentation/providers/choir_provider.dart';
+import 'package:repertoire_coach/presentation/providers/concert_provider.dart';
 import 'package:repertoire_coach/presentation/providers/favorite_track_provider.dart';
+import 'package:repertoire_coach/presentation/providers/song_provider.dart';
 import 'package:repertoire_coach/presentation/screens/favorite_tracks_screen.dart';
 
 import 'favorite_tracks_screen_test.mocks.dart';
@@ -14,32 +21,96 @@ void main() {
   group('FavoriteTracksScreen', () {
     late MockFavoriteTrackRepository mockRepository;
     late List<FavoriteTrack> testFavorites;
+    late Song testSong1;
+    late Song testSong2;
+    late Concert testConcert1;
+    late Concert testConcert2;
+    late Choir testChoir1;
+    late Choir testChoir2;
 
     setUp(() {
       mockRepository = MockFavoriteTrackRepository();
 
+      // Create choirs
+      testChoir1 = Choir(
+        id: 'choir-1',
+        name: 'City Choir',
+        ownerId: 'user-1',
+        createdAt: DateTime(2024, 1, 1),
+      );
+
+      testChoir2 = Choir(
+        id: 'choir-2',
+        name: 'Community Choir',
+        ownerId: 'user-1',
+        createdAt: DateTime(2024, 1, 1),
+      );
+
+      // Create concerts
+      testConcert1 = Concert(
+        id: 'concert-1',
+        choirId: 'choir-1',
+        choirName: 'City Choir',
+        name: 'Spring Concert',
+        concertDate: DateTime(2024, 3, 15),
+        createdAt: DateTime(2024, 1, 1),
+      );
+
+      testConcert2 = Concert(
+        id: 'concert-2',
+        choirId: 'choir-2',
+        choirName: 'Community Choir',
+        name: 'Winter Concert',
+        concertDate: DateTime(2024, 12, 15),
+        createdAt: DateTime(2024, 1, 1),
+      );
+
+      // Create songs
+      testSong1 = Song(
+        id: 'song-1',
+        concertId: 'concert-1',
+        title: 'Amazing Grace',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      );
+
+      testSong2 = Song(
+        id: 'song-2',
+        concertId: 'concert-2',
+        title: 'Hallelujah',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      );
+
+      // Create favorites with tracks
       testFavorites = [
         FavoriteTrack(
-          userId: 'user-1',
-          trackId: 'track-1',
-          songId: 'song-1',
           addedAt: DateTime(2024, 1, 15),
-          trackName: 'Soprano',
-          songTitle: 'Amazing Grace',
-          choirName: 'City Choir',
-          audioUrl: 'https://example.com/audio1.mp3',
-          durationMs: 180000,
+          track: Track(
+            id: 'track-1',
+            songId: 'song-1',
+            name: 'Soprano',
+            audioUrl: 'https://example.com/audio1.mp3',
+            storagePath: 'tracks/track-1.mp3',
+            durationMs: 180000,
+            filePath: null,
+            createdAt: DateTime(2024, 1, 1),
+            updatedAt: DateTime(2024, 1, 1),
+          ),
         ),
         FavoriteTrack(
-          userId: 'user-1',
-          trackId: 'track-2',
-          songId: 'song-2',
           addedAt: DateTime(2024, 1, 14),
-          trackName: 'Alto',
-          songTitle: 'Hallelujah',
-          choirName: 'Community Choir',
-          audioUrl: 'https://example.com/audio2.mp3',
-          durationMs: 240000,
+          track: Track(
+            id: 'track-2',
+            songId: 'song-2',
+            name: 'Alto',
+            audioUrl: 'https://example.com/audio2.mp3',
+            storagePath: 'tracks/track-2.mp3',
+            durationMs: 240000,
+            filePath: null,
+            createdAt: DateTime(2024, 1, 1),
+            updatedAt: DateTime(2024, 1, 1),
+          ),
         ),
       ];
     });
@@ -51,6 +122,15 @@ void main() {
           favoritesProvider.overrideWith((ref) async {
             return favorites ?? testFavorites;
           }),
+          // Override song providers for lookup
+          songByIdProvider('song-1').overrideWith((ref) async => testSong1),
+          songByIdProvider('song-2').overrideWith((ref) async => testSong2),
+          // Override concert providers for lookup
+          concertByIdProvider('concert-1').overrideWith((ref) async => testConcert1),
+          concertByIdProvider('concert-2').overrideWith((ref) async => testConcert2),
+          // Override choir providers for lookup
+          choirByIdProvider('choir-1').overrideWith((ref) async => testChoir1),
+          choirByIdProvider('choir-2').overrideWith((ref) async => testChoir2),
         ],
         child: const MaterialApp(
           home: FavoriteTracksScreen(),

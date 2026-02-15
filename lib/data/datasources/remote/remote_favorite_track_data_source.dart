@@ -34,12 +34,8 @@ class RemoteFavoriteTrackDataSource {
           .eq('user_id', userId)
           .order('added_at', ascending: false);
 
-      if (response is! List) {
-        throw Exception('Expected List but got ${response.runtimeType}');
-      }
-
-      return (response as List)
-          .map((json) => FavoriteTrackModel.fromJson(json))
+      return response
+          .map<FavoriteTrackModel>((json) => FavoriteTrackModel.fromJson(json))
           .toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch favorites from Supabase: ${e.message}');

@@ -1,74 +1,68 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/domain/entities/favorite_track.dart';
+import 'package:repertoire_coach/domain/entities/track.dart';
 
 void main() {
   group('FavoriteTrack', () {
     final dateTime = DateTime(2024, 1, 15);
+    final track = Track(
+      id: 'track-1',
+      songId: 'song-1',
+      name: 'Soprano',
+      audioUrl: 'https://example.com/audio.mp3',
+      storagePath: 'choirs/choir-1/tracks/track-1.mp3',
+      durationMs: 180000,
+      filePath: null,
+      createdAt: DateTime(2024, 1, 1),
+      updatedAt: DateTime(2024, 1, 10),
+    );
 
-    test('creates instance with all fields', () {
+    test('creates instance with required fields', () {
       final favorite = FavoriteTrack(
-        userId: 'user-1',
-        trackId: 'track-1',
-        songId: 'song-1',
         addedAt: dateTime,
-        trackName: 'Soprano',
-        songTitle: 'Amazing Grace',
-        choirName: 'City Choir',
-        audioUrl: 'https://example.com/audio.mp3',
-        durationMs: 180000,
+        track: track,
       );
 
-      expect(favorite.userId, 'user-1');
-      expect(favorite.trackId, 'track-1');
-      expect(favorite.songId, 'song-1');
       expect(favorite.addedAt, dateTime);
-      expect(favorite.trackName, 'Soprano');
-      expect(favorite.songTitle, 'Amazing Grace');
-      expect(favorite.choirName, 'City Choir');
-      expect(favorite.audioUrl, 'https://example.com/audio.mp3');
-      expect(favorite.durationMs, 180000);
+      expect(favorite.track, track);
     });
 
-    test('creates instance with null optional fields', () {
-      final favorite = FavoriteTrack(
-        userId: 'user-1',
-        trackId: 'track-1',
-        songId: 'song-1',
+    test('hasAudio delegates to track', () {
+      final favoriteWithAudio = FavoriteTrack(
         addedAt: dateTime,
-        trackName: 'Soprano',
-        songTitle: 'Amazing Grace',
-        choirName: 'City Choir',
-        audioUrl: null,
-        durationMs: null,
+        track: track,
       );
 
-      expect(favorite.audioUrl, isNull);
-      expect(favorite.durationMs, isNull);
+      final trackWithoutAudio = Track(
+        id: 'track-2',
+        songId: 'song-1',
+        name: 'Alto',
+        audioUrl: null,
+        storagePath: null,
+        durationMs: null,
+        filePath: null,
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 10),
+      );
+
+      final favoriteWithoutAudio = FavoriteTrack(
+        addedAt: dateTime,
+        track: trackWithoutAudio,
+      );
+
+      expect(favoriteWithAudio.hasAudio, isTrue);
+      expect(favoriteWithoutAudio.hasAudio, isFalse);
     });
 
     test('supports equality comparison', () {
       final favorite1 = FavoriteTrack(
-        userId: 'user-1',
-        trackId: 'track-1',
-        songId: 'song-1',
         addedAt: dateTime,
-        trackName: 'Soprano',
-        songTitle: 'Amazing Grace',
-        choirName: 'City Choir',
-        audioUrl: 'https://example.com/audio.mp3',
-        durationMs: 180000,
+        track: track,
       );
 
       final favorite2 = FavoriteTrack(
-        userId: 'user-1',
-        trackId: 'track-1',
-        songId: 'song-1',
         addedAt: dateTime,
-        trackName: 'Soprano',
-        songTitle: 'Amazing Grace',
-        choirName: 'City Choir',
-        audioUrl: 'https://example.com/audio.mp3',
-        durationMs: 180000,
+        track: track,
       );
 
       expect(favorite1, equals(favorite2));
@@ -76,27 +70,39 @@ void main() {
 
     test('inequality when fields differ', () {
       final favorite1 = FavoriteTrack(
-        userId: 'user-1',
-        trackId: 'track-1',
-        songId: 'song-1',
         addedAt: dateTime,
-        trackName: 'Soprano',
-        songTitle: 'Amazing Grace',
-        choirName: 'City Choir',
-        audioUrl: 'https://example.com/audio.mp3',
-        durationMs: 180000,
+        track: track,
+      );
+
+      final differentTrack = Track(
+        id: 'track-2',
+        songId: 'song-1',
+        name: 'Alto',
+        audioUrl: 'https://example.com/audio2.mp3',
+        storagePath: 'choirs/choir-1/tracks/track-2.mp3',
+        durationMs: 150000,
+        filePath: null,
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 10),
       );
 
       final favorite2 = FavoriteTrack(
-        userId: 'user-1',
-        trackId: 'track-2', // Different track ID
-        songId: 'song-1',
         addedAt: dateTime,
-        trackName: 'Alto',
-        songTitle: 'Amazing Grace',
-        choirName: 'City Choir',
-        audioUrl: 'https://example.com/audio.mp3',
-        durationMs: 180000,
+        track: differentTrack,
+      );
+
+      expect(favorite1, isNot(equals(favorite2)));
+    });
+
+    test('inequality when addedAt differs', () {
+      final favorite1 = FavoriteTrack(
+        addedAt: dateTime,
+        track: track,
+      );
+
+      final favorite2 = FavoriteTrack(
+        addedAt: DateTime(2024, 1, 20),
+        track: track,
       );
 
       expect(favorite1, isNot(equals(favorite2)));
@@ -104,30 +110,28 @@ void main() {
 
     test('produces consistent hash codes for equal instances', () {
       final favorite1 = FavoriteTrack(
-        userId: 'user-1',
-        trackId: 'track-1',
-        songId: 'song-1',
         addedAt: dateTime,
-        trackName: 'Soprano',
-        songTitle: 'Amazing Grace',
-        choirName: 'City Choir',
-        audioUrl: 'https://example.com/audio.mp3',
-        durationMs: 180000,
+        track: track,
       );
 
       final favorite2 = FavoriteTrack(
-        userId: 'user-1',
-        trackId: 'track-1',
-        songId: 'song-1',
         addedAt: dateTime,
-        trackName: 'Soprano',
-        songTitle: 'Amazing Grace',
-        choirName: 'City Choir',
-        audioUrl: 'https://example.com/audio.mp3',
-        durationMs: 180000,
+        track: track,
       );
 
       expect(favorite1.hashCode, equals(favorite2.hashCode));
+    });
+
+    test('toString includes relevant information', () {
+      final favorite = FavoriteTrack(
+        addedAt: dateTime,
+        track: track,
+      );
+
+      final string = favorite.toString();
+      expect(string, contains('FavoriteTrack'));
+      expect(string, contains('addedAt'));
+      expect(string, contains(track.name));
     });
   });
 }

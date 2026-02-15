@@ -401,7 +401,7 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 - [ ] Apply migration to Supabase (manual step - requires Supabase dashboard access)
 
 ### Domain Layer
-- [x] Create `FavoriteTrack` entity with denormalized fields (trackName, songTitle, choirName)
+- [x] Create `FavoriteTrack` entity (minimal: addedAt + Track reference, no denormalization)
 - [x] Create `FavoriteTrackRepository` interface
 
 ### Data Layer
