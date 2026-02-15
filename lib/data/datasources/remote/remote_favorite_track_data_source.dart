@@ -20,7 +20,7 @@ class RemoteFavoriteTrackDataSource {
       print('[RemoteFavoriteTrackDataSource] Fetching favorites for user: $userId');
       print('[RemoteFavoriteTrackDataSource] About to call Supabase...');
 
-      final response = await _supabase
+      final responseFuture = _supabase
           .from('favorite_tracks')
           .select('''
             user_id,
@@ -40,13 +40,32 @@ class RemoteFavoriteTrackDataSource {
             )
           ''')
           .eq('user_id', userId)
-          .order('added_at', ascending: false) as List;
+          .order('added_at', ascending: false);
+
+      print('[RemoteFavoriteTrackDataSource] Waiting for response with 10s timeout...');
+
+      final response = await responseFuture.timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          print('[RemoteFavoriteTrackDataSource] TIMEOUT after 10 seconds!');
+          throw Exception('Supabase query timed out after 10 seconds');
+        },
+      );
 
       print('[RemoteFavoriteTrackDataSource] Supabase query completed');
+      print('[RemoteFavoriteTrackDataSource] Response type: ${response.runtimeType}');
+      print('[RemoteFavoriteTrackDataSource] Response: $response');
 
-      print('[RemoteFavoriteTrackDataSource] Received ${response.length} favorites from Supabase');
+      if (response is! List) {
+        print('[RemoteFavoriteTrackDataSource] ERROR: Response is not a List!');
+        throw Exception('Expected List but got ${response.runtimeType}');
+      }
 
-      final favorites = response.map((json) {
+      final responseList = response as List;
+
+      print('[RemoteFavoriteTrackDataSource] Received ${responseList.length} favorites from Supabase');
+
+      final favorites = responseList.map((json) {
         final favoriteJson = Map<String, dynamic>.from(json);
 
         // Extract track data
