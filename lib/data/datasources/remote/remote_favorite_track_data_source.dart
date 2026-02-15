@@ -18,6 +18,7 @@ class RemoteFavoriteTrackDataSource {
   Future<List<FavoriteTrackModel>> getFavorites(String userId) async {
     try {
       print('[RemoteFavoriteTrackDataSource] Fetching favorites for user: $userId');
+      print('[RemoteFavoriteTrackDataSource] About to call Supabase...');
 
       final response = await _supabase
           .from('favorite_tracks')
@@ -40,6 +41,8 @@ class RemoteFavoriteTrackDataSource {
           ''')
           .eq('user_id', userId)
           .order('added_at', ascending: false) as List;
+
+      print('[RemoteFavoriteTrackDataSource] Supabase query completed');
 
       print('[RemoteFavoriteTrackDataSource] Received ${response.length} favorites from Supabase');
 
@@ -74,8 +77,12 @@ class RemoteFavoriteTrackDataSource {
       print('[RemoteFavoriteTrackDataSource] Returning ${favorites.length} favorites');
       return favorites;
     } on PostgrestException catch (e) {
+      print('[RemoteFavoriteTrackDataSource] PostgrestException: ${e.message}');
+      print('[RemoteFavoriteTrackDataSource] Error details: $e');
       throw Exception('Failed to fetch favorites from Supabase: ${e.message}');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('[RemoteFavoriteTrackDataSource] Unexpected error: $e');
+      print('[RemoteFavoriteTrackDataSource] Stack trace: $stackTrace');
       throw Exception('Unexpected error fetching favorites: $e');
     }
   }
