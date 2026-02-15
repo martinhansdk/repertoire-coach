@@ -344,6 +344,92 @@ void main() {
     await controller.close();
   });
 
+  group('Seek then play (idle state)', () {
+    // Bug: User enters player (idle), drags slider to 1:30, presses play.
+    // Expected: playTrack is called with startPosition=1:30.
+    // Actual (bug): playTrack is called with startPosition=0:00, so the
+    // saved position from DB is loaded instead of the user's seek.
+    testWidgets('play after seek in idle state should use seeked position', (tester) async {
+      // Simulate idle state with position at 1:30 (as if user had seeked)
+      final playbackInfo = const PlaybackInfo(
+        state: AudioPlayerState.idle,
+        position: Duration(minutes: 1, seconds: 30),
+        duration: Duration(minutes: 3),
+      );
+      when(mockAudioPlayerRepository.playTrack(
+        any,
+        startPosition: anyNamed('startPosition'),
+        ignoreSavedPosition: anyNamed('ignoreSavedPosition'),
+        songName: anyNamed('songName'),
+        albumName: anyNamed('albumName'),
+      )).thenAnswer((_) async {});
+
+      await tester.pumpWidget(createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Tap play button
+      await tester.tap(find.byIcon(Icons.play_circle_filled));
+      await tester.pump();
+
+      // Verify playTrack was called with the seeked position, not Duration.zero
+      final captured = verify(mockAudioPlayerRepository.playTrack(
+        captureAny,
+        startPosition: captureAnyNamed('startPosition'),
+        ignoreSavedPosition: captureAnyNamed('ignoreSavedPosition'),
+        songName: anyNamed('songName'),
+        albumName: anyNamed('albumName'),
+      )).captured;
+
+      final startPosition = captured[1] as Duration;
+      final ignoreSavedPosition = captured[2] as bool;
+
+      expect(startPosition, const Duration(minutes: 1, seconds: 30),
+          reason: 'Should pass the seeked position to playTrack');
+      expect(ignoreSavedPosition, isTrue,
+          reason: 'Should ignore saved position when user explicitly seeked');
+    });
+
+    testWidgets('play in idle state with position zero should use saved position', (tester) async {
+      // Simulate idle state with position at 0:00 (no prior seek)
+      final playbackInfo = const PlaybackInfo(
+        state: AudioPlayerState.idle,
+        position: Duration.zero,
+        duration: Duration.zero,
+      );
+      when(mockAudioPlayerRepository.playTrack(
+        any,
+        startPosition: anyNamed('startPosition'),
+        ignoreSavedPosition: anyNamed('ignoreSavedPosition'),
+        songName: anyNamed('songName'),
+        albumName: anyNamed('albumName'),
+      )).thenAnswer((_) async {});
+
+      await tester.pumpWidget(createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Tap play button
+      await tester.tap(find.byIcon(Icons.play_circle_filled));
+      await tester.pump();
+
+      // Verify playTrack was NOT told to ignore saved position
+      final captured = verify(mockAudioPlayerRepository.playTrack(
+        captureAny,
+        startPosition: captureAnyNamed('startPosition'),
+        ignoreSavedPosition: captureAnyNamed('ignoreSavedPosition'),
+        songName: anyNamed('songName'),
+        albumName: anyNamed('albumName'),
+      )).captured;
+
+      final ignoreSavedPosition = captured[2] as bool;
+      expect(ignoreSavedPosition, isFalse,
+          reason: 'Should use saved position when user has not seeked');
+    });
+  });
+
   group('Loop Button', () {
     testWidgets('tapping loop button toggles track loop', (tester) async {
       final playbackInfo = PlaybackInfo.idle().copyWith(
