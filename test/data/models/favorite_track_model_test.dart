@@ -1,201 +1,145 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/data/models/favorite_track_model.dart';
 import 'package:repertoire_coach/domain/entities/favorite_track.dart';
+import 'package:repertoire_coach/domain/entities/track.dart';
 
 void main() {
   group('FavoriteTrackModel', () {
     final dateTime = DateTime(2024, 1, 15);
+    final track = Track(
+      id: 'track-1',
+      songId: 'song-1',
+      name: 'Soprano',
+      audioUrl: 'https://example.com/audio.mp3',
+      storagePath: 'choirs/choir-1/tracks/track-1.mp3',
+      durationMs: 180000,
+      filePath: null,
+      createdAt: DateTime(2024, 1, 1),
+      updatedAt: DateTime(2024, 1, 10),
+    );
 
     group('fromEntity', () {
       test('converts entity to model', () {
         final entity = FavoriteTrack(
-          userId: 'user-1',
-          trackId: 'track-1',
-          songId: 'song-1',
           addedAt: dateTime,
-          trackName: 'Soprano',
-          songTitle: 'Amazing Grace',
-          choirName: 'City Choir',
-          audioUrl: 'https://example.com/audio.mp3',
-          durationMs: 180000,
+          track: track,
         );
 
         final model = FavoriteTrackModel.fromEntity(entity);
 
-        expect(model.userId, entity.userId);
-        expect(model.trackId, entity.trackId);
-        expect(model.songId, entity.songId);
         expect(model.addedAt, entity.addedAt);
-        expect(model.trackName, entity.trackName);
-        expect(model.songTitle, entity.songTitle);
-        expect(model.choirName, entity.choirName);
-        expect(model.audioUrl, entity.audioUrl);
-        expect(model.durationMs, entity.durationMs);
+        expect(model.track, entity.track);
       });
     });
 
     group('toEntity', () {
       test('converts model to entity', () {
         final model = FavoriteTrackModel(
-          userId: 'user-1',
-          trackId: 'track-1',
-          songId: 'song-1',
           addedAt: dateTime,
-          trackName: 'Soprano',
-          songTitle: 'Amazing Grace',
-          choirName: 'City Choir',
-          audioUrl: 'https://example.com/audio.mp3',
-          durationMs: 180000,
+          track: track,
         );
 
         final entity = model.toEntity();
 
-        expect(entity.userId, model.userId);
-        expect(entity.trackId, model.trackId);
-        expect(entity.songId, model.songId);
         expect(entity.addedAt, model.addedAt);
-        expect(entity.trackName, model.trackName);
-        expect(entity.songTitle, model.songTitle);
-        expect(entity.choirName, model.choirName);
-        expect(entity.audioUrl, model.audioUrl);
-        expect(entity.durationMs, model.durationMs);
-      });
-
-      test('handles null optional fields', () {
-        final model = FavoriteTrackModel(
-          userId: 'user-1',
-          trackId: 'track-1',
-          songId: 'song-1',
-          addedAt: dateTime,
-          trackName: 'Soprano',
-          songTitle: 'Amazing Grace',
-          choirName: 'City Choir',
-          audioUrl: null,
-          durationMs: null,
-        );
-
-        final entity = model.toEntity();
-
-        expect(entity.audioUrl, isNull);
-        expect(entity.durationMs, isNull);
+        expect(entity.track, model.track);
       });
     });
 
     group('toDriftCompanion', () {
-      test('creates companion with core values only', () {
+      test('creates companion with core values extracted from track', () {
         final model = FavoriteTrackModel(
-          userId: 'user-1',
-          trackId: 'track-1',
-          songId: 'song-1',
           addedAt: dateTime,
-          trackName: 'Soprano',
-          songTitle: 'Amazing Grace',
-          choirName: 'City Choir',
-          audioUrl: 'https://example.com/audio.mp3',
-          durationMs: 180000,
+          track: track,
         );
 
-        final companion = model.toDriftCompanion();
+        final companion = model.toDriftCompanion('user-1');
 
         expect(companion.userId.value, 'user-1');
         expect(companion.trackId.value, 'track-1');
         expect(companion.songId.value, 'song-1');
         expect(companion.addedAt.value, dateTime);
-        // Denormalized fields are not included in companion
       });
     });
 
     group('fromJson', () {
-      test('deserializes from JSON with all fields', () {
+      test('deserializes from JSON with track data', () {
         final json = {
-          'user_id': 'user-1',
           'track_id': 'track-1',
           'song_id': 'song-1',
           'added_at': dateTime.toIso8601String(),
-          'track_name': 'Soprano',
-          'song_title': 'Amazing Grace',
-          'choir_name': 'City Choir',
-          'audio_url': 'https://example.com/audio.mp3',
-          'duration_ms': 180000,
+          'tracks': {
+            'name': 'Soprano',
+            'audio_url': 'https://example.com/audio.mp3',
+            'storage_path': 'choirs/choir-1/tracks/track-1.mp3',
+            'duration_ms': 180000,
+            'created_at': '2024-01-01T00:00:00.000',
+            'updated_at': '2024-01-10T00:00:00.000',
+          },
         };
 
         final model = FavoriteTrackModel.fromJson(json);
 
-        expect(model.userId, 'user-1');
-        expect(model.trackId, 'track-1');
-        expect(model.songId, 'song-1');
         expect(model.addedAt, dateTime);
-        expect(model.trackName, 'Soprano');
-        expect(model.songTitle, 'Amazing Grace');
-        expect(model.choirName, 'City Choir');
-        expect(model.audioUrl, 'https://example.com/audio.mp3');
-        expect(model.durationMs, 180000);
+        expect(model.track.id, 'track-1');
+        expect(model.track.songId, 'song-1');
+        expect(model.track.name, 'Soprano');
+        expect(model.track.audioUrl, 'https://example.com/audio.mp3');
+        expect(model.track.storagePath, 'choirs/choir-1/tracks/track-1.mp3');
+        expect(model.track.durationMs, 180000);
       });
 
-      test('handles null optional fields', () {
+      test('handles null optional track fields', () {
         final json = {
-          'user_id': 'user-1',
           'track_id': 'track-1',
           'song_id': 'song-1',
           'added_at': dateTime.toIso8601String(),
-          'track_name': 'Soprano',
-          'song_title': 'Amazing Grace',
-          'choir_name': 'City Choir',
-          'audio_url': null,
-          'duration_ms': null,
+          'tracks': {
+            'name': 'Soprano',
+            'audio_url': null,
+            'storage_path': null,
+            'duration_ms': null,
+            'created_at': '2024-01-01T00:00:00.000',
+            'updated_at': '2024-01-10T00:00:00.000',
+          },
         };
 
         final model = FavoriteTrackModel.fromJson(json);
 
-        expect(model.audioUrl, isNull);
-        expect(model.durationMs, isNull);
+        expect(model.track.audioUrl, isNull);
+        expect(model.track.storagePath, isNull);
+        expect(model.track.durationMs, isNull);
       });
     });
 
     group('toJson', () {
-      test('serializes to JSON with core fields only', () {
+      test('serializes to JSON with core fields extracted from track', () {
         final model = FavoriteTrackModel(
-          userId: 'user-1',
-          trackId: 'track-1',
-          songId: 'song-1',
           addedAt: dateTime,
-          trackName: 'Soprano',
-          songTitle: 'Amazing Grace',
-          choirName: 'City Choir',
-          audioUrl: 'https://example.com/audio.mp3',
-          durationMs: 180000,
+          track: track,
         );
 
-        final json = model.toJson();
+        final json = model.toJson('user-1');
 
-        // toJson only returns core fields for Supabase writes
+        // toJson returns core fields for Supabase writes
         expect(json['user_id'], 'user-1');
         expect(json['track_id'], 'track-1');
         expect(json['song_id'], 'song-1');
         expect(json['added_at'], dateTime.toIso8601String());
 
-        // Denormalized fields are not included (computed by Supabase queries)
+        // Track fields are not included (already in tracks table)
         expect(json.containsKey('track_name'), isFalse);
-        expect(json.containsKey('song_title'), isFalse);
-        expect(json.containsKey('choir_name'), isFalse);
         expect(json.containsKey('audio_url'), isFalse);
-        expect(json.containsKey('duration_ms'), isFalse);
+        expect(json.containsKey('storage_path'), isFalse);
       });
 
       test('always returns only core fields', () {
         final model = FavoriteTrackModel(
-          userId: 'user-1',
-          trackId: 'track-1',
-          songId: 'song-1',
           addedAt: dateTime,
-          trackName: 'Soprano',
-          songTitle: 'Amazing Grace',
-          choirName: 'City Choir',
-          audioUrl: null,
-          durationMs: null,
+          track: track,
         );
 
-        final json = model.toJson();
+        final json = model.toJson('user-1');
 
         // Only core fields present
         expect(json.keys.length, 4);
@@ -206,49 +150,13 @@ void main() {
     group('roundtrip conversions', () {
       test('entity -> model -> entity preserves data', () {
         final original = FavoriteTrack(
-          userId: 'user-1',
-          trackId: 'track-1',
-          songId: 'song-1',
           addedAt: dateTime,
-          trackName: 'Soprano',
-          songTitle: 'Amazing Grace',
-          choirName: 'City Choir',
-          audioUrl: 'https://example.com/audio.mp3',
-          durationMs: 180000,
+          track: track,
         );
 
         final roundtrip = FavoriteTrackModel.fromEntity(original).toEntity();
 
         expect(roundtrip, equals(original));
-      });
-
-      test('fromJson reads all fields, toJson returns core fields only', () {
-        final fullJson = {
-          'user_id': 'user-1',
-          'track_id': 'track-1',
-          'song_id': 'song-1',
-          'added_at': dateTime.toIso8601String(),
-          'track_name': 'Soprano',
-          'song_title': 'Amazing Grace',
-          'choir_name': 'City Choir',
-          'audio_url': 'https://example.com/audio.mp3',
-          'duration_ms': 180000,
-        };
-
-        final model = FavoriteTrackModel.fromJson(fullJson);
-        final coreJson = model.toJson();
-
-        // fromJson reads all fields
-        expect(model.trackName, 'Soprano');
-        expect(model.songTitle, 'Amazing Grace');
-        expect(model.choirName, 'City Choir');
-
-        // toJson returns only core fields
-        expect(coreJson.keys.length, 4);
-        expect(coreJson['user_id'], 'user-1');
-        expect(coreJson['track_id'], 'track-1');
-        expect(coreJson['song_id'], 'song-1');
-        expect(coreJson['added_at'], dateTime.toIso8601String());
       });
     });
   });
