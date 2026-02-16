@@ -666,6 +666,29 @@ class AppDatabase extends _$AppDatabase {
     return (delete(userPlaybackStates)..where((s) => s.trackId.equals(trackId)))
         .go();
   }
+
+  /// Get favorite tracks for a user, joined with track data.
+  ///
+  /// Returns a list of records containing both the favorite metadata and the
+  /// full Track row. Used by Android Auto content browsing.
+  Future<List<({FavoriteTrack favorite, Track track})>> getFavoriteTracks(
+    String userId,
+  ) async {
+    final query = select(favoriteTracks).join([
+      innerJoin(tracks, tracks.id.equalsExp(favoriteTracks.trackId)),
+    ])
+      ..where(favoriteTracks.userId.equals(userId))
+      ..where(tracks.deleted.equals(false))
+      ..orderBy([OrderingTerm.desc(favoriteTracks.addedAt)]);
+
+    final rows = await query.get();
+    return rows.map((row) {
+      return (
+        favorite: row.readTable(favoriteTracks),
+        track: row.readTable(tracks),
+      );
+    }).toList();
+  }
 }
 
 /// Open database connection

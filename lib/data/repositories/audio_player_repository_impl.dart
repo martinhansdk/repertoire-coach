@@ -10,11 +10,15 @@ import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
 import '../../core/services/error_reporter.dart';
+import '../../core/services/supabase_service.dart';
+import '../datasources/local/database.dart' as db;
 
 /// Implementation of AudioPlayerRepository using just_audio
 class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   final ja.AudioPlayer _player;
   final StreamController<PlaybackInfo> _playbackController;
+  final db.AppDatabase _database;
+  final SupabaseService _supabaseService;
   AudioHandler? _audioHandler;
 
   Track? _currentTrack;
@@ -38,7 +42,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     return _initFuture!;
   }
 
-  AudioPlayerRepositoryImpl()
+  AudioPlayerRepositoryImpl(this._database, this._supabaseService)
       : _player = ja.AudioPlayer(
           // Explicitly disable audio offload.  just_audio 0.10.5 defaults to
           // disabled, but be explicit: offload hands the DSP off to a
@@ -93,7 +97,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   Future<void> _initializeAudioService() async {
     try {
       _audioHandler = await AudioService.init(
-        builder: () => _AudioPlayerHandler(_player),
+        builder: () => _AudioPlayerHandler(_player, _database, _supabaseService),
         config: AudioServiceConfig(
           androidNotificationChannelId: 'com.example.repertoire_coach.audio',
           androidNotificationChannelName: 'Repertoire Coach Audio',
@@ -377,16 +381,23 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   }
 }
 
-/// Audio handler for background playback
+/// Audio handler for background playback and Android Auto content browsing
 ///
 /// This class manages the audio service and syncs the just_audio player
-/// state with the system media controls and notification.
+/// state with the system media controls and notification. It also exposes
+/// the user's favorite tracks for browsing in Android Auto via
+/// [getChildren] and supports voice search via [search].
 class _AudioPlayerHandler extends BaseAudioHandler {
   final ja.AudioPlayer _player;
+  final db.AppDatabase _database;
+  final SupabaseService _supabaseService;
   StreamSubscription<ja.PlayerState>? _playerStateSubscription;
   StreamSubscription<Duration>? _positionSubscription;
 
-  _AudioPlayerHandler(this._player) {
+  /// Android Auto browsable root ID used by audio_service
+  static const _favoritesId = 'favorites';
+
+  _AudioPlayerHandler(this._player, this._database, this._supabaseService) {
     // Sync player state to audio service whenever just_audio fires a state event.
     _playerStateSubscription = _player.playerStateStream.listen((_) {
       _broadcastState();
@@ -398,6 +409,145 @@ class _AudioPlayerHandler extends BaseAudioHandler {
       _broadcastState();
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Android Auto: content browsing
+  // ---------------------------------------------------------------------------
+
+  /// Return the current authenticated user ID, or null if not logged in.
+  String? get _userId => _supabaseService.client.auth.currentUser?.id;
+
+  @override
+  Future<List<MediaItem>> getChildren(
+    String parentMediaId, [
+    Map<String, dynamic>? options,
+  ]) async {
+    if (parentMediaId == AudioService.browsableRootId) {
+      // Root level: single "Favorites" browsable folder
+      return [
+        MediaItem(
+          id: _favoritesId,
+          title: 'Favorites',
+          playable: false,
+          extras: const {'browsable': true},
+        ),
+      ];
+    }
+
+    if (parentMediaId == _favoritesId) {
+      return _getFavoriteMediaItems();
+    }
+
+    return [];
+  }
+
+  /// Build a list of playable [MediaItem]s from the user's favorite tracks.
+  Future<List<MediaItem>> _getFavoriteMediaItems() async {
+    final userId = _userId;
+    if (userId == null) return [];
+
+    // Query favorites joined with tracks from local Drift DB
+    final favorites = await _database.getFavoriteTracks(userId);
+    final items = <MediaItem>[];
+
+    for (final fav in favorites) {
+      final trackRow = fav.track;
+      // Look up song and concert for display metadata
+      final songRow = await _database.getSongById(trackRow.songId);
+      String? concertName;
+      if (songRow != null) {
+        final concertRow = await _database.getConcertById(songRow.concertId);
+        concertName = concertRow?.name;
+      }
+
+      items.add(MediaItem(
+        id: trackRow.id,
+        title: songRow != null
+            ? '${songRow.title} – ${trackRow.name}'
+            : trackRow.name,
+        album: concertName,
+        duration: trackRow.durationMs != null
+            ? Duration(milliseconds: trackRow.durationMs!)
+            : null,
+        playable: true,
+      ));
+    }
+
+    return items;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Android Auto: play from browse / queue
+  // ---------------------------------------------------------------------------
+
+  @override
+  Future<void> playMediaItem(MediaItem item) async {
+    // Look up the Track from the local Drift database
+    final trackRow = await _database.getTrackById(item.id);
+    if (trackRow == null) return;
+
+    // Generate signed URL for cloud-stored audio
+    String? signedUrl;
+    if (trackRow.storagePath != null) {
+      try {
+        signedUrl = await _supabaseService.client.storage
+            .from('audio_files')
+            .createSignedUrl(trackRow.storagePath!, 86400);
+      } catch (_) {
+        // Fall back to trackRow.audioUrl or local file
+      }
+    }
+
+    final effectiveUrl = signedUrl ?? trackRow.audioUrl;
+    if (effectiveUrl != null) {
+      await _player.setUrl(effectiveUrl);
+    } else if (trackRow.filePath != null) {
+      await _player.setFilePath(trackRow.filePath!);
+    } else {
+      return; // No audio source available
+    }
+
+    // Update the notification metadata
+    mediaItem.add(item);
+
+    await _player.seek(Duration.zero);
+    await _player.play();
+    _broadcastState();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Android Auto: voice search
+  // ---------------------------------------------------------------------------
+
+  @override
+  Future<List<MediaItem>> search(String query, [
+    Map<String, dynamic>? extras,
+  ]) async {
+    final userId = _userId;
+    if (userId == null || query.isEmpty) return [];
+
+    final allFavorites = await _getFavoriteMediaItems();
+    final lowerQuery = query.toLowerCase();
+
+    return allFavorites.where((item) {
+      return item.title.toLowerCase().contains(lowerQuery) ||
+          (item.album?.toLowerCase().contains(lowerQuery) ?? false);
+    }).toList();
+  }
+
+  @override
+  Future<void> playFromSearch(String query, [
+    Map<String, dynamic>? extras,
+  ]) async {
+    final results = await search(query, extras);
+    if (results.isNotEmpty) {
+      await playMediaItem(results.first);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Notification & media session state
+  // ---------------------------------------------------------------------------
 
   @override
   Future<void> updateMediaItem(MediaItem item) async {

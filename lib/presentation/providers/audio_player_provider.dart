@@ -21,8 +21,13 @@ final playbackStateDataSourceProvider = Provider<LocalUserPlaybackStateDataSourc
 ///
 /// This provides a single instance of the audio player throughout the app.
 /// The repository manages all playback operations using just_audio.
+/// It receives the local database and Supabase service so that the audio
+/// handler can serve content (favorites) to Android Auto and generate
+/// signed URLs for cloud-stored audio files.
 final audioPlayerRepositoryProvider = Provider<AudioPlayerRepository>((ref) {
-  final repository = AudioPlayerRepositoryImpl();
+  final database = ref.watch(databaseProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  final repository = AudioPlayerRepositoryImpl(database, supabaseService);
 
   // Dispose the audio player when the provider is disposed
   ref.onDispose(() {

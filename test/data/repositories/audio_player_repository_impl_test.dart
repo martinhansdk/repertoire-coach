@@ -1,9 +1,15 @@
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:repertoire_coach/core/services/supabase_service.dart';
+import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/repositories/audio_player_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/audio_player_state.dart';
 import 'package:repertoire_coach/domain/entities/playback_info.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
+
+import 'audio_player_repository_impl_test.mocks.dart';
 
 /// Minimal mock so that flutter_cache_manager (used internally by
 /// audio_service) can resolve all path_provider calls without a real platform.
@@ -21,18 +27,24 @@ class _MockPathProviderPlatform extends PathProviderPlatform {
   Future<String?> getDownloadsPath() async => '/tmp/downloads';
 }
 
+@GenerateMocks([SupabaseService])
 void main() {
   group('AudioPlayerRepositoryImpl', () {
     late AudioPlayerRepositoryImpl repository;
+    late db.AppDatabase database;
+    late MockSupabaseService mockSupabaseService;
 
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
       PathProviderPlatform.instance = _MockPathProviderPlatform();
-      repository = AudioPlayerRepositoryImpl();
+      database = db.AppDatabase.forTesting(NativeDatabase.memory());
+      mockSupabaseService = MockSupabaseService();
+      repository = AudioPlayerRepositoryImpl(database, mockSupabaseService);
     });
 
     tearDown(() async {
       await repository.dispose();
+      await database.close();
     });
 
     test('should initialize with idle state', () {
@@ -270,15 +282,20 @@ void main() {
 
   group('AudioPlayerRepositoryImpl - Error Handling', () {
     late AudioPlayerRepositoryImpl repository;
+    late db.AppDatabase database;
+    late MockSupabaseService mockSupabaseService;
 
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
       PathProviderPlatform.instance = _MockPathProviderPlatform();
-      repository = AudioPlayerRepositoryImpl();
+      database = db.AppDatabase.forTesting(NativeDatabase.memory());
+      mockSupabaseService = MockSupabaseService();
+      repository = AudioPlayerRepositoryImpl(database, mockSupabaseService);
     });
 
     tearDown(() async {
       await repository.dispose();
+      await database.close();
     });
 
     test('should handle track with invalid file path gracefully', () async {
