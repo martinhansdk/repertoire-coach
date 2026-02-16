@@ -616,6 +616,18 @@ class AppDatabase extends _$AppDatabase {
         .write(const TracksCompanion(synced: Value(true)));
   }
 
+  /// Hard delete tracks that are not in the given set of IDs
+  ///
+  /// Used during sync to remove tracks that were deleted on remote.
+  /// Only deletes tracks that are already synced (came from remote).
+  Future<void> hardDeleteTracksNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) return;
+    await (delete(tracks)
+          ..where((t) => t.id.isNotIn(keepIds))
+          ..where((t) => t.synced.equals(true)))
+        .go();
+  }
+
   /// Soft delete track
   Future<void> softDeleteTrack(String id) {
     return (update(tracks)..where((t) => t.id.equals(id))).write(

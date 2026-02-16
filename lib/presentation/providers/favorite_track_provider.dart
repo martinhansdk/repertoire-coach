@@ -8,6 +8,7 @@ import '../../data/repositories/favorite_track_repository_impl.dart';
 import '../../domain/entities/favorite_track.dart';
 import '../../domain/repositories/favorite_track_repository.dart';
 import 'auth_provider.dart';
+import 'track_provider.dart';
 
 /// Provides the database instance
 final databaseProvider = Provider<db.AppDatabase>((ref) {
@@ -36,11 +37,13 @@ final remoteFavoriteTrackDataSourceProvider =
 final favoriteTrackRepositoryProvider =
     Provider<FavoriteTrackRepository>((ref) {
   final localDataSource = ref.watch(localFavoriteTrackDataSourceProvider);
+  final localTrackDataSource = ref.watch(localTrackDataSourceProvider);
   final remoteDataSource = ref.watch(remoteFavoriteTrackDataSourceProvider);
   final supabaseService = ref.watch(supabaseServiceProvider);
 
   return FavoriteTrackRepositoryImpl(
     localDataSource,
+    localTrackDataSource,
     remoteDataSource,
     supabaseService,
   );

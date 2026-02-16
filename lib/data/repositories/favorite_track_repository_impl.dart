@@ -4,7 +4,9 @@ import '../../core/services/supabase_service.dart';
 import '../../domain/entities/favorite_track.dart';
 import '../../domain/repositories/favorite_track_repository.dart';
 import '../datasources/local/local_favorite_track_data_source.dart';
+import '../datasources/local/local_track_data_source.dart';
 import '../datasources/remote/remote_favorite_track_data_source.dart';
+import '../models/favorite_track_model.dart';
 
 /// Favorite track repository implementation with offline-first sync
 ///
@@ -14,11 +16,13 @@ import '../datasources/remote/remote_favorite_track_data_source.dart';
 /// - Background sync ensures data consistency
 class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
   final LocalFavoriteTrackDataSource _localDataSource;
+  final LocalTrackDataSource _localTrackDataSource;
   final RemoteFavoriteTrackDataSource? _remoteDataSource;
   final SupabaseService _supabaseService;
 
   FavoriteTrackRepositoryImpl(
     this._localDataSource,
+    this._localTrackDataSource,
     this._remoteDataSource,
     this._supabaseService,
   );
@@ -101,13 +105,28 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
       return;
     }
 
-    // Mobile/Desktop: Save to local database and sync to remote
-    // Note: The local data source will query and populate the full Track object
-    // This placeholder approach needs refactoring for consistency
-    // TODO: Refactor to fetch Track first, then create FavoriteTrackModel
-    throw UnimplementedError(
-      'addFavorite for mobile/desktop needs refactoring to work with Track objects',
+    // Mobile/Desktop: Fetch the track, save to local database, sync to remote
+    final trackModel = await _localTrackDataSource.getTrackById(trackId);
+    if (trackModel == null) {
+      debugPrint('Cannot add favorite: track $trackId not found locally');
+      return;
+    }
+
+    final favorite = FavoriteTrackModel(
+      addedAt: DateTime.now().toUtc(),
+      track: trackModel.toEntity(),
     );
+
+    await _localDataSource.addFavorite(userId, favorite, markForSync: true);
+
+    // Sync to remote if authenticated
+    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
+      try {
+        await _remoteDataSource.addFavorite(userId, trackId, songId);
+      } catch (e) {
+        debugPrint('Failed to sync favorite addition to remote: $e');
+      }
+    }
   }
 
   @override

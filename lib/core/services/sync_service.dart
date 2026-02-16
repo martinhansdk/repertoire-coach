@@ -270,6 +270,10 @@ class SyncService {
         markForSync: false,
       );
     }
+
+    // Remove local tracks that were deleted on remote
+    final remoteTrackIds = remoteTracks.map((t) => t.id).toSet();
+    await _localTrackDataSource.hardDeleteTracksNotIn(remoteTrackIds);
   }
 
   /// Sync marker sets from remote to local

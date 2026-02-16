@@ -71,6 +71,10 @@ void main() {
       mockRemotePlaybackStateDataSource =
           MockRemoteUserPlaybackStateDataSource();
 
+      // Stub hardDeleteTracksNotIn for all tests (called during track sync)
+      when(mockLocalTrackDataSource.hardDeleteTracksNotIn(any))
+          .thenAnswer((_) async {});
+
       syncService = SyncService(
         localChoirDataSource: mockLocalChoirDataSource,
         localConcertDataSource: mockLocalConcertDataSource,

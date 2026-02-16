@@ -650,6 +650,17 @@ class MockLocalTrackDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
+  _i3.Future<void> hardDeleteTracksNotIn(Set<String>? keepIds) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #hardDeleteTracksNotIn,
+          [keepIds],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
   _i3.Future<List<_i11.TrackModel>> getUnsyncedTracks() => (super.noSuchMethod(
         Invocation.method(
           #getUnsyncedTracks,

@@ -88,6 +88,14 @@ class LocalTrackDataSource {
     await _database.softDeleteTrack(id);
   }
 
+  /// Hard delete tracks not in the given set of IDs
+  ///
+  /// Used during sync to remove tracks that were deleted on remote.
+  /// Only deletes already-synced tracks to avoid losing local-only data.
+  Future<void> hardDeleteTracksNotIn(Set<String> keepIds) async {
+    await _database.hardDeleteTracksNotIn(keepIds);
+  }
+
   /// Get all unsynced tracks
   ///
   /// Used by sync service to find tracks that need to be synced to cloud.

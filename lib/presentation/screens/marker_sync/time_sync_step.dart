@@ -109,6 +109,10 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
 
   void _discard() {
     ref.read(markerSyncNotifierProvider(widget.params).notifier).discard();
+    // Invalidate marker caches so parent screen reloads from database
+    ref.invalidate(markersByMarkerSetProvider);
+    ref.invalidate(markerSetByIdProvider);
+    ref.invalidate(markerSetsByTrackProvider);
     Navigator.pop(context);
   }
 
