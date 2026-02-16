@@ -311,6 +311,7 @@ class RemoteMarkerDataSource {
             track_id,
             name,
             is_shared,
+            is_time_synced,
             created_by_user_id,
             created_at,
             updated_at

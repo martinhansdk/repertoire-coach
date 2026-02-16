@@ -27,6 +27,7 @@ void main() {
     name: 'Test Concert',
     concertDate: DateTime.now(),
     createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
   );
 
   test('insertConcert and getConcertById', () async {
@@ -50,6 +51,7 @@ void main() {
       name: 'Updated Title',
       concertDate: testConcert.concertDate,
       createdAt: testConcert.createdAt,
+      updatedAt: DateTime.now(),
     );
     final success = await dataSource.updateConcert(updatedConcert);
     final result = await dataSource.getConcertById('c1');
@@ -77,6 +79,7 @@ void main() {
       name: 'Upserted Title',
       concertDate: testConcert.concertDate,
       createdAt: testConcert.createdAt,
+      updatedAt: DateTime.now(),
     );
     await dataSource.upsertConcert(updatedConcert);
     final result = await dataSource.getConcertById('c1');
@@ -96,8 +99,9 @@ void main() {
 
   group('watchConcerts', () {
     test('emits initial list of concerts', () async {
-      final concert1 = domain.Concert(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: DateTime.now(), createdAt: DateTime.now());
-      final concert2 = domain.Concert(id: 'c2', name: 'Concert 2', choirId: 'choir1', choirName: 'Choir', concertDate: DateTime.now(), createdAt: DateTime.now());
+      final now = DateTime.now();
+      final concert1 = domain.Concert(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: now, createdAt: now);
+      final concert2 = domain.Concert(id: 'c2', name: 'Concert 2', choirId: 'choir1', choirName: 'Choir', concertDate: now, createdAt: now);
       
       final stream = dataSource.watchConcerts();
       
@@ -122,8 +126,9 @@ void main() {
   });
 
   test('getConcerts returns correct concerts', () async {
-    final concert1 = ConcertModel(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: DateTime.now(), createdAt: DateTime.now());
-    final concert2 = ConcertModel(id: 'c2', name: 'Concert 2', choirId: 'choir2', choirName: 'Choir 2', concertDate: DateTime.now(), createdAt: DateTime.now());
+    final now = DateTime.now();
+    final concert1 = ConcertModel(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: now, createdAt: now, updatedAt: now);
+    final concert2 = ConcertModel(id: 'c2', name: 'Concert 2', choirId: 'choir2', choirName: 'Choir 2', concertDate: now, createdAt: now, updatedAt: now);
     
     await dataSource.insertConcert(concert1);
     await dataSource.insertConcert(concert2);

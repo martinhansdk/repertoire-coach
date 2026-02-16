@@ -9,6 +9,9 @@ import '../datasources/local/database.dart' as db;
 /// Handles conversions between domain entities, Drift database records,
 /// and future JSON for Supabase integration.
 class ConcertModel extends Concert {
+  /// When this record was last updated (for sync timestamp comparison)
+  final DateTime updatedAt;
+
   const ConcertModel({
     required super.id,
     required super.choirId,
@@ -16,10 +19,11 @@ class ConcertModel extends Concert {
     required super.name,
     required super.concertDate,
     required super.createdAt,
+    required this.updatedAt,
   });
 
   /// Create a ConcertModel from a domain Concert entity
-  factory ConcertModel.fromEntity(Concert concert) {
+  factory ConcertModel.fromEntity(Concert concert, {DateTime? updatedAt}) {
     return ConcertModel(
       id: concert.id,
       choirId: concert.choirId,
@@ -27,6 +31,7 @@ class ConcertModel extends Concert {
       name: concert.name,
       concertDate: concert.concertDate,
       createdAt: concert.createdAt,
+      updatedAt: updatedAt ?? concert.createdAt,
     );
   }
 
@@ -51,6 +56,7 @@ class ConcertModel extends Concert {
       name: driftConcert.name,
       concertDate: driftConcert.concertDate,
       createdAt: driftConcert.createdAt,
+      updatedAt: driftConcert.updatedAt,
     );
   }
 
@@ -63,13 +69,11 @@ class ConcertModel extends Concert {
       name: Value(name),
       concertDate: Value(concertDate),
       createdAt: Value(createdAt),
-      updatedAt: Value(DateTime.now().toUtc()),
+      updatedAt: Value(updatedAt),
       deleted: const Value(false),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }
-
-  // Future: Add fromJson and toJson methods for Supabase
 
   factory ConcertModel.fromJson(Map<String, dynamic> json) {
     return ConcertModel(
@@ -79,6 +83,9 @@ class ConcertModel extends Concert {
       name: json['name'],
       concertDate: DateTime.parse(json['concert_date']),
       createdAt: DateTime.parse(json['created_at']),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : DateTime.parse(json['created_at']),
     );
   }
 

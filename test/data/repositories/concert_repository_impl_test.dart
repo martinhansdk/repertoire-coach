@@ -134,13 +134,15 @@ void main() {
 
     test('should create a new concert', () async {
       // Arrange
+      final now = DateTime.now();
       final newConcert = ConcertModel(
         id: 'new-concert',
         choirId: 'choir1',
         choirName: 'City Chamber Choir',
         name: 'New Year Concert',
         concertDate: DateTime(2025, 1, 1),
-        createdAt: DateTime.now(),
+        createdAt: now,
+        updatedAt: now,
       );
 
       // Act
@@ -166,6 +168,7 @@ void main() {
         name: 'Updated Concert Name',
         concertDate: DateTime(2025, 5, 20),
         createdAt: existingConcert.createdAt,
+        updatedAt: DateTime.now(),
       );
 
       // Act
@@ -183,13 +186,15 @@ void main() {
 
     test('should return false when updating non-existent concert', () async {
       // Arrange
+      final now = DateTime.now();
       final nonExistentConcert = ConcertModel(
         id: 'non-existent',
         choirId: 'choir1',
         choirName: 'City Chamber Choir',
         name: 'Should Not Update',
         concertDate: DateTime(2025, 1, 1),
-        createdAt: DateTime.now(),
+        createdAt: now,
+        updatedAt: now,
       );
 
       // Act
@@ -229,6 +234,7 @@ void main() {
 
 /// Seed test data into the database
 Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
+  final now = DateTime.now();
   final testConcerts = [
     ConcertModel(
       id: '1',
@@ -237,6 +243,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Spring Concert 2025',
       concertDate: DateTime(2025, 4, 15),
       createdAt: DateTime(2024, 12, 1),
+      updatedAt: now,
     ),
     ConcertModel(
       id: '2',
@@ -245,6 +252,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Christmas Concert 2024',
       concertDate: DateTime(2024, 12, 20),
       createdAt: DateTime(2024, 10, 1),
+      updatedAt: now,
     ),
     ConcertModel(
       id: '3',
@@ -253,6 +261,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Summer Festival',
       concertDate: DateTime(2025, 6, 10),
       createdAt: DateTime(2024, 11, 15),
+      updatedAt: now,
     ),
     ConcertModel(
       id: '4',
@@ -261,6 +270,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Autumn Recital',
       concertDate: DateTime(2024, 10, 5),
       createdAt: DateTime(2024, 8, 1),
+      updatedAt: now,
     ),
     ConcertModel(
       id: '5',
@@ -269,6 +279,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Winter Showcase',
       concertDate: DateTime(2025, 2, 14),
       createdAt: DateTime(2024, 11, 20),
+      updatedAt: now,
     ),
   ];
 

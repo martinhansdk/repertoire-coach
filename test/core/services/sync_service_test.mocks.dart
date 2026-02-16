@@ -6,10 +6,13 @@
 import 'dart:async' as _i3;
 
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:repertoire_coach/data/datasources/local/database.dart' as _i19;
 import 'package:repertoire_coach/data/datasources/local/local_choir_data_source.dart'
     as _i2;
 import 'package:repertoire_coach/data/datasources/local/local_concert_data_source.dart'
     as _i6;
+import 'package:repertoire_coach/data/datasources/local/local_favorite_track_data_source.dart'
+    as _i17;
 import 'package:repertoire_coach/data/datasources/local/local_marker_data_source.dart'
     as _i12;
 import 'package:repertoire_coach/data/datasources/local/local_song_data_source.dart'
@@ -19,20 +22,23 @@ import 'package:repertoire_coach/data/datasources/local/local_track_data_source.
 import 'package:repertoire_coach/data/datasources/local/local_user_playback_state_data_source.dart'
     as _i15;
 import 'package:repertoire_coach/data/datasources/remote/remote_choir_data_source.dart'
-    as _i17;
-import 'package:repertoire_coach/data/datasources/remote/remote_concert_data_source.dart'
-    as _i18;
-import 'package:repertoire_coach/data/datasources/remote/remote_marker_data_source.dart'
-    as _i21;
-import 'package:repertoire_coach/data/datasources/remote/remote_song_data_source.dart'
-    as _i19;
-import 'package:repertoire_coach/data/datasources/remote/remote_track_data_source.dart'
     as _i20;
-import 'package:repertoire_coach/data/datasources/remote/remote_user_playback_state_data_source.dart'
+import 'package:repertoire_coach/data/datasources/remote/remote_concert_data_source.dart'
+    as _i21;
+import 'package:repertoire_coach/data/datasources/remote/remote_favorite_track_data_source.dart'
+    as _i26;
+import 'package:repertoire_coach/data/datasources/remote/remote_marker_data_source.dart'
+    as _i24;
+import 'package:repertoire_coach/data/datasources/remote/remote_song_data_source.dart'
     as _i22;
+import 'package:repertoire_coach/data/datasources/remote/remote_track_data_source.dart'
+    as _i23;
+import 'package:repertoire_coach/data/datasources/remote/remote_user_playback_state_data_source.dart'
+    as _i25;
 import 'package:repertoire_coach/data/models/choir_member_model.dart' as _i5;
 import 'package:repertoire_coach/data/models/choir_model.dart' as _i4;
 import 'package:repertoire_coach/data/models/concert_model.dart' as _i7;
+import 'package:repertoire_coach/data/models/favorite_track_model.dart' as _i18;
 import 'package:repertoire_coach/data/models/marker_model.dart' as _i14;
 import 'package:repertoire_coach/data/models/marker_set_model.dart' as _i13;
 import 'package:repertoire_coach/data/models/song_model.dart' as _i9;
@@ -424,6 +430,17 @@ class MockLocalConcertDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
+  _i3.Future<void> hardDeleteConcertsNotIn(Set<String>? keepIds) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #hardDeleteConcertsNotIn,
+          [keepIds],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
   _i3.Future<void> clearAll() => (super.noSuchMethod(
         Invocation.method(
           #clearAll,
@@ -540,6 +557,17 @@ class MockLocalSongDataSource extends _i1.Mock
         Invocation.method(
           #markAsSynced,
           [id],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> hardDeleteSongsNotIn(Set<String>? keepIds) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #hardDeleteSongsNotIn,
+          [keepIds],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -815,6 +843,17 @@ class MockLocalMarkerDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
+  _i3.Future<void> hardDeleteMarkerSetsNotIn(Set<String>? keepIds) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #hardDeleteMarkerSetsNotIn,
+          [keepIds],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
   _i3.Future<List<_i14.MarkerModel>> getMarkersByMarkerSet(
           String? markerSetId) =>
       (super.noSuchMethod(
@@ -924,6 +963,17 @@ class MockLocalMarkerDataSource extends _i1.Mock
       ) as _i3.Future<List<_i14.MarkerModel>>);
 
   @override
+  _i3.Future<void> hardDeleteMarkersNotIn(Set<String>? keepIds) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #hardDeleteMarkersNotIn,
+          [keepIds],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
   _i3.Future<void> markMarkerAsSynced(String? id) => (super.noSuchMethod(
         Invocation.method(
           #markMarkerAsSynced,
@@ -1008,11 +1058,206 @@ class MockLocalUserPlaybackStateDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 }
 
+/// A class which mocks [LocalFavoriteTrackDataSource].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockLocalFavoriteTrackDataSource extends _i1.Mock
+    implements _i17.LocalFavoriteTrackDataSource {
+  MockLocalFavoriteTrackDataSource() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i3.Stream<List<_i18.FavoriteTrackModel>> watchFavorites(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #watchFavorites,
+          [userId],
+        ),
+        returnValue: _i3.Stream<List<_i18.FavoriteTrackModel>>.empty(),
+      ) as _i3.Stream<List<_i18.FavoriteTrackModel>>);
+
+  @override
+  _i3.Future<List<_i18.FavoriteTrackModel>> getFavorites(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getFavorites,
+          [userId],
+        ),
+        returnValue: _i3.Future<List<_i18.FavoriteTrackModel>>.value(
+            <_i18.FavoriteTrackModel>[]),
+      ) as _i3.Future<List<_i18.FavoriteTrackModel>>);
+
+  @override
+  _i3.Future<bool> isFavorite(
+    String? userId,
+    String? trackId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #isFavorite,
+          [
+            userId,
+            trackId,
+          ],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  _i3.Future<void> addFavorite(
+    String? userId,
+    _i18.FavoriteTrackModel? favorite, {
+    bool? markForSync = true,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addFavorite,
+          [
+            userId,
+            favorite,
+          ],
+          {#markForSync: markForSync},
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> removeFavorite(
+    String? userId,
+    String? trackId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #removeFavorite,
+          [
+            userId,
+            trackId,
+          ],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<int> getFavoriteCount(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #getFavoriteCount,
+          [userId],
+        ),
+        returnValue: _i3.Future<int>.value(0),
+      ) as _i3.Future<int>);
+
+  @override
+  _i3.Future<void> clearAllForUser(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #clearAllForUser,
+          [userId],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<List<_i18.FavoriteTrackModel>> getUnsyncedFavorites(
+          String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUnsyncedFavorites,
+          [userId],
+        ),
+        returnValue: _i3.Future<List<_i18.FavoriteTrackModel>>.value(
+            <_i18.FavoriteTrackModel>[]),
+      ) as _i3.Future<List<_i18.FavoriteTrackModel>>);
+
+  @override
+  _i3.Future<List<_i19.FavoriteTrack>> getUnsyncedFavoriteRecords(
+          String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUnsyncedFavoriteRecords,
+          [userId],
+        ),
+        returnValue:
+            _i3.Future<List<_i19.FavoriteTrack>>.value(<_i19.FavoriteTrack>[]),
+      ) as _i3.Future<List<_i19.FavoriteTrack>>);
+
+  @override
+  _i3.Future<void> markAsSynced(
+    List<String>? trackIds,
+    String? userId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #markAsSynced,
+          [
+            trackIds,
+            userId,
+          ],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> upsertFavoriteRecord({
+    required String? userId,
+    required String? trackId,
+    required String? songId,
+    required DateTime? addedAt,
+    bool? markForSync = false,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #upsertFavoriteRecord,
+          [],
+          {
+            #userId: userId,
+            #trackId: trackId,
+            #songId: songId,
+            #addedAt: addedAt,
+            #markForSync: markForSync,
+          },
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> hardDeleteSyncedDeleted(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #hardDeleteSyncedDeleted,
+          [userId],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> hardDeleteSyncedNotIn(
+    String? userId,
+    Set<String>? keepTrackIds,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #hardDeleteSyncedNotIn,
+          [
+            userId,
+            keepTrackIds,
+          ],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+}
+
 /// A class which mocks [RemoteChoirDataSource].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockRemoteChoirDataSource extends _i1.Mock
-    implements _i17.RemoteChoirDataSource {
+    implements _i20.RemoteChoirDataSource {
   MockRemoteChoirDataSource() {
     _i1.throwOnMissingStub(this);
   }
@@ -1175,7 +1420,7 @@ class MockRemoteChoirDataSource extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockRemoteConcertDataSource extends _i1.Mock
-    implements _i18.RemoteConcertDataSource {
+    implements _i21.RemoteConcertDataSource {
   MockRemoteConcertDataSource() {
     _i1.throwOnMissingStub(this);
   }
@@ -1238,7 +1483,7 @@ class MockRemoteConcertDataSource extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockRemoteSongDataSource extends _i1.Mock
-    implements _i19.RemoteSongDataSource {
+    implements _i22.RemoteSongDataSource {
   MockRemoteSongDataSource() {
     _i1.throwOnMissingStub(this);
   }
@@ -1307,7 +1552,7 @@ class MockRemoteSongDataSource extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockRemoteTrackDataSource extends _i1.Mock
-    implements _i20.RemoteTrackDataSource {
+    implements _i23.RemoteTrackDataSource {
   MockRemoteTrackDataSource() {
     _i1.throwOnMissingStub(this);
   }
@@ -1378,7 +1623,7 @@ class MockRemoteTrackDataSource extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockRemoteMarkerDataSource extends _i1.Mock
-    implements _i21.RemoteMarkerDataSource {
+    implements _i24.RemoteMarkerDataSource {
   MockRemoteMarkerDataSource() {
     _i1.throwOnMissingStub(this);
   }
@@ -1533,7 +1778,7 @@ class MockRemoteMarkerDataSource extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockRemoteUserPlaybackStateDataSource extends _i1.Mock
-    implements _i22.RemoteUserPlaybackStateDataSource {
+    implements _i25.RemoteUserPlaybackStateDataSource {
   MockRemoteUserPlaybackStateDataSource() {
     _i1.throwOnMissingStub(this);
   }
@@ -1631,4 +1876,104 @@ class MockRemoteUserPlaybackStateDataSource extends _i1.Mock
         returnValue: _i3.Future<List<_i16.UserPlaybackStateModel>>.value(
             <_i16.UserPlaybackStateModel>[]),
       ) as _i3.Future<List<_i16.UserPlaybackStateModel>>);
+}
+
+/// A class which mocks [RemoteFavoriteTrackDataSource].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockRemoteFavoriteTrackDataSource extends _i1.Mock
+    implements _i26.RemoteFavoriteTrackDataSource {
+  MockRemoteFavoriteTrackDataSource() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i3.Future<List<_i18.FavoriteTrackModel>> getFavorites(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getFavorites,
+          [userId],
+        ),
+        returnValue: _i3.Future<List<_i18.FavoriteTrackModel>>.value(
+            <_i18.FavoriteTrackModel>[]),
+      ) as _i3.Future<List<_i18.FavoriteTrackModel>>);
+
+  @override
+  _i3.Future<bool> isFavorite(
+    String? userId,
+    String? trackId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #isFavorite,
+          [
+            userId,
+            trackId,
+          ],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  _i3.Future<void> addFavorite(
+    String? userId,
+    String? trackId,
+    String? songId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addFavorite,
+          [
+            userId,
+            trackId,
+            songId,
+          ],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> removeFavorite(
+    String? userId,
+    String? trackId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #removeFavorite,
+          [
+            userId,
+            trackId,
+          ],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<List<({DateTime addedAt, String songId, String trackId})>>
+      getFavoritesForSync(String? userId) => (super.noSuchMethod(
+            Invocation.method(
+              #getFavoritesForSync,
+              [userId],
+            ),
+            returnValue: _i3.Future<
+                    List<
+                        ({
+                          DateTime addedAt,
+                          String songId,
+                          String trackId
+                        })>>.value(
+                <({DateTime addedAt, String songId, String trackId})>[]),
+          ) as _i3.Future<
+              List<({DateTime addedAt, String songId, String trackId})>>);
+
+  @override
+  _i3.Future<int> getFavoriteCount(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #getFavoriteCount,
+          [userId],
+        ),
+        returnValue: _i3.Future<int>.value(0),
+      ) as _i3.Future<int>);
 }

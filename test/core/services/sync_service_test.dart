@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:repertoire_coach/core/services/sync_service.dart';
+import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_choir_data_source.dart';
 import 'package:repertoire_coach/data/datasources/local/local_concert_data_source.dart';
 import 'package:repertoire_coach/data/datasources/local/local_marker_data_source.dart';
@@ -13,10 +14,13 @@ import 'package:repertoire_coach/data/datasources/remote/remote_concert_data_sou
 import 'package:repertoire_coach/data/datasources/remote/remote_marker_data_source.dart';
 import 'package:repertoire_coach/data/datasources/remote/remote_song_data_source.dart';
 import 'package:repertoire_coach/data/datasources/remote/remote_track_data_source.dart';
+import 'package:repertoire_coach/data/datasources/local/local_favorite_track_data_source.dart';
+import 'package:repertoire_coach/data/datasources/remote/remote_favorite_track_data_source.dart';
 import 'package:repertoire_coach/data/datasources/remote/remote_user_playback_state_data_source.dart';
 import 'package:repertoire_coach/data/models/choir_member_model.dart';
 import 'package:repertoire_coach/data/models/choir_model.dart';
 import 'package:repertoire_coach/data/models/concert_model.dart';
+import 'package:repertoire_coach/data/models/marker_set_model.dart';
 import 'package:repertoire_coach/data/models/song_model.dart';
 import 'package:repertoire_coach/data/models/track_model.dart';
 
@@ -29,12 +33,14 @@ import 'sync_service_test.mocks.dart';
   LocalTrackDataSource,
   LocalMarkerDataSource,
   LocalUserPlaybackStateDataSource,
+  LocalFavoriteTrackDataSource,
   RemoteChoirDataSource,
   RemoteConcertDataSource,
   RemoteSongDataSource,
   RemoteTrackDataSource,
   RemoteMarkerDataSource,
   RemoteUserPlaybackStateDataSource,
+  RemoteFavoriteTrackDataSource,
 ])
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,8 +59,67 @@ void main() {
     late MockRemoteTrackDataSource mockRemoteTrackDataSource;
     late MockRemoteMarkerDataSource mockRemoteMarkerDataSource;
     late MockRemoteUserPlaybackStateDataSource mockRemotePlaybackStateDataSource;
+    late MockLocalFavoriteTrackDataSource mockLocalFavoriteTrackDataSource;
+    late MockRemoteFavoriteTrackDataSource mockRemoteFavoriteTrackDataSource;
 
     const testUserId = 'user-123';
+
+    /// Stubs all data sources to return empty data for a clean sync.
+    /// Tests override specific stubs as needed.
+    void stubEmptySync() {
+      // Remote fetches
+      when(mockRemoteChoirDataSource.getChoirs(testUserId))
+          .thenAnswer((_) async => []);
+      when(mockRemoteChoirDataSource.getChoirMembersForUser(testUserId))
+          .thenAnswer((_) async => []);
+      when(mockRemoteConcertDataSource.getConcerts(testUserId))
+          .thenAnswer((_) async => []);
+      when(mockRemoteSongDataSource.getSongsForUser(testUserId))
+          .thenAnswer((_) async => []);
+      when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
+          .thenAnswer((_) async => []);
+      when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
+          .thenAnswer((_) async => []);
+      when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
+          .thenAnswer((_) async => []);
+      when(mockRemotePlaybackStateDataSource
+              .getPlaybackStatesForUser(testUserId))
+          .thenAnswer((_) async => []);
+      when(mockRemoteFavoriteTrackDataSource.getFavoritesForSync(testUserId))
+          .thenAnswer((_) async => []);
+
+      // Local unsynced queries (push phase)
+      when(mockLocalConcertDataSource.getUnsyncedConcerts())
+          .thenAnswer((_) async => []);
+      when(mockLocalSongDataSource.getUnsyncedSongs())
+          .thenAnswer((_) async => []);
+      when(mockLocalTrackDataSource.getUnsyncedTracks())
+          .thenAnswer((_) async => []);
+      when(mockLocalMarkerDataSource.getUnsyncedMarkerSets())
+          .thenAnswer((_) async => []);
+      when(mockLocalMarkerDataSource.getUnsyncedMarkers())
+          .thenAnswer((_) async => []);
+      when(mockLocalFavoriteTrackDataSource
+              .getUnsyncedFavoriteRecords(testUserId))
+          .thenAnswer((_) async => []);
+
+      // Cleanup methods (called at end of each sync step)
+      when(mockLocalTrackDataSource.hardDeleteTracksNotIn(any))
+          .thenAnswer((_) async {});
+      when(mockLocalConcertDataSource.hardDeleteConcertsNotIn(any))
+          .thenAnswer((_) async {});
+      when(mockLocalSongDataSource.hardDeleteSongsNotIn(any))
+          .thenAnswer((_) async {});
+      when(mockLocalMarkerDataSource.hardDeleteMarkerSetsNotIn(any))
+          .thenAnswer((_) async {});
+      when(mockLocalMarkerDataSource.hardDeleteMarkersNotIn(any))
+          .thenAnswer((_) async {});
+      when(mockLocalFavoriteTrackDataSource.hardDeleteSyncedDeleted(testUserId))
+          .thenAnswer((_) async {});
+      when(mockLocalFavoriteTrackDataSource.hardDeleteSyncedNotIn(
+              testUserId, any))
+          .thenAnswer((_) async {});
+    }
 
     setUp(() {
       mockLocalChoirDataSource = MockLocalChoirDataSource();
@@ -63,6 +128,7 @@ void main() {
       mockLocalTrackDataSource = MockLocalTrackDataSource();
       mockLocalMarkerDataSource = MockLocalMarkerDataSource();
       mockLocalPlaybackStateDataSource = MockLocalUserPlaybackStateDataSource();
+      mockLocalFavoriteTrackDataSource = MockLocalFavoriteTrackDataSource();
       mockRemoteChoirDataSource = MockRemoteChoirDataSource();
       mockRemoteConcertDataSource = MockRemoteConcertDataSource();
       mockRemoteSongDataSource = MockRemoteSongDataSource();
@@ -70,10 +136,7 @@ void main() {
       mockRemoteMarkerDataSource = MockRemoteMarkerDataSource();
       mockRemotePlaybackStateDataSource =
           MockRemoteUserPlaybackStateDataSource();
-
-      // Stub hardDeleteTracksNotIn for all tests (called during track sync)
-      when(mockLocalTrackDataSource.hardDeleteTracksNotIn(any))
-          .thenAnswer((_) async {});
+      mockRemoteFavoriteTrackDataSource = MockRemoteFavoriteTrackDataSource();
 
       syncService = SyncService(
         localChoirDataSource: mockLocalChoirDataSource,
@@ -82,18 +145,20 @@ void main() {
         localTrackDataSource: mockLocalTrackDataSource,
         localMarkerDataSource: mockLocalMarkerDataSource,
         localPlaybackStateDataSource: mockLocalPlaybackStateDataSource,
+        localFavoriteTrackDataSource: mockLocalFavoriteTrackDataSource,
         remoteChoirDataSource: mockRemoteChoirDataSource,
         remoteConcertDataSource: mockRemoteConcertDataSource,
         remoteSongDataSource: mockRemoteSongDataSource,
         remoteTrackDataSource: mockRemoteTrackDataSource,
         remoteMarkerDataSource: mockRemoteMarkerDataSource,
         remotePlaybackStateDataSource: mockRemotePlaybackStateDataSource,
+        remoteFavoriteTrackDataSource: mockRemoteFavoriteTrackDataSource,
       );
     });
 
     group('syncFromRemote', () {
       test('should sync choirs from remote to local', () async {
-        // Arrange
+        stubEmptySync();
         final now = DateTime.now();
         final testChoir = ChoirModel(
           id: 'choir-1',
@@ -116,25 +181,8 @@ void main() {
         when(mockLocalChoirDataSource.upsertMember(any, markForSync: false))
             .thenAnswer((_) async {});
 
-        // Set up other data sources to return empty lists
-        when(mockRemoteConcertDataSource.getConcerts(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteSongDataSource.getSongsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemotePlaybackStateDataSource
-                .getPlaybackStatesForUser(testUserId))
-            .thenAnswer((_) async => []);
-
-        // Act
         await syncService.syncFromRemote(testUserId);
 
-        // Assert
         verify(mockLocalChoirDataSource.upsertChoir(any, markForSync: false))
             .called(1);
         verify(mockLocalChoirDataSource.upsertMember(any, markForSync: false))
@@ -142,7 +190,7 @@ void main() {
       });
 
       test('should sync concerts from remote to local', () async {
-        // Arrange
+        stubEmptySync();
         final now = DateTime.now();
         final testConcert = ConcertModel(
           id: 'concert-1',
@@ -151,40 +199,23 @@ void main() {
           name: 'Test Concert',
           concertDate: now,
           createdAt: now,
+          updatedAt: now,
         );
 
-        when(mockRemoteChoirDataSource.getChoirs(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteChoirDataSource.getChoirMembersForUser(testUserId))
-            .thenAnswer((_) async => []);
         when(mockRemoteConcertDataSource.getConcerts(testUserId))
             .thenAnswer((_) async => [testConcert]);
         when(mockLocalConcertDataSource.upsertConcert(any, markForSync: false))
             .thenAnswer((_) async => true);
 
-        // Set up other data sources to return empty lists
-        when(mockRemoteSongDataSource.getSongsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemotePlaybackStateDataSource
-                .getPlaybackStatesForUser(testUserId))
-            .thenAnswer((_) async => []);
-
-        // Act
         await syncService.syncFromRemote(testUserId);
 
-        // Assert
-        verify(mockLocalConcertDataSource.upsertConcert(any, markForSync: false))
+        verify(
+                mockLocalConcertDataSource.upsertConcert(any, markForSync: false))
             .called(1);
       });
 
       test('should sync songs from remote to local', () async {
-        // Arrange
+        stubEmptySync();
         final now = DateTime.now();
         final testSong = SongModel(
           id: 'song-1',
@@ -194,38 +225,19 @@ void main() {
           updatedAt: now,
         );
 
-        when(mockRemoteChoirDataSource.getChoirs(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteChoirDataSource.getChoirMembersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteConcertDataSource.getConcerts(testUserId))
-            .thenAnswer((_) async => []);
         when(mockRemoteSongDataSource.getSongsForUser(testUserId))
             .thenAnswer((_) async => [testSong]);
         when(mockLocalSongDataSource.upsertSong(any, markForSync: false))
             .thenAnswer((_) async => true);
 
-        // Set up other data sources to return empty lists
-        when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemotePlaybackStateDataSource
-                .getPlaybackStatesForUser(testUserId))
-            .thenAnswer((_) async => []);
-
-        // Act
         await syncService.syncFromRemote(testUserId);
 
-        // Assert
         verify(mockLocalSongDataSource.upsertSong(any, markForSync: false))
             .called(1);
       });
 
       test('should sync tracks from remote to local', () async {
-        // Arrange
+        stubEmptySync();
         final now = DateTime.now();
         final testTrack = TrackModel(
           id: 'track-1',
@@ -238,78 +250,37 @@ void main() {
           updatedAt: now,
         );
 
-        when(mockRemoteChoirDataSource.getChoirs(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteChoirDataSource.getChoirMembersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteConcertDataSource.getConcerts(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteSongDataSource.getSongsForUser(testUserId))
-            .thenAnswer((_) async => []);
         when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
             .thenAnswer((_) async => [testTrack]);
         when(mockLocalTrackDataSource.upsertTrack(any, markForSync: false))
             .thenAnswer((_) async => true);
 
-        // Set up other data sources to return empty lists
-        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemotePlaybackStateDataSource
-                .getPlaybackStatesForUser(testUserId))
-            .thenAnswer((_) async => []);
-
-        // Act
         await syncService.syncFromRemote(testUserId);
 
-        // Assert
         verify(mockLocalTrackDataSource.upsertTrack(any, markForSync: false))
             .called(1);
       });
 
       test('should call progress callback with correct states', () async {
-        // Arrange
+        stubEmptySync();
         final progressStates = <SyncState>[];
 
-        when(mockRemoteChoirDataSource.getChoirs(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteChoirDataSource.getChoirMembersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteConcertDataSource.getConcerts(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteSongDataSource.getSongsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemotePlaybackStateDataSource
-                .getPlaybackStatesForUser(testUserId))
-            .thenAnswer((_) async => []);
-
-        // Act
         await syncService.syncFromRemote(
           testUserId,
           onProgress: (state) => progressStates.add(state),
         );
 
-        // Assert
         expect(progressStates, isNotEmpty);
         expect(progressStates.first.status, SyncStatus.syncing);
         expect(progressStates.last.status, SyncStatus.success);
       });
 
       test('should report error state when remote fetch fails', () async {
-        // Arrange
         SyncState? errorState;
 
         when(mockRemoteChoirDataSource.getChoirs(testUserId))
             .thenThrow(Exception('Network error'));
 
-        // Act & Assert
         await expectLater(
           syncService.syncFromRemote(
             testUserId,
@@ -323,37 +294,19 @@ void main() {
       });
 
       test('should handle empty remote data gracefully', () async {
-        // Arrange
-        when(mockRemoteChoirDataSource.getChoirs(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteChoirDataSource.getChoirMembersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteConcertDataSource.getConcerts(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteSongDataSource.getSongsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemotePlaybackStateDataSource
-                .getPlaybackStatesForUser(testUserId))
-            .thenAnswer((_) async => []);
+        stubEmptySync();
 
-        // Act & Assert - should complete without throwing
         await syncService.syncFromRemote(testUserId);
 
-        // Verify no upserts were called
-        verifyNever(mockLocalChoirDataSource.upsertChoir(any, markForSync: false));
-        verifyNever(mockLocalConcertDataSource.upsertConcert(any, markForSync: false));
+        verifyNever(
+            mockLocalChoirDataSource.upsertChoir(any, markForSync: false));
+        verifyNever(
+            mockLocalConcertDataSource.upsertConcert(any, markForSync: false));
       });
 
       test('should delete local tracks not present on remote during sync',
           () async {
-        // Regression: when a track was deleted by another choir member,
-        // syncing did not remove the local copy for other members.
+        stubEmptySync();
         final now = DateTime.now();
         final remoteTrack = TrackModel(
           id: 'track-keep',
@@ -366,36 +319,19 @@ void main() {
           updatedAt: now,
         );
 
-        when(mockRemoteChoirDataSource.getChoirs(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteChoirDataSource.getChoirMembersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteConcertDataSource.getConcerts(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteSongDataSource.getSongsForUser(testUserId))
-            .thenAnswer((_) async => []);
         when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
             .thenAnswer((_) async => [remoteTrack]);
         when(mockLocalTrackDataSource.upsertTrack(any, markForSync: false))
             .thenAnswer((_) async => true);
-        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-            .thenAnswer((_) async => []);
-        when(mockRemotePlaybackStateDataSource
-                .getPlaybackStatesForUser(testUserId))
-            .thenAnswer((_) async => []);
 
         await syncService.syncFromRemote(testUserId);
 
-        // Verify hardDeleteTracksNotIn is called with the set of remote IDs
-        verify(mockLocalTrackDataSource
-                .hardDeleteTracksNotIn({'track-keep'}))
+        verify(mockLocalTrackDataSource.hardDeleteTracksNotIn({'track-keep'}))
             .called(1);
       });
 
       test('should sync in correct FK order', () async {
-        // Arrange
+        stubEmptySync();
         final callOrder = <String>[];
 
         when(mockRemoteChoirDataSource.getChoirs(testUserId))
@@ -440,10 +376,8 @@ void main() {
           return [];
         });
 
-        // Act
         await syncService.syncFromRemote(testUserId);
 
-        // Assert - verify order respects FK dependencies
         expect(callOrder.indexOf('choirs'),
             lessThan(callOrder.indexOf('concerts')));
         expect(callOrder.indexOf('concerts'),
@@ -454,6 +388,291 @@ void main() {
             lessThan(callOrder.indexOf('marker_sets')));
         expect(callOrder.indexOf('marker_sets'),
             lessThan(callOrder.indexOf('markers')));
+      });
+    });
+
+    group('bidirectional sync - push-before-pull', () {
+      test('should push unsynced track update when local is newer', () async {
+        stubEmptySync();
+        final now = DateTime.now();
+        final localTrack = TrackModel(
+          id: 'track-1',
+          songId: 'song-1',
+          name: 'Updated Name',
+          audioUrl: 'https://example.com/track.mp3',
+          storagePath: '/tracks/track.mp3',
+          durationMs: 180000,
+          createdAt: now.subtract(const Duration(hours: 2)),
+          updatedAt: now, // Local is newer
+        );
+        final remoteTrack = TrackModel(
+          id: 'track-1',
+          songId: 'song-1',
+          name: 'Old Name',
+          audioUrl: 'https://example.com/track.mp3',
+          storagePath: '/tracks/track.mp3',
+          durationMs: 180000,
+          createdAt: now.subtract(const Duration(hours: 2)),
+          updatedAt: now.subtract(const Duration(hours: 1)), // Remote is older
+        );
+
+        when(mockLocalTrackDataSource.getUnsyncedTracks())
+            .thenAnswer((_) async => [localTrack]);
+        when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
+            .thenAnswer((_) async => [remoteTrack]);
+        when(mockRemoteTrackDataSource.updateTrack(any))
+            .thenAnswer((_) async {});
+        when(mockLocalTrackDataSource.markAsSynced(any))
+            .thenAnswer((_) async {});
+
+        await syncService.syncFromRemote(testUserId);
+
+        verify(mockRemoteTrackDataSource.updateTrack(localTrack)).called(1);
+        verify(mockLocalTrackDataSource.markAsSynced('track-1')).called(1);
+      });
+
+      test('should NOT push track update when remote is newer', () async {
+        stubEmptySync();
+        final now = DateTime.now();
+        final localTrack = TrackModel(
+          id: 'track-1',
+          songId: 'song-1',
+          name: 'Old Name',
+          audioUrl: 'https://example.com/track.mp3',
+          storagePath: '/tracks/track.mp3',
+          durationMs: 180000,
+          createdAt: now.subtract(const Duration(hours: 2)),
+          updatedAt: now.subtract(const Duration(hours: 1)), // Local is older
+        );
+        final remoteTrack = TrackModel(
+          id: 'track-1',
+          songId: 'song-1',
+          name: 'Updated Name',
+          audioUrl: 'https://example.com/track.mp3',
+          storagePath: '/tracks/track.mp3',
+          durationMs: 180000,
+          createdAt: now.subtract(const Duration(hours: 2)),
+          updatedAt: now, // Remote is newer
+        );
+
+        when(mockLocalTrackDataSource.getUnsyncedTracks())
+            .thenAnswer((_) async => [localTrack]);
+        when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
+            .thenAnswer((_) async => [remoteTrack]);
+        when(mockLocalTrackDataSource.markAsSynced(any))
+            .thenAnswer((_) async {});
+        when(mockLocalTrackDataSource.upsertTrack(any, markForSync: false))
+            .thenAnswer((_) async => true);
+
+        await syncService.syncFromRemote(testUserId);
+
+        // Should NOT push local to remote
+        verifyNever(mockRemoteTrackDataSource.updateTrack(any));
+        verifyNever(mockRemoteTrackDataSource.createTrack(any));
+        // But should still mark as synced (local takes the remote value)
+        verify(mockLocalTrackDataSource.markAsSynced('track-1')).called(1);
+      });
+
+      test('should push new local concert creation to remote', () async {
+        stubEmptySync();
+        final now = DateTime.now();
+        final localConcert = ConcertModel(
+          id: 'concert-new',
+          choirId: 'choir-1',
+          choirName: 'Test Choir',
+          name: 'New Concert',
+          concertDate: now,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        when(mockLocalConcertDataSource.getUnsyncedConcerts())
+            .thenAnswer((_) async => [localConcert]);
+        // Empty remote = new creation
+        when(mockRemoteConcertDataSource.getConcerts(testUserId))
+            .thenAnswer((_) async => []);
+        when(mockRemoteConcertDataSource.createConcert(any))
+            .thenAnswer((_) async {});
+        when(mockLocalConcertDataSource.markAsSynced(any))
+            .thenAnswer((_) async {});
+
+        await syncService.syncFromRemote(testUserId);
+
+        verify(mockRemoteConcertDataSource.createConcert(localConcert))
+            .called(1);
+        verify(mockLocalConcertDataSource.markAsSynced('concert-new'))
+            .called(1);
+      });
+
+      test('should push new local song creation to remote', () async {
+        stubEmptySync();
+        final now = DateTime.now();
+        final localSong = SongModel(
+          id: 'song-new',
+          concertId: 'concert-1',
+          title: 'New Song',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        when(mockLocalSongDataSource.getUnsyncedSongs())
+            .thenAnswer((_) async => [localSong]);
+        when(mockRemoteSongDataSource.getSongsForUser(testUserId))
+            .thenAnswer((_) async => []);
+        when(mockRemoteSongDataSource.createSong(any))
+            .thenAnswer((_) async {});
+        when(mockLocalSongDataSource.markAsSynced(any))
+            .thenAnswer((_) async {});
+
+        await syncService.syncFromRemote(testUserId);
+
+        verify(mockRemoteSongDataSource.createSong(localSong)).called(1);
+        verify(mockLocalSongDataSource.markAsSynced('song-new')).called(1);
+      });
+    });
+
+    group('favorites sync', () {
+      test('should push unsynced favorite addition to remote', () async {
+        stubEmptySync();
+        final now = DateTime.now();
+
+        // Simulate a local FavoriteTrack Drift row (unsynced addition)
+        // We need to use the actual Drift type, but since this is mocked,
+        // we stub the return type.
+        // For the mock, we need something that has .deleted, .trackId, .songId
+        // The mock returns what we tell it to.
+
+        // Override favorites to have data
+        when(mockLocalFavoriteTrackDataSource
+                .getUnsyncedFavoriteRecords(testUserId))
+            .thenAnswer((_) async => [
+                  db.FavoriteTrack(
+                    trackId: 'track-1',
+                    songId: 'song-1',
+                    userId: testUserId,
+                    addedAt: now,
+                    deleted: false,
+                    synced: false,
+                  ),
+                ]);
+        when(mockRemoteFavoriteTrackDataSource.getFavoritesForSync(testUserId))
+            .thenAnswer((_) async => []); // Not on remote yet
+        when(mockRemoteFavoriteTrackDataSource.addFavorite(any, any, any))
+            .thenAnswer((_) async {});
+        when(mockLocalFavoriteTrackDataSource.markAsSynced(any, testUserId))
+            .thenAnswer((_) async {});
+
+        await syncService.syncFromRemote(testUserId);
+
+        verify(mockRemoteFavoriteTrackDataSource.addFavorite(
+          testUserId,
+          'track-1',
+          'song-1',
+        )).called(1);
+      });
+
+      test('should push soft-deleted favorite as deletion to remote',
+          () async {
+        stubEmptySync();
+        final now = DateTime.now();
+
+        when(mockLocalFavoriteTrackDataSource
+                .getUnsyncedFavoriteRecords(testUserId))
+            .thenAnswer((_) async => [
+                  db.FavoriteTrack(
+                    trackId: 'track-1',
+                    songId: 'song-1',
+                    userId: testUserId,
+                    addedAt: now,
+                    deleted: true, // Soft-deleted
+                    synced: false,
+                  ),
+                ]);
+        when(mockRemoteFavoriteTrackDataSource.getFavoritesForSync(testUserId))
+            .thenAnswer((_) async => [
+                  (
+                    trackId: 'track-1',
+                    songId: 'song-1',
+                    addedAt: now,
+                  ),
+                ]);
+        when(mockRemoteFavoriteTrackDataSource.removeFavorite(any, any))
+            .thenAnswer((_) async {});
+        when(mockLocalFavoriteTrackDataSource.markAsSynced(any, testUserId))
+            .thenAnswer((_) async {});
+
+        await syncService.syncFromRemote(testUserId);
+
+        verify(mockRemoteFavoriteTrackDataSource.removeFavorite(
+          testUserId,
+          'track-1',
+        )).called(1);
+      });
+
+      test('should remove local favorites not present on remote', () async {
+        stubEmptySync();
+
+        // No unsynced local favorites
+        when(mockLocalFavoriteTrackDataSource
+                .getUnsyncedFavoriteRecords(testUserId))
+            .thenAnswer((_) async => []);
+        // Remote has track-1, but NOT track-2 (track-2 was deleted remotely)
+        when(mockRemoteFavoriteTrackDataSource.getFavoritesForSync(testUserId))
+            .thenAnswer((_) async => [
+                  (
+                    trackId: 'track-1',
+                    songId: 'song-1',
+                    addedAt: DateTime.now(),
+                  ),
+                ]);
+        when(mockLocalFavoriteTrackDataSource.upsertFavoriteRecord(
+          userId: anyNamed('userId'),
+          trackId: anyNamed('trackId'),
+          songId: anyNamed('songId'),
+          addedAt: anyNamed('addedAt'),
+          markForSync: anyNamed('markForSync'),
+        )).thenAnswer((_) async {});
+
+        await syncService.syncFromRemote(testUserId);
+
+        // Should call hardDeleteSyncedNotIn with only the remote track IDs
+        verify(mockLocalFavoriteTrackDataSource.hardDeleteSyncedNotIn(
+          testUserId,
+          {'track-1'},
+        )).called(1);
+      });
+    });
+
+    group('marker set sync - Bug 2 regression', () {
+      test('should preserve isTimeSynced: false during sync', () async {
+        stubEmptySync();
+        final now = DateTime.now();
+        final remoteMarkerSet = MarkerSetModel(
+          id: 'ms-1',
+          trackId: 'track-1',
+          name: 'My Markers',
+          isShared: false,
+          isTimeSynced: false, // This was the bug - it was defaulting to true
+          createdByUserId: testUserId,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
+            .thenAnswer((_) async => [remoteMarkerSet]);
+        when(mockLocalMarkerDataSource.upsertMarkerSet(any, markForSync: false))
+            .thenAnswer((_) async {});
+
+        await syncService.syncFromRemote(testUserId);
+
+        // Verify the marker set passed to upsert has isTimeSynced: false
+        final captured = verify(mockLocalMarkerDataSource.upsertMarkerSet(
+          captureAny,
+          markForSync: false,
+        )).captured;
+        expect(captured, hasLength(1));
+        final upsertedSet = captured.first as MarkerSetModel;
+        expect(upsertedSet.isTimeSynced, isFalse);
       });
     });
   });

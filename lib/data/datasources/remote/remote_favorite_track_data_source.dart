@@ -103,6 +103,33 @@ class RemoteFavoriteTrackDataSource {
     }
   }
 
+  /// Get all favorites for sync (lightweight, no track JOIN)
+  ///
+  /// Returns just (trackId, songId, addedAt) tuples for sync comparison.
+  /// Avoids the expensive JOIN to tracks table.
+  Future<List<({String trackId, String songId, DateTime addedAt})>>
+      getFavoritesForSync(String userId) async {
+    try {
+      final response = await _supabase
+          .from('favorite_tracks')
+          .select('track_id, song_id, added_at')
+          .eq('user_id', userId) as List;
+
+      return response.map((json) {
+        return (
+          trackId: json['track_id'] as String,
+          songId: json['song_id'] as String,
+          addedAt: DateTime.parse(json['added_at'] as String),
+        );
+      }).toList();
+    } on PostgrestException catch (e) {
+      throw Exception(
+          'Failed to fetch favorites for sync from Supabase: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error fetching favorites for sync: $e');
+    }
+  }
+
   /// Get count of favorite tracks for a user
   ///
   /// Used for startup logic to determine which tab to show.

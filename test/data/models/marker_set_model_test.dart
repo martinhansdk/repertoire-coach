@@ -150,6 +150,50 @@ void main() {
       expect(markerSetModel1, isNot(equals(markerSetModel3)));
     });
 
+    group('fromJson', () {
+      test('should default isTimeSynced to true when missing from JSON', () {
+        // Regression: Bug 2 - when is_time_synced was omitted from the
+        // remote SELECT, fromJson defaulted it to true, causing marker
+        // sets with isTimeSynced=false to appear "synced to 0:00".
+        final now = DateTime.now().toUtc();
+        final json = {
+          'id': 'ms-1',
+          'track_id': 'track-1',
+          'name': 'My Markers',
+          'is_shared': false,
+          // 'is_time_synced' is intentionally omitted
+          'created_by_user_id': 'user-1',
+          'created_at': now.toIso8601String(),
+          'updated_at': now.toIso8601String(),
+        };
+
+        final model = MarkerSetModel.fromJson(json);
+
+        // Documents the default behavior - missing field defaults to true
+        expect(model.isTimeSynced, isTrue);
+      });
+
+      test('should preserve isTimeSynced: false when present in JSON', () {
+        // Regression: ensures that when is_time_synced IS included in the
+        // SELECT, the false value is preserved through deserialization.
+        final now = DateTime.now().toUtc();
+        final json = {
+          'id': 'ms-1',
+          'track_id': 'track-1',
+          'name': 'My Markers',
+          'is_shared': false,
+          'is_time_synced': false,
+          'created_by_user_id': 'user-1',
+          'created_at': now.toIso8601String(),
+          'updated_at': now.toIso8601String(),
+        };
+
+        final model = MarkerSetModel.fromJson(json);
+
+        expect(model.isTimeSynced, isFalse);
+      });
+    });
+
     test('should maintain all properties through entity conversion', () {
       // Arrange
       final now = DateTime.now();

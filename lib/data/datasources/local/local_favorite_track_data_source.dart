@@ -17,6 +17,7 @@ class LocalFavoriteTrackDataSource {
   ///
   /// Returns a stream that emits whenever favorites change.
   /// Results are sorted by added_at descending (most recent first).
+  /// Excludes soft-deleted favorites.
   Stream<List<FavoriteTrackModel>> watchFavorites(String userId) {
     // Query with join to tracks table to get full Track data
     final query = _database.select(_database.favoriteTracks).join([
@@ -26,6 +27,7 @@ class LocalFavoriteTrackDataSource {
       ),
     ])
       ..where(_database.favoriteTracks.userId.equals(userId))
+      ..where(_database.favoriteTracks.deleted.equals(false))
       ..orderBy([OrderingTerm.desc(_database.favoriteTracks.addedAt)]);
 
     return query.watch().map((rows) {
@@ -58,6 +60,7 @@ class LocalFavoriteTrackDataSource {
   ///
   /// Returns a one-time snapshot of favorites.
   /// Use this for non-reactive operations.
+  /// Excludes soft-deleted favorites.
   Future<List<FavoriteTrackModel>> getFavorites(String userId) async {
     final query = _database.select(_database.favoriteTracks).join([
       innerJoin(
@@ -66,6 +69,7 @@ class LocalFavoriteTrackDataSource {
       ),
     ])
       ..where(_database.favoriteTracks.userId.equals(userId))
+      ..where(_database.favoriteTracks.deleted.equals(false))
       ..orderBy([OrderingTerm.desc(_database.favoriteTracks.addedAt)]);
 
     final rows = await query.get();
@@ -95,12 +99,13 @@ class LocalFavoriteTrackDataSource {
 
   /// Check if a track is favorited by a user
   ///
-  /// Returns true if the track is in the user's favorites, false otherwise.
+  /// Returns true if the track is in the user's favorites (and not deleted).
   Future<bool> isFavorite(String userId, String trackId) async {
     final count = await (_database.selectOnly(_database.favoriteTracks)
           ..addColumns([_database.favoriteTracks.userId])
           ..where(_database.favoriteTracks.userId.equals(userId))
-          ..where(_database.favoriteTracks.trackId.equals(trackId)))
+          ..where(_database.favoriteTracks.trackId.equals(trackId))
+          ..where(_database.favoriteTracks.deleted.equals(false)))
         .getSingleOrNull();
 
     return count != null;
@@ -118,6 +123,7 @@ class LocalFavoriteTrackDataSource {
   }) async {
     final companion = favorite.toDriftCompanion(userId).copyWith(
           synced: Value(!markForSync), // If markForSync=true, synced=false
+          deleted: const Value(false), // Ensure not deleted
         );
 
     await _database.into(_database.favoriteTracks).insertOnConflictUpdate(
@@ -125,23 +131,29 @@ class LocalFavoriteTrackDataSource {
         );
   }
 
-  /// Remove a track from user's favorites
+  /// Remove a track from user's favorites (soft-delete)
   ///
-  /// Deletes the favorite relationship. Idempotent - no error if not favorited.
+  /// Marks the favorite as deleted and unsynced so the sync service
+  /// can push the deletion to remote before hard-deleting.
   Future<void> removeFavorite(String userId, String trackId) async {
-    await (_database.delete(_database.favoriteTracks)
+    await (_database.update(_database.favoriteTracks)
           ..where((f) => f.userId.equals(userId))
           ..where((f) => f.trackId.equals(trackId)))
-        .go();
+        .write(const db.FavoriteTracksCompanion(
+      deleted: Value(true),
+      synced: Value(false),
+    ));
   }
 
   /// Get count of favorite tracks for a user
   ///
   /// Used for startup logic to determine which tab to show.
+  /// Excludes soft-deleted favorites.
   Future<int> getFavoriteCount(String userId) async {
     final result = await (_database.selectOnly(_database.favoriteTracks)
           ..addColumns([_database.favoriteTracks.userId.count()])
-          ..where(_database.favoriteTracks.userId.equals(userId)))
+          ..where(_database.favoriteTracks.userId.equals(userId))
+          ..where(_database.favoriteTracks.deleted.equals(false)))
         .getSingle();
 
     return result.read(_database.favoriteTracks.userId.count()) ?? 0;
@@ -157,6 +169,7 @@ class LocalFavoriteTrackDataSource {
   /// Get all un-synced favorites (for sync to cloud)
   ///
   /// Returns favorites that have been added/modified locally but not yet synced.
+  /// Excludes soft-deleted favorites (those are handled separately).
   Future<List<FavoriteTrackModel>> getUnsyncedFavorites(String userId) async {
     final query = _database.select(_database.favoriteTracks).join([
       innerJoin(
@@ -165,7 +178,8 @@ class LocalFavoriteTrackDataSource {
       ),
     ])
       ..where(_database.favoriteTracks.userId.equals(userId))
-      ..where(_database.favoriteTracks.synced.equals(false));
+      ..where(_database.favoriteTracks.synced.equals(false))
+      ..where(_database.favoriteTracks.deleted.equals(false));
 
     final rows = await query.get();
     return rows.map((row) {
@@ -192,6 +206,18 @@ class LocalFavoriteTrackDataSource {
     }).toList();
   }
 
+  /// Get all unsynced favorite records (raw, without track join)
+  ///
+  /// Used by sync service - returns both additions and soft-deletions.
+  /// Returns raw Drift FavoriteTrack rows for lightweight access.
+  Future<List<db.FavoriteTrack>> getUnsyncedFavoriteRecords(
+      String userId) async {
+    return await (_database.select(_database.favoriteTracks)
+          ..where((f) => f.userId.equals(userId))
+          ..where((f) => f.synced.equals(false)))
+        .get();
+  }
+
   /// Mark favorites as synced
   ///
   /// Called after successfully syncing to cloud.
@@ -202,5 +228,60 @@ class LocalFavoriteTrackDataSource {
             ..where((f) => f.trackId.equals(trackId)))
           .write(const db.FavoriteTracksCompanion(synced: Value(true)));
     }
+  }
+
+  /// Upsert a favorite record directly from sync data (no Track join needed)
+  ///
+  /// Used during sync pull phase to insert remote favorites locally.
+  Future<void> upsertFavoriteRecord({
+    required String userId,
+    required String trackId,
+    required String songId,
+    required DateTime addedAt,
+    bool markForSync = false,
+  }) async {
+    await _database.into(_database.favoriteTracks).insertOnConflictUpdate(
+          db.FavoriteTracksCompanion(
+            userId: Value(userId),
+            trackId: Value(trackId),
+            songId: Value(songId),
+            addedAt: Value(addedAt),
+            deleted: const Value(false),
+            synced: Value(!markForSync),
+          ),
+        );
+  }
+
+  /// Hard-delete all synced favorites that are marked as deleted
+  ///
+  /// Called after sync has pushed the deletions to remote.
+  Future<void> hardDeleteSyncedDeleted(String userId) async {
+    await (_database.delete(_database.favoriteTracks)
+          ..where((f) => f.userId.equals(userId))
+          ..where((f) => f.deleted.equals(true))
+          ..where((f) => f.synced.equals(true)))
+        .go();
+  }
+
+  /// Hard-delete synced favorites not in the given set of track IDs
+  ///
+  /// Used during sync to remove favorites that were deleted on remote.
+  /// Only deletes favorites that are already synced (came from remote).
+  Future<void> hardDeleteSyncedNotIn(
+      String userId, Set<String> keepTrackIds) async {
+    if (keepTrackIds.isEmpty) {
+      // Delete all synced favorites for this user
+      await (_database.delete(_database.favoriteTracks)
+            ..where((f) => f.userId.equals(userId))
+            ..where((f) => f.synced.equals(true)))
+          .go();
+      return;
+    }
+    await (_database.delete(_database.favoriteTracks)
+          ..where((f) => f.userId.equals(userId))
+          ..where((f) => f.trackId.isNotIn(keepTrackIds))
+          ..where((f) => f.synced.equals(true))
+          ..where((f) => f.deleted.equals(false)))
+        .go();
   }
 }

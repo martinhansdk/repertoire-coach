@@ -40,6 +40,7 @@ class RemoteConcertDataSource {
             name,
             concert_date,
             created_at,
+            updated_at,
             choirs!inner(name)
           ''')
           .inFilter('choir_id', choirIds)
@@ -72,6 +73,7 @@ class RemoteConcertDataSource {
             name,
             concert_date,
             created_at,
+            updated_at,
             choirs!inner(name)
           ''')
           .eq('id', id)

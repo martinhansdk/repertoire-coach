@@ -84,6 +84,12 @@ class MockAudioPlayerRepository extends _i1.Mock
       ) as bool);
 
   @override
+  double get speed => (super.noSuchMethod(
+        Invocation.getter(#speed),
+        returnValue: 0.0,
+      ) as double);
+
+  @override
   _i4.Future<void> playTrack(
     _i5.Track? track, {
     String? audioUrl,
@@ -165,6 +171,16 @@ class MockAudioPlayerRepository extends _i1.Mock
         Invocation.method(
           #setLoopRange,
           [loopRange],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> setSpeed(double? speed) => (super.noSuchMethod(
+        Invocation.method(
+          #setSpeed,
+          [speed],
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),

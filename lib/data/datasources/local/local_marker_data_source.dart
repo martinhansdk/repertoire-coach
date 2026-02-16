@@ -186,6 +186,13 @@ class LocalMarkerDataSource {
         .write(const db.MarkerSetsCompanion(synced: Value(true)));
   }
 
+  /// Hard delete synced marker sets not in the given set of IDs
+  ///
+  /// Used during sync to remove marker sets deleted on remote.
+  Future<void> hardDeleteMarkerSetsNotIn(Set<String> keepIds) async {
+    await _database.hardDeleteMarkerSetsNotIn(keepIds);
+  }
+
   // ==================== Marker Operations ====================
 
   /// Get all active (non-deleted) markers for a specific marker set
@@ -321,6 +328,13 @@ class LocalMarkerDataSource {
         .get();
 
     return markers.map((m) => MarkerModel.fromDrift(m)).toList();
+  }
+
+  /// Hard delete synced markers not in the given set of IDs
+  ///
+  /// Used during sync to remove markers deleted on remote.
+  Future<void> hardDeleteMarkersNotIn(Set<String> keepIds) async {
+    await _database.hardDeleteMarkersNotIn(keepIds);
   }
 
   /// Mark marker as synced to cloud

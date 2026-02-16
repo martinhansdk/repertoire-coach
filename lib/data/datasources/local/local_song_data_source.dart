@@ -103,6 +103,13 @@ class LocalSongDataSource {
     await _database.markSongAsSynced(id);
   }
 
+  /// Hard delete synced songs not in the given set of IDs
+  ///
+  /// Used during sync to remove songs deleted on remote.
+  Future<void> hardDeleteSongsNotIn(Set<String> keepIds) async {
+    await _database.hardDeleteSongsNotIn(keepIds);
+  }
+
   /// Clear all song data (for testing)
   ///
   /// Permanently deletes all songs. Use with caution!

@@ -6,6 +6,7 @@ import 'auth_provider.dart';
 import 'audio_player_provider.dart';
 import 'choir_provider.dart';
 import 'concert_provider.dart';
+import 'favorite_track_provider.dart';
 import 'marker_provider.dart';
 import 'song_provider.dart';
 import 'track_provider.dart';
@@ -48,6 +49,8 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
   final localMarkerDataSource = ref.watch(localMarkerDataSourceProvider);
   final localPlaybackStateDataSource =
       ref.watch(playbackStateDataSourceProvider);
+  final localFavoriteTrackDataSource =
+      ref.watch(localFavoriteTrackDataSourceProvider);
 
   // Get all remote data sources (may be null if not authenticated)
   final remoteChoirDataSource = ref.watch(remoteChoirDataSourceProvider);
@@ -57,6 +60,8 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
   final remoteMarkerDataSource = ref.watch(remoteMarkerDataSourceProvider);
   final remotePlaybackStateDataSource =
       ref.watch(remoteUserPlaybackStateDataSourceProvider);
+  final remoteFavoriteTrackDataSource =
+      ref.watch(remoteFavoriteTrackDataSourceProvider);
 
   // Can't create sync service if any remote data source is null
   if (remoteChoirDataSource == null ||
@@ -64,7 +69,8 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
       remoteSongDataSource == null ||
       remoteTrackDataSource == null ||
       remoteMarkerDataSource == null ||
-      remotePlaybackStateDataSource == null) {
+      remotePlaybackStateDataSource == null ||
+      remoteFavoriteTrackDataSource == null) {
     return null;
   }
 
@@ -75,12 +81,14 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
     localTrackDataSource: localTrackDataSource,
     localMarkerDataSource: localMarkerDataSource,
     localPlaybackStateDataSource: localPlaybackStateDataSource,
+    localFavoriteTrackDataSource: localFavoriteTrackDataSource,
     remoteChoirDataSource: remoteChoirDataSource,
     remoteConcertDataSource: remoteConcertDataSource,
     remoteSongDataSource: remoteSongDataSource,
     remoteTrackDataSource: remoteTrackDataSource,
     remoteMarkerDataSource: remoteMarkerDataSource,
     remotePlaybackStateDataSource: remotePlaybackStateDataSource,
+    remoteFavoriteTrackDataSource: remoteFavoriteTrackDataSource,
   );
 });
 
@@ -137,6 +145,8 @@ class SyncController extends Notifier<SyncState> {
     ref.invalidate(markerSetsByTrackProvider);
     ref.invalidate(markerSetByIdProvider);
     ref.invalidate(markersByMarkerSetProvider);
+    ref.invalidate(favoritesProvider);
+    ref.invalidate(favoriteCountProvider);
     // Note: songsByConcertProvider and tracksBySongProvider are family
     // providers and will be refreshed when their parents are refreshed
   }

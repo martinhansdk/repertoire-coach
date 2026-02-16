@@ -251,6 +251,9 @@ class FavoriteTracks extends Table {
   /// When this track was added to favorites
   DateTimeColumn get addedAt => dateTime()();
 
+  /// Soft delete flag (true = deleted, false = active)
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
   /// Sync tracking flag (true = synced to cloud, false = needs sync)
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
 
@@ -277,7 +280,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   /// Migration strategy for database upgrades
   @override
@@ -381,6 +384,12 @@ class AppDatabase extends _$AppDatabase {
             // Add is_time_synced to marker_sets
             await customStatement(
               'ALTER TABLE marker_sets ADD COLUMN is_time_synced INTEGER NOT NULL DEFAULT 1',
+            );
+          }
+          if (from == 9 && to == 10) {
+            // Add deleted column to FavoriteTracks for soft-delete sync
+            await customStatement(
+              'ALTER TABLE favorite_tracks ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0',
             );
           }
           if (from == 8 && to == 9) {
@@ -628,6 +637,54 @@ class AppDatabase extends _$AppDatabase {
         .go();
   }
 
+  /// Hard delete concerts that are not in the given set of IDs
+  ///
+  /// Used during sync to remove concerts deleted on remote.
+  /// Only deletes concerts that are already synced.
+  Future<void> hardDeleteConcertsNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) return;
+    await (delete(concerts)
+          ..where((c) => c.id.isNotIn(keepIds))
+          ..where((c) => c.synced.equals(true)))
+        .go();
+  }
+
+  /// Hard delete songs that are not in the given set of IDs
+  ///
+  /// Used during sync to remove songs deleted on remote.
+  /// Only deletes songs that are already synced.
+  Future<void> hardDeleteSongsNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) return;
+    await (delete(songs)
+          ..where((s) => s.id.isNotIn(keepIds))
+          ..where((s) => s.synced.equals(true)))
+        .go();
+  }
+
+  /// Hard delete marker sets that are not in the given set of IDs
+  ///
+  /// Used during sync to remove marker sets deleted on remote.
+  /// Only deletes marker sets that are already synced.
+  Future<void> hardDeleteMarkerSetsNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) return;
+    await (delete(markerSets)
+          ..where((ms) => ms.id.isNotIn(keepIds))
+          ..where((ms) => ms.synced.equals(true)))
+        .go();
+  }
+
+  /// Hard delete markers that are not in the given set of IDs
+  ///
+  /// Used during sync to remove markers deleted on remote.
+  /// Only deletes markers that are already synced.
+  Future<void> hardDeleteMarkersNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) return;
+    await (delete(markers)
+          ..where((m) => m.id.isNotIn(keepIds))
+          ..where((m) => m.synced.equals(true)))
+        .go();
+  }
+
   /// Soft delete track
   Future<void> softDeleteTrack(String id) {
     return (update(tracks)..where((t) => t.id.equals(id))).write(
@@ -690,6 +747,7 @@ class AppDatabase extends _$AppDatabase {
       innerJoin(tracks, tracks.id.equalsExp(favoriteTracks.trackId)),
     ])
       ..where(favoriteTracks.userId.equals(userId))
+      ..where(favoriteTracks.deleted.equals(false))
       ..where(tracks.deleted.equals(false))
       ..orderBy([OrderingTerm.desc(favoriteTracks.addedAt)]);
 

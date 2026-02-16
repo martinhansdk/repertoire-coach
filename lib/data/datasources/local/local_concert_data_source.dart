@@ -102,6 +102,13 @@ class LocalConcertDataSource {
     await _database.markConcertAsSynced(id);
   }
 
+  /// Hard delete synced concerts not in the given set of IDs
+  ///
+  /// Used during sync to remove concerts deleted on remote.
+  Future<void> hardDeleteConcertsNotIn(Set<String> keepIds) async {
+    await _database.hardDeleteConcertsNotIn(keepIds);
+  }
+
   /// Clear all concert data (for testing)
   ///
   /// Permanently deletes all concerts. Use with caution!

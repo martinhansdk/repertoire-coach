@@ -11,6 +11,7 @@ void main() {
     name: 'Test Concert',
     concertDate: now,
     createdAt: now,
+    updatedAt: now,
   );
 
   final tConcert = Concert(

@@ -256,14 +256,14 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [ ] Determine sync mode based on auth state
 - [ ] Write tests for offline/online mode behavior
 
-### Step 5: Sync Engine (Partial - Remote-to-Local Complete)
+### Step 5: Sync Engine (Bidirectional - Push-Before-Pull Complete)
 - [ ] Add SyncQueue table to database schema (for offline operations)
 - [ ] Create SyncOperation, SyncConflict, SyncStatus models
 - [ ] Create SyncQueue service for offline queue management
 - [x] Create SyncService for remote-to-local sync (lib/core/services/sync_service.dart)
-- [ ] Implement syncToCloud() - upload local changes
+- [x] Implement syncToCloud() - bidirectional push-before-pull in syncFromRemote()
 - [x] Implement syncFromCloud() - download remote changes (syncFromRemote method)
-- [ ] Implement conflict resolution (last write wins based on updated_at)
+- [x] Implement conflict resolution (newest change wins based on updated_at)
 - [x] Create sync providers for UI integration (lib/presentation/providers/sync_provider.dart)
 - [ ] Add periodic background sync (every 5 minutes)
 - [ ] Create sync status indicator widget
@@ -427,7 +427,7 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 
 ### Sync & Cloud
 - [x] Offline-first favoriting (saves locally, syncs when online)
-- [ ] Update `sync_provider.dart` to include favorites sync (future enhancement)
+- [x] Update `sync_provider.dart` to include favorites sync
 - [x] Handle sync conflicts (remote wins pattern)
 
 ### Cleanup

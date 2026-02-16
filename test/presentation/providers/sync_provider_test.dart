@@ -13,6 +13,8 @@ import 'package:repertoire_coach/data/datasources/remote/remote_concert_data_sou
 import 'package:repertoire_coach/data/datasources/remote/remote_marker_data_source.dart';
 import 'package:repertoire_coach/data/datasources/remote/remote_song_data_source.dart';
 import 'package:repertoire_coach/data/datasources/remote/remote_track_data_source.dart';
+import 'package:repertoire_coach/data/datasources/local/local_favorite_track_data_source.dart';
+import 'package:repertoire_coach/data/datasources/remote/remote_favorite_track_data_source.dart';
 import 'package:repertoire_coach/data/datasources/remote/remote_user_playback_state_data_source.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
@@ -37,6 +39,10 @@ class _DummyRemoteMarkerDataSource extends Fake
     implements RemoteMarkerDataSource {}
 class _DummyRemotePlaybackStateDataSource extends Fake
     implements RemoteUserPlaybackStateDataSource {}
+class _DummyLocalFavoriteTrackDataSource extends Fake
+    implements LocalFavoriteTrackDataSource {}
+class _DummyRemoteFavoriteTrackDataSource extends Fake
+    implements RemoteFavoriteTrackDataSource {}
 
 class _FakeSyncService extends SyncService {
   _FakeSyncService()
@@ -47,12 +53,14 @@ class _FakeSyncService extends SyncService {
           localTrackDataSource: _DummyLocalTrackDataSource(),
           localMarkerDataSource: _DummyLocalMarkerDataSource(),
           localPlaybackStateDataSource: _DummyLocalPlaybackStateDataSource(),
+          localFavoriteTrackDataSource: _DummyLocalFavoriteTrackDataSource(),
           remoteChoirDataSource: _DummyRemoteChoirDataSource(),
           remoteConcertDataSource: _DummyRemoteConcertDataSource(),
           remoteSongDataSource: _DummyRemoteSongDataSource(),
           remoteTrackDataSource: _DummyRemoteTrackDataSource(),
           remoteMarkerDataSource: _DummyRemoteMarkerDataSource(),
           remotePlaybackStateDataSource: _DummyRemotePlaybackStateDataSource(),
+          remoteFavoriteTrackDataSource: _DummyRemoteFavoriteTrackDataSource(),
         );
 
   @override

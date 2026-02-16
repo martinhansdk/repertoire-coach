@@ -55,6 +55,10 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
         _playbackController = StreamController<PlaybackInfo>.broadcast(),
         _currentPlaybackInfo = const PlaybackInfo.idle() {
     _initializePlayerListeners();
+    // Eagerly initialize AudioService so Android Auto can discover the app
+    // on startup, before any playback occurs. Safe because the Riverpod
+    // provider is created after runApp().
+    Future.microtask(() => _ensureInitialized());
   }
 
   /// audio_service MUST be initialised before audio_session is configured.

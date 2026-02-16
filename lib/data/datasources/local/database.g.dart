@@ -3504,6 +3504,16 @@ class $FavoriteTracksTable extends FavoriteTracks
   late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
       'added_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedMeta =
+      const VerificationMeta('deleted');
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+      'deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
   @override
   late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
@@ -3515,7 +3525,7 @@ class $FavoriteTracksTable extends FavoriteTracks
       defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns =>
-      [userId, trackId, songId, addedAt, synced];
+      [userId, trackId, songId, addedAt, deleted, synced];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3550,6 +3560,10 @@ class $FavoriteTracksTable extends FavoriteTracks
     } else if (isInserting) {
       context.missing(_addedAtMeta);
     }
+    if (data.containsKey('deleted')) {
+      context.handle(_deletedMeta,
+          deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
+    }
     if (data.containsKey('synced')) {
       context.handle(_syncedMeta,
           synced.isAcceptableOrUnknown(data['synced']!, _syncedMeta));
@@ -3571,6 +3585,8 @@ class $FavoriteTracksTable extends FavoriteTracks
           .read(DriftSqlType.string, data['${effectivePrefix}song_id'])!,
       addedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}added_at'])!,
+      deleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
       synced: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}synced'])!,
     );
@@ -3595,6 +3611,9 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
   /// When this track was added to favorites
   final DateTime addedAt;
 
+  /// Soft delete flag (true = deleted, false = active)
+  final bool deleted;
+
   /// Sync tracking flag (true = synced to cloud, false = needs sync)
   final bool synced;
   const FavoriteTrack(
@@ -3602,6 +3621,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       required this.trackId,
       required this.songId,
       required this.addedAt,
+      required this.deleted,
       required this.synced});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3610,6 +3630,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
     map['track_id'] = Variable<String>(trackId);
     map['song_id'] = Variable<String>(songId);
     map['added_at'] = Variable<DateTime>(addedAt);
+    map['deleted'] = Variable<bool>(deleted);
     map['synced'] = Variable<bool>(synced);
     return map;
   }
@@ -3620,6 +3641,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       trackId: Value(trackId),
       songId: Value(songId),
       addedAt: Value(addedAt),
+      deleted: Value(deleted),
       synced: Value(synced),
     );
   }
@@ -3632,6 +3654,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       trackId: serializer.fromJson<String>(json['trackId']),
       songId: serializer.fromJson<String>(json['songId']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       synced: serializer.fromJson<bool>(json['synced']),
     );
   }
@@ -3643,6 +3666,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       'trackId': serializer.toJson<String>(trackId),
       'songId': serializer.toJson<String>(songId),
       'addedAt': serializer.toJson<DateTime>(addedAt),
+      'deleted': serializer.toJson<bool>(deleted),
       'synced': serializer.toJson<bool>(synced),
     };
   }
@@ -3652,12 +3676,14 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
           String? trackId,
           String? songId,
           DateTime? addedAt,
+          bool? deleted,
           bool? synced}) =>
       FavoriteTrack(
         userId: userId ?? this.userId,
         trackId: trackId ?? this.trackId,
         songId: songId ?? this.songId,
         addedAt: addedAt ?? this.addedAt,
+        deleted: deleted ?? this.deleted,
         synced: synced ?? this.synced,
       );
   FavoriteTrack copyWithCompanion(FavoriteTracksCompanion data) {
@@ -3666,6 +3692,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       trackId: data.trackId.present ? data.trackId.value : this.trackId,
       songId: data.songId.present ? data.songId.value : this.songId,
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       synced: data.synced.present ? data.synced.value : this.synced,
     );
   }
@@ -3677,13 +3704,15 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
           ..write('trackId: $trackId, ')
           ..write('songId: $songId, ')
           ..write('addedAt: $addedAt, ')
+          ..write('deleted: $deleted, ')
           ..write('synced: $synced')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(userId, trackId, songId, addedAt, synced);
+  int get hashCode =>
+      Object.hash(userId, trackId, songId, addedAt, deleted, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3692,6 +3721,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
           other.trackId == this.trackId &&
           other.songId == this.songId &&
           other.addedAt == this.addedAt &&
+          other.deleted == this.deleted &&
           other.synced == this.synced);
 }
 
@@ -3700,6 +3730,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
   final Value<String> trackId;
   final Value<String> songId;
   final Value<DateTime> addedAt;
+  final Value<bool> deleted;
   final Value<bool> synced;
   final Value<int> rowid;
   const FavoriteTracksCompanion({
@@ -3707,6 +3738,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
     this.trackId = const Value.absent(),
     this.songId = const Value.absent(),
     this.addedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3715,6 +3747,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
     required String trackId,
     required String songId,
     required DateTime addedAt,
+    this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : userId = Value(userId),
@@ -3726,6 +3759,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
     Expression<String>? trackId,
     Expression<String>? songId,
     Expression<DateTime>? addedAt,
+    Expression<bool>? deleted,
     Expression<bool>? synced,
     Expression<int>? rowid,
   }) {
@@ -3734,6 +3768,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
       if (trackId != null) 'track_id': trackId,
       if (songId != null) 'song_id': songId,
       if (addedAt != null) 'added_at': addedAt,
+      if (deleted != null) 'deleted': deleted,
       if (synced != null) 'synced': synced,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3744,6 +3779,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
       Value<String>? trackId,
       Value<String>? songId,
       Value<DateTime>? addedAt,
+      Value<bool>? deleted,
       Value<bool>? synced,
       Value<int>? rowid}) {
     return FavoriteTracksCompanion(
@@ -3751,6 +3787,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
       trackId: trackId ?? this.trackId,
       songId: songId ?? this.songId,
       addedAt: addedAt ?? this.addedAt,
+      deleted: deleted ?? this.deleted,
       synced: synced ?? this.synced,
       rowid: rowid ?? this.rowid,
     );
@@ -3771,6 +3808,9 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
     if (addedAt.present) {
       map['added_at'] = Variable<DateTime>(addedAt.value);
     }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (synced.present) {
       map['synced'] = Variable<bool>(synced.value);
     }
@@ -3787,6 +3827,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
           ..write('trackId: $trackId, ')
           ..write('songId: $songId, ')
           ..write('addedAt: $addedAt, ')
+          ..write('deleted: $deleted, ')
           ..write('synced: $synced, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5501,6 +5542,7 @@ typedef $$FavoriteTracksTableCreateCompanionBuilder = FavoriteTracksCompanion
   required String trackId,
   required String songId,
   required DateTime addedAt,
+  Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
 });
@@ -5510,6 +5552,7 @@ typedef $$FavoriteTracksTableUpdateCompanionBuilder = FavoriteTracksCompanion
   Value<String> trackId,
   Value<String> songId,
   Value<DateTime> addedAt,
+  Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
 });
@@ -5534,6 +5577,9 @@ class $$FavoriteTracksTableFilterComposer
 
   ColumnFilters<DateTime> get addedAt => $composableBuilder(
       column: $table.addedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get synced => $composableBuilder(
       column: $table.synced, builder: (column) => ColumnFilters(column));
@@ -5560,6 +5606,9 @@ class $$FavoriteTracksTableOrderingComposer
   ColumnOrderings<DateTime> get addedAt => $composableBuilder(
       column: $table.addedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get synced => $composableBuilder(
       column: $table.synced, builder: (column) => ColumnOrderings(column));
 }
@@ -5584,6 +5633,9 @@ class $$FavoriteTracksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get addedAt =>
       $composableBuilder(column: $table.addedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   GeneratedColumn<bool> get synced =>
       $composableBuilder(column: $table.synced, builder: (column) => column);
@@ -5620,6 +5672,7 @@ class $$FavoriteTracksTableTableManager extends RootTableManager<
             Value<String> trackId = const Value.absent(),
             Value<String> songId = const Value.absent(),
             Value<DateTime> addedAt = const Value.absent(),
+            Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -5628,6 +5681,7 @@ class $$FavoriteTracksTableTableManager extends RootTableManager<
             trackId: trackId,
             songId: songId,
             addedAt: addedAt,
+            deleted: deleted,
             synced: synced,
             rowid: rowid,
           ),
@@ -5636,6 +5690,7 @@ class $$FavoriteTracksTableTableManager extends RootTableManager<
             required String trackId,
             required String songId,
             required DateTime addedAt,
+            Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -5644,6 +5699,7 @@ class $$FavoriteTracksTableTableManager extends RootTableManager<
             trackId: trackId,
             songId: songId,
             addedAt: addedAt,
+            deleted: deleted,
             synced: synced,
             rowid: rowid,
           ),
