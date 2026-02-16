@@ -217,7 +217,9 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       ref.read(audioPlayerControlsProvider).toggleTrackLoop();
                     },
                   ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 4),
+                      _buildSpeedButton(playbackInfo),
+                      const SizedBox(width: 4),
                       Expanded(
                     child: markerSetsAsync.when(
                       data: (markerSets) {
@@ -408,6 +410,49 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
           child: Text(
             'Error loading marker set: $error',
             style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static const _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+  Widget _buildSpeedButton(PlaybackInfo playbackInfo) {
+    final speed = playbackInfo.speed;
+    final label = speed == speed.roundToDouble()
+        ? '${speed.toInt()}.0x'
+        : '${speed}x';
+
+    return PopupMenuButton<double>(
+      tooltip: 'Playback speed',
+      onSelected: (value) {
+        ref.read(audioPlayerControlsProvider).setSpeed(value);
+      },
+      itemBuilder: (context) => _speedOptions.map((s) {
+        final itemLabel = s == s.roundToDouble()
+            ? '${s.toInt()}.0x'
+            : '${s}x';
+        return PopupMenuItem<double>(
+          value: s,
+          child: Text(
+            itemLabel,
+            style: TextStyle(
+              fontWeight: s == speed ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        );
+      }).toList(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: speed != 1.0
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ),

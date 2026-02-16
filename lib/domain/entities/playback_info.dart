@@ -12,6 +12,7 @@ class PlaybackInfo extends Equatable {
   final String? errorMessage;
   final LoopRange? loopRange;
   final bool isTrackLooping;
+  final double speed;
 
   const PlaybackInfo({
     this.currentTrack,
@@ -21,6 +22,7 @@ class PlaybackInfo extends Equatable {
     this.errorMessage,
     this.loopRange,
     this.isTrackLooping = false,
+    this.speed = 1.0,
   });
 
   /// Create an idle/initial playback info
@@ -31,7 +33,8 @@ class PlaybackInfo extends Equatable {
         duration = Duration.zero,
         errorMessage = null,
         loopRange = null,
-        isTrackLooping = false;
+        isTrackLooping = false,
+        speed = 1.0;
 
   /// Create a playback info with error state
   const PlaybackInfo.error(String message)
@@ -41,7 +44,8 @@ class PlaybackInfo extends Equatable {
         duration = Duration.zero,
         errorMessage = message,
         loopRange = null,
-        isTrackLooping = false;
+        isTrackLooping = false,
+        speed = 1.0;
 
   /// Check if player is currently playing
   bool get isPlaying => state == AudioPlayerState.playing;
@@ -79,6 +83,7 @@ class PlaybackInfo extends Equatable {
     LoopRange? loopRange,
     bool clearLoop = false,
     bool? isTrackLooping,
+    double? speed,
   }) {
     return PlaybackInfo(
       currentTrack: clearTrack ? null : (currentTrack ?? this.currentTrack),
@@ -88,6 +93,7 @@ class PlaybackInfo extends Equatable {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       loopRange: clearLoop ? null : (loopRange ?? this.loopRange),
       isTrackLooping: isTrackLooping ?? this.isTrackLooping,
+      speed: speed ?? this.speed,
     );
   }
 
@@ -100,6 +106,7 @@ class PlaybackInfo extends Equatable {
         errorMessage,
         loopRange,
         isTrackLooping,
+        speed,
       ];
 
   @override

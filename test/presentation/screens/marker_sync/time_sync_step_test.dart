@@ -132,6 +132,12 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   bool get isRangeLooping => false;
 
   @override
+  double get speed => 1.0;
+
+  @override
+  Future<void> setSpeed(double speed) async {}
+
+  @override
   Future<void> dispose() async {
     await _controller.close();
   }

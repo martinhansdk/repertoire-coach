@@ -72,6 +72,15 @@ abstract class AudioPlayerRepository {
   /// This is different from [isLooping] which indicates full track repeat
   bool get isRangeLooping;
 
+  /// Set the playback speed
+  ///
+  /// [speed] - The playback speed multiplier (e.g. 0.5, 0.75, 1.0, 1.25, 1.5)
+  /// Speed change preserves pitch.
+  Future<void> setSpeed(double speed);
+
+  /// Get the current playback speed
+  double get speed;
+
   /// Dispose of the audio player and release all resources
   Future<void> dispose();
 }

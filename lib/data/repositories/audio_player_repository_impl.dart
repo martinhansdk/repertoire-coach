@@ -160,6 +160,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       duration: duration,
       loopRange: _loopRange,
       isTrackLooping: _isLooping,
+      speed: _player.speed,
     );
 
     _playbackController.add(_currentPlaybackInfo);
@@ -372,6 +373,15 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
 
   @override
   bool get isRangeLooping => _loopRange != null;
+
+  @override
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(speed);
+    _updatePlaybackInfo();
+  }
+
+  @override
+  double get speed => _player.speed;
 
   @override
   Future<void> dispose() async {

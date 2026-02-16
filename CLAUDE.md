@@ -208,7 +208,6 @@ A collaborative mobile/desktop app for choir members to practice their vocal par
 
 **Removed Features:**
 - Practice session tracking/statistics - won't be implemented
-- Adjustable playback speed - won't be implemented
 - Pitch adjustment - won't be implemented
 
 ## Project Structure

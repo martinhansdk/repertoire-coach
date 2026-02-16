@@ -133,6 +133,11 @@ class AudioPlayerControls {
   Future<void> toggleTrackLoop() async {
     await _repository.setLoopMode(!_repository.isLooping);
   }
+
+  /// Set playback speed (preserves pitch)
+  Future<void> setSpeed(double speed) async {
+    await _repository.setSpeed(speed);
+  }
 }
 
 /// Provider for audio player controls
