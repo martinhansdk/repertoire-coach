@@ -350,6 +350,50 @@ void main() {
         verifyNever(mockLocalConcertDataSource.upsertConcert(any, markForSync: false));
       });
 
+      test('should delete local tracks not present on remote during sync',
+          () async {
+        // Regression: when a track was deleted by another choir member,
+        // syncing did not remove the local copy for other members.
+        final now = DateTime.now();
+        final remoteTrack = TrackModel(
+          id: 'track-keep',
+          songId: 'song-1',
+          name: 'Kept Track',
+          audioUrl: 'https://example.com/keep.mp3',
+          storagePath: '/tracks/keep.mp3',
+          durationMs: 120000,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        when(mockRemoteChoirDataSource.getChoirs(testUserId))
+            .thenAnswer((_) async => []);
+        when(mockRemoteChoirDataSource.getChoirMembersForUser(testUserId))
+            .thenAnswer((_) async => []);
+        when(mockRemoteConcertDataSource.getConcerts(testUserId))
+            .thenAnswer((_) async => []);
+        when(mockRemoteSongDataSource.getSongsForUser(testUserId))
+            .thenAnswer((_) async => []);
+        when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
+            .thenAnswer((_) async => [remoteTrack]);
+        when(mockLocalTrackDataSource.upsertTrack(any, markForSync: false))
+            .thenAnswer((_) async => true);
+        when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
+            .thenAnswer((_) async => []);
+        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
+            .thenAnswer((_) async => []);
+        when(mockRemotePlaybackStateDataSource
+                .getPlaybackStatesForUser(testUserId))
+            .thenAnswer((_) async => []);
+
+        await syncService.syncFromRemote(testUserId);
+
+        // Verify hardDeleteTracksNotIn is called with the set of remote IDs
+        verify(mockLocalTrackDataSource
+                .hardDeleteTracksNotIn({'track-keep'}))
+            .called(1);
+      });
+
       test('should sync in correct FK order', () async {
         // Arrange
         final callOrder = <String>[];

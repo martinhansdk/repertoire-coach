@@ -445,6 +445,53 @@ void main() {
       });
     });
 
+    group('discard after text edit', () {
+      test('should reset state after startSyncFromText persisted changes',
+          () async {
+        // Regression: startSyncFromText writes new text to the database,
+        // but discard only reset in-memory state without invalidating
+        // provider caches, causing stale text to appear in the UI.
+        final existingMarkers = [
+          Marker(
+            id: 'm1',
+            markerSetId: 'set-1',
+            label: 'old intro',
+            positionMs: 1000,
+            order: 0,
+            createdAt: DateTime(2024, 1, 1),
+          ),
+        ];
+
+        when(mockRepository.getMarkersByMarkerSet(any))
+            .thenAnswer((_) async => existingMarkers);
+        when(mockRepository.updateMarker(any)).thenAnswer((_) async => true);
+        when(mockRepository.createMarker(any)).thenAnswer((_) async {});
+        when(mockRepository.getMarkerSetById(any))
+            .thenAnswer((_) async => markerSet);
+        when(mockRepository.updateMarkerSet(any))
+            .thenAnswer((_) async => true);
+
+        // Edit text (this writes to the database)
+        await notifier.startSyncFromText('new intro\nverse');
+
+        // Verify the database was updated with new text
+        verify(mockRepository.updateMarker(argThat(
+          isA<Marker>().having((m) => m.label, 'label', 'new intro'),
+        ))).called(1);
+
+        // Now discard
+        notifier.discard();
+
+        // State should be fully reset
+        expect(notifier.state.step, SyncStep.textInput);
+        expect(notifier.state.labels, isEmpty);
+        expect(notifier.state.isDirty, false);
+        // Note: the database still has the new text, so the UI must
+        // invalidate provider caches when calling discard() to reload
+        // the current DB state (which now has 'new intro').
+      });
+    });
+
     group('isComplete', () {
       test('should be false when no non-empty markers', () {
         notifier.setLabels('\n\n');
