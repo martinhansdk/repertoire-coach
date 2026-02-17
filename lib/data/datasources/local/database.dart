@@ -41,6 +41,12 @@ class ChoirMembers extends Table {
   /// When the user joined this choir
   DateTimeColumn get joinedAt => dateTime()();
 
+  /// When this record was last updated (for sync)
+  DateTimeColumn get updatedAt => dateTime()();
+
+  /// Soft delete flag (true = deleted, false = active)
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
   /// Sync tracking flag (true = synced to cloud, false = needs sync)
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
 
@@ -227,6 +233,9 @@ class Markers extends Table {
   /// When this record was created
   DateTimeColumn get createdAt => dateTime()();
 
+  /// When this record was last updated (for sync)
+  DateTimeColumn get updatedAt => dateTime()();
+
   /// Soft delete flag (true = deleted, false = active)
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
@@ -251,6 +260,9 @@ class FavoriteTracks extends Table {
   /// When this track was added to favorites
   DateTimeColumn get addedAt => dateTime()();
 
+  /// When this record was last updated (for sync)
+  DateTimeColumn get updatedAt => dateTime()();
+
   /// Soft delete flag (true = deleted, false = active)
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
@@ -268,7 +280,6 @@ class FavoriteTracks extends Table {
   Concerts,
   Songs,
   Tracks,
-  UserPlaybackStates,
   MarkerSets,
   Markers,
   FavoriteTracks,
@@ -280,7 +291,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   /// Migration strategy for database upgrades
   @override
@@ -390,6 +401,39 @@ class AppDatabase extends _$AppDatabase {
             // Add deleted column to FavoriteTracks for soft-delete sync
             await customStatement(
               'ALTER TABLE favorite_tracks ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0',
+            );
+          }
+          if (from == 10 && to == 11) {
+            // Add updated_at to markers
+            await customStatement(
+              'ALTER TABLE markers ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
+            );
+            await customStatement(
+              'UPDATE markers SET updated_at = created_at',
+            );
+
+            // Add updated_at and deleted to choir_members
+            await customStatement(
+              'ALTER TABLE choir_members ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
+            );
+            await customStatement(
+              'UPDATE choir_members SET updated_at = joined_at',
+            );
+            await customStatement(
+              'ALTER TABLE choir_members ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0',
+            );
+
+            // Add updated_at to favorite_tracks
+            await customStatement(
+              'ALTER TABLE favorite_tracks ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
+            );
+            await customStatement(
+              'UPDATE favorite_tracks SET updated_at = added_at',
+            );
+
+            // Drop user_playback_states table
+            await customStatement(
+              'DROP TABLE IF EXISTS user_playback_states',
             );
           }
           if (from == 8 && to == 9) {

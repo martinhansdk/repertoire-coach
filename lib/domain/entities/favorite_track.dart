@@ -11,6 +11,9 @@ class FavoriteTrack extends Equatable {
   /// When this track was added to favorites
   final DateTime addedAt;
 
+  /// When this favorite was last updated (for sync)
+  final DateTime updatedAt;
+
   /// The full Track object with all track data
   ///
   /// Contains: id, songId, name, audioUrl, storagePath, durationMs, etc.
@@ -19,6 +22,7 @@ class FavoriteTrack extends Equatable {
 
   const FavoriteTrack({
     required this.addedAt,
+    required this.updatedAt,
     required this.track,
   });
 
@@ -28,6 +32,7 @@ class FavoriteTrack extends Equatable {
   @override
   List<Object?> get props => [
         addedAt,
+        updatedAt,
         track,
       ];
 

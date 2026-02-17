@@ -30,6 +30,7 @@ void main() {
         name: 'City Choir',
         ownerId: 'user-1',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       testConcert = Concert(
@@ -39,6 +40,7 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2024, 3, 15),
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       testSong = Song(
@@ -60,7 +62,7 @@ void main() {
           durationMs: 180000,
           filePath: null,
           createdAt: DateTime(2024, 1, 1),
-          updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
         ),
       );
     });
@@ -177,7 +179,7 @@ void main() {
           durationMs: null,
           filePath: null,
           createdAt: DateTime(2024, 1, 1),
-          updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
         ),
       );
 

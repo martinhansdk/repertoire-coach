@@ -261,21 +261,21 @@ Future<void> _seedTestData(LocalSongDataSource dataSource) async {
       concertId: 'concert1',
       title: 'Ave Verum Corpus',
       createdAt: DateTime(2024, 12, 1, 10, 0),
-      updatedAt: DateTime(2024, 12, 1, 10, 0),
+        updatedAt: DateTime(2024, 1, 1),
     ),
     SongModel(
       id: 'song2',
       concertId: 'concert1',
       title: 'Lux Aurumque',
       createdAt: DateTime(2024, 12, 1, 11, 0),
-      updatedAt: DateTime(2024, 12, 1, 11, 0),
+        updatedAt: DateTime(2024, 1, 1),
     ),
     SongModel(
       id: 'song3',
       concertId: 'concert1',
       title: 'The Seal Lullaby',
       createdAt: DateTime(2024, 12, 1, 12, 0),
-      updatedAt: DateTime(2024, 12, 1, 12, 0),
+        updatedAt: DateTime(2024, 1, 1),
     ),
     // Concert 2 songs
     SongModel(
@@ -283,14 +283,14 @@ Future<void> _seedTestData(LocalSongDataSource dataSource) async {
       concertId: 'concert2',
       title: 'O Holy Night',
       createdAt: DateTime(2024, 12, 2, 10, 0),
-      updatedAt: DateTime(2024, 12, 2, 10, 0),
+        updatedAt: DateTime(2024, 1, 1),
     ),
     SongModel(
       id: 'song5',
       concertId: 'concert2',
       title: 'Silent Night',
       createdAt: DateTime(2024, 12, 2, 11, 0),
-      updatedAt: DateTime(2024, 12, 2, 11, 0),
+        updatedAt: DateTime(2024, 1, 1),
     ),
   ];
 

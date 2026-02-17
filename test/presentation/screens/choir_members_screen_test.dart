@@ -22,6 +22,7 @@ void main() {
       name: 'Test Choir',
       ownerId: 'owner123',
       createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     final ownerProfile = MemberProfile(

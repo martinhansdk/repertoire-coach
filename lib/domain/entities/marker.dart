@@ -9,6 +9,7 @@ class Marker extends Equatable {
   final int positionMs; // Position in track in milliseconds
   final int order; // Order within the marker set for display
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   const Marker({
     required this.id,
@@ -17,6 +18,7 @@ class Marker extends Equatable {
     required this.positionMs,
     required this.order,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   @override
@@ -27,6 +29,7 @@ class Marker extends Equatable {
         positionMs,
         order,
         createdAt,
+        updatedAt,
       ];
 
   @override

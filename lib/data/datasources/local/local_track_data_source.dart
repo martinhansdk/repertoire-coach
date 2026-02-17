@@ -111,6 +111,30 @@ class LocalTrackDataSource {
     await _database.markTrackAsSynced(id);
   }
 
+  /// Hard-delete synced tracks that are soft-deleted
+  ///
+  /// Called after push phase to clean up tracks successfully deleted on remote.
+  /// Only synced+deleted tracks are removed.
+  Future<void> hardDeleteSyncedDeleted() async {
+    await (_database.delete(_database.tracks)
+          ..where((t) => t.synced.equals(true))
+          ..where((t) => t.deleted.equals(true)))
+        .go();
+  }
+
+  /// Get all synced tracks as a map (ID -> TrackModel)
+  ///
+  /// Used during pull phase to avoid re-pulling items already up-to-date.
+  Future<Map<String, TrackModel>> getSyncedTracks() async {
+    final tracks = await (_database.select(_database.tracks)
+          ..where((t) => t.synced.equals(true)))
+        .get();
+
+    return Map.fromEntries(
+      tracks.map((t) => MapEntry(t.id, TrackModel.fromDrift(t))),
+    );
+  }
+
   /// Clear all track data (for testing)
   ///
   /// Permanently deletes all tracks. Use with caution!

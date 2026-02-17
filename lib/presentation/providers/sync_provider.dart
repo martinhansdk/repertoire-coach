@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/sync_service.dart';
 import '../../data/datasources/remote/remote_marker_data_source.dart';
-import '../../data/datasources/remote/remote_user_playback_state_data_source.dart';
 import 'auth_provider.dart';
 import 'audio_player_provider.dart';
 import 'choir_provider.dart';
@@ -24,19 +23,6 @@ final remoteMarkerDataSourceProvider =
   return RemoteMarkerDataSource(supabaseService.client);
 });
 
-/// Provider for the remote user playback state data source
-///
-/// Wraps Supabase operations for playback state management.
-/// Only available when user is authenticated.
-final remoteUserPlaybackStateDataSourceProvider =
-    Provider<RemoteUserPlaybackStateDataSource?>((ref) {
-  final supabaseService = ref.watch(supabaseServiceProvider);
-  if (!supabaseService.isAuthenticated) {
-    return null;
-  }
-  return RemoteUserPlaybackStateDataSource(supabaseService.client);
-});
-
 /// Provider for the sync service
 ///
 /// Returns null if user is not authenticated (remote data sources unavailable).
@@ -47,8 +33,6 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
   final localSongDataSource = ref.watch(localSongDataSourceProvider);
   final localTrackDataSource = ref.watch(localTrackDataSourceProvider);
   final localMarkerDataSource = ref.watch(localMarkerDataSourceProvider);
-  final localPlaybackStateDataSource =
-      ref.watch(playbackStateDataSourceProvider);
   final localFavoriteTrackDataSource =
       ref.watch(localFavoriteTrackDataSourceProvider);
 
@@ -58,8 +42,6 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
   final remoteSongDataSource = ref.watch(remoteSongDataSourceProvider);
   final remoteTrackDataSource = ref.watch(remoteTrackDataSourceProvider);
   final remoteMarkerDataSource = ref.watch(remoteMarkerDataSourceProvider);
-  final remotePlaybackStateDataSource =
-      ref.watch(remoteUserPlaybackStateDataSourceProvider);
   final remoteFavoriteTrackDataSource =
       ref.watch(remoteFavoriteTrackDataSourceProvider);
 
@@ -69,7 +51,6 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
       remoteSongDataSource == null ||
       remoteTrackDataSource == null ||
       remoteMarkerDataSource == null ||
-      remotePlaybackStateDataSource == null ||
       remoteFavoriteTrackDataSource == null) {
     return null;
   }
@@ -80,14 +61,12 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
     localSongDataSource: localSongDataSource,
     localTrackDataSource: localTrackDataSource,
     localMarkerDataSource: localMarkerDataSource,
-    localPlaybackStateDataSource: localPlaybackStateDataSource,
     localFavoriteTrackDataSource: localFavoriteTrackDataSource,
     remoteChoirDataSource: remoteChoirDataSource,
     remoteConcertDataSource: remoteConcertDataSource,
     remoteSongDataSource: remoteSongDataSource,
     remoteTrackDataSource: remoteTrackDataSource,
     remoteMarkerDataSource: remoteMarkerDataSource,
-    remotePlaybackStateDataSource: remotePlaybackStateDataSource,
     remoteFavoriteTrackDataSource: remoteFavoriteTrackDataSource,
   );
 });

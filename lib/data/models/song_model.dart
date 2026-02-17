@@ -9,12 +9,16 @@ import '../datasources/local/database.dart' as db;
 /// Handles conversions between domain entities, Drift database records,
 /// and future JSON for Supabase integration.
 class SongModel extends Song {
+  /// Whether this song has been soft-deleted (for sync tracking)
+  final bool deleted;
+
   const SongModel({
     required super.id,
     required super.concertId,
     required super.title,
     required super.createdAt,
     required super.updatedAt,
+    this.deleted = false,
   });
 
   /// Create a SongModel from a domain Song entity
@@ -47,6 +51,7 @@ class SongModel extends Song {
       title: driftSong.title,
       createdAt: driftSong.createdAt,
       updatedAt: driftSong.updatedAt,
+      deleted: driftSong.deleted,
     );
   }
 
@@ -58,7 +63,7 @@ class SongModel extends Song {
       title: Value(title),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
-      deleted: const Value(false),
+      deleted: Value(deleted),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }

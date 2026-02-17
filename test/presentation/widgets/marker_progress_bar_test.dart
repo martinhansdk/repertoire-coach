@@ -14,6 +14,7 @@ void main() {
       positionMs: 0,
       order: 0,
       createdAt: now,
+        updatedAt: now,
     );
 
     final testMarker2 = Marker(
@@ -23,6 +24,7 @@ void main() {
       positionMs: 30000, // 30 seconds
       order: 1,
       createdAt: now,
+        updatedAt: now,
     );
 
     final testMarker3 = Marker(
@@ -32,6 +34,7 @@ void main() {
       positionMs: 60000, // 1 minute
       order: 2,
       createdAt: now,
+        updatedAt: now,
     );
 
     Widget createWidgetUnderTest({
@@ -500,6 +503,7 @@ void main() {
           positionMs: 300000, // 5 minutes
           order: 0,
           createdAt: now,
+        updatedAt: now,
         );
 
         await tester.pumpWidget(createWidgetUnderTest(

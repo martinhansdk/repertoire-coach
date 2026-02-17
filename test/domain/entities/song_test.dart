@@ -59,7 +59,7 @@ void main() {
         concertId: 'concert1',
         title: 'Amazing Grace',
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act

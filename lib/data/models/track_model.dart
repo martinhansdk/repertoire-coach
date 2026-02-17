@@ -9,6 +9,9 @@ import '../datasources/local/database.dart' as db;
 /// Handles conversions between domain entities, Drift database records,
 /// and JSON for Supabase integration.
 class TrackModel extends Track {
+  /// Whether this track has been soft-deleted (for sync tracking)
+  final bool deleted;
+
   const TrackModel({
     required super.id,
     required super.songId,
@@ -19,6 +22,7 @@ class TrackModel extends Track {
     super.filePath,
     required super.createdAt,
     required super.updatedAt,
+    this.deleted = false,
   });
 
   /// Create a TrackModel from a domain Track entity
@@ -63,6 +67,7 @@ class TrackModel extends Track {
       filePath: driftTrack.filePath,
       createdAt: driftTrack.createdAt,
       updatedAt: driftTrack.updatedAt,
+      deleted: driftTrack.deleted,
     );
   }
 
@@ -78,7 +83,7 @@ class TrackModel extends Track {
       filePath: Value(filePath),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
-      deleted: const Value(false),
+      deleted: Value(deleted),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }

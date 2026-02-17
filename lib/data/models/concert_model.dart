@@ -12,6 +12,9 @@ class ConcertModel extends Concert {
   /// When this record was last updated (for sync timestamp comparison)
   final DateTime updatedAt;
 
+  /// Whether this concert has been soft-deleted (for sync tracking)
+  final bool deleted;
+
   const ConcertModel({
     required super.id,
     required super.choirId,
@@ -20,6 +23,7 @@ class ConcertModel extends Concert {
     required super.concertDate,
     required super.createdAt,
     required this.updatedAt,
+    this.deleted = false,
   });
 
   /// Create a ConcertModel from a domain Concert entity
@@ -57,6 +61,7 @@ class ConcertModel extends Concert {
       concertDate: driftConcert.concertDate,
       createdAt: driftConcert.createdAt,
       updatedAt: driftConcert.updatedAt,
+      deleted: driftConcert.deleted,
     );
   }
 
@@ -70,7 +75,7 @@ class ConcertModel extends Concert {
       concertDate: Value(concertDate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
-      deleted: const Value(false),
+      deleted: Value(deleted),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }

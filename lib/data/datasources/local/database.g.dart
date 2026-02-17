@@ -422,6 +422,22 @@ class $ChoirMembersTable extends ChoirMembers
   late final GeneratedColumn<DateTime> joinedAt = GeneratedColumn<DateTime>(
       'joined_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedMeta =
+      const VerificationMeta('deleted');
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+      'deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
   @override
   late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
@@ -432,7 +448,8 @@ class $ChoirMembersTable extends ChoirMembers
           GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
       defaultValue: const Constant(false));
   @override
-  List<GeneratedColumn> get $columns => [choirId, userId, joinedAt, synced];
+  List<GeneratedColumn> get $columns =>
+      [choirId, userId, joinedAt, updatedAt, deleted, synced];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -461,6 +478,16 @@ class $ChoirMembersTable extends ChoirMembers
     } else if (isInserting) {
       context.missing(_joinedAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(_deletedMeta,
+          deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
+    }
     if (data.containsKey('synced')) {
       context.handle(_syncedMeta,
           synced.isAcceptableOrUnknown(data['synced']!, _syncedMeta));
@@ -480,6 +507,10 @@ class $ChoirMembersTable extends ChoirMembers
           .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
       joinedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}joined_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
       synced: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}synced'])!,
     );
@@ -501,12 +532,20 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
   /// When the user joined this choir
   final DateTime joinedAt;
 
+  /// When this record was last updated (for sync)
+  final DateTime updatedAt;
+
+  /// Soft delete flag (true = deleted, false = active)
+  final bool deleted;
+
   /// Sync tracking flag (true = synced to cloud, false = needs sync)
   final bool synced;
   const ChoirMember(
       {required this.choirId,
       required this.userId,
       required this.joinedAt,
+      required this.updatedAt,
+      required this.deleted,
       required this.synced});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -514,6 +553,8 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
     map['choir_id'] = Variable<String>(choirId);
     map['user_id'] = Variable<String>(userId);
     map['joined_at'] = Variable<DateTime>(joinedAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
     map['synced'] = Variable<bool>(synced);
     return map;
   }
@@ -523,6 +564,8 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
       choirId: Value(choirId),
       userId: Value(userId),
       joinedAt: Value(joinedAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
       synced: Value(synced),
     );
   }
@@ -534,6 +577,8 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
       choirId: serializer.fromJson<String>(json['choirId']),
       userId: serializer.fromJson<String>(json['userId']),
       joinedAt: serializer.fromJson<DateTime>(json['joinedAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       synced: serializer.fromJson<bool>(json['synced']),
     );
   }
@@ -544,6 +589,8 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
       'choirId': serializer.toJson<String>(choirId),
       'userId': serializer.toJson<String>(userId),
       'joinedAt': serializer.toJson<DateTime>(joinedAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
       'synced': serializer.toJson<bool>(synced),
     };
   }
@@ -552,11 +599,15 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
           {String? choirId,
           String? userId,
           DateTime? joinedAt,
+          DateTime? updatedAt,
+          bool? deleted,
           bool? synced}) =>
       ChoirMember(
         choirId: choirId ?? this.choirId,
         userId: userId ?? this.userId,
         joinedAt: joinedAt ?? this.joinedAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deleted: deleted ?? this.deleted,
         synced: synced ?? this.synced,
       );
   ChoirMember copyWithCompanion(ChoirMembersCompanion data) {
@@ -564,6 +615,8 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
       choirId: data.choirId.present ? data.choirId.value : this.choirId,
       userId: data.userId.present ? data.userId.value : this.userId,
       joinedAt: data.joinedAt.present ? data.joinedAt.value : this.joinedAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       synced: data.synced.present ? data.synced.value : this.synced,
     );
   }
@@ -574,13 +627,16 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
           ..write('choirId: $choirId, ')
           ..write('userId: $userId, ')
           ..write('joinedAt: $joinedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
           ..write('synced: $synced')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(choirId, userId, joinedAt, synced);
+  int get hashCode =>
+      Object.hash(choirId, userId, joinedAt, updatedAt, deleted, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -588,6 +644,8 @@ class ChoirMember extends DataClass implements Insertable<ChoirMember> {
           other.choirId == this.choirId &&
           other.userId == this.userId &&
           other.joinedAt == this.joinedAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted &&
           other.synced == this.synced);
 }
 
@@ -595,12 +653,16 @@ class ChoirMembersCompanion extends UpdateCompanion<ChoirMember> {
   final Value<String> choirId;
   final Value<String> userId;
   final Value<DateTime> joinedAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
   final Value<bool> synced;
   final Value<int> rowid;
   const ChoirMembersCompanion({
     this.choirId = const Value.absent(),
     this.userId = const Value.absent(),
     this.joinedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -608,15 +670,20 @@ class ChoirMembersCompanion extends UpdateCompanion<ChoirMember> {
     required String choirId,
     required String userId,
     required DateTime joinedAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : choirId = Value(choirId),
         userId = Value(userId),
-        joinedAt = Value(joinedAt);
+        joinedAt = Value(joinedAt),
+        updatedAt = Value(updatedAt);
   static Insertable<ChoirMember> custom({
     Expression<String>? choirId,
     Expression<String>? userId,
     Expression<DateTime>? joinedAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
     Expression<bool>? synced,
     Expression<int>? rowid,
   }) {
@@ -624,6 +691,8 @@ class ChoirMembersCompanion extends UpdateCompanion<ChoirMember> {
       if (choirId != null) 'choir_id': choirId,
       if (userId != null) 'user_id': userId,
       if (joinedAt != null) 'joined_at': joinedAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
       if (synced != null) 'synced': synced,
       if (rowid != null) 'rowid': rowid,
     });
@@ -633,12 +702,16 @@ class ChoirMembersCompanion extends UpdateCompanion<ChoirMember> {
       {Value<String>? choirId,
       Value<String>? userId,
       Value<DateTime>? joinedAt,
+      Value<DateTime>? updatedAt,
+      Value<bool>? deleted,
       Value<bool>? synced,
       Value<int>? rowid}) {
     return ChoirMembersCompanion(
       choirId: choirId ?? this.choirId,
       userId: userId ?? this.userId,
       joinedAt: joinedAt ?? this.joinedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
       synced: synced ?? this.synced,
       rowid: rowid ?? this.rowid,
     );
@@ -656,6 +729,12 @@ class ChoirMembersCompanion extends UpdateCompanion<ChoirMember> {
     if (joinedAt.present) {
       map['joined_at'] = Variable<DateTime>(joinedAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (synced.present) {
       map['synced'] = Variable<bool>(synced.value);
     }
@@ -671,6 +750,8 @@ class ChoirMembersCompanion extends UpdateCompanion<ChoirMember> {
           ..write('choirId: $choirId, ')
           ..write('userId: $userId, ')
           ..write('joinedAt: $joinedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
           ..write('synced: $synced, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2132,363 +2213,6 @@ class TracksCompanion extends UpdateCompanion<Track> {
   }
 }
 
-class $UserPlaybackStatesTable extends UserPlaybackStates
-    with TableInfo<$UserPlaybackStatesTable, UserPlaybackState> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $UserPlaybackStatesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-      'id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
-  @override
-  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
-      'user_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _songIdMeta = const VerificationMeta('songId');
-  @override
-  late final GeneratedColumn<String> songId = GeneratedColumn<String>(
-      'song_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _trackIdMeta =
-      const VerificationMeta('trackId');
-  @override
-  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
-      'track_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _positionMeta =
-      const VerificationMeta('position');
-  @override
-  late final GeneratedColumn<int> position = GeneratedColumn<int>(
-      'position', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _updatedAtMeta =
-      const VerificationMeta('updatedAt');
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-      'updated_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  @override
-  List<GeneratedColumn> get $columns =>
-      [id, userId, songId, trackId, position, updatedAt];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'user_playback_states';
-  @override
-  VerificationContext validateIntegrity(Insertable<UserPlaybackState> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('user_id')) {
-      context.handle(_userIdMeta,
-          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
-    } else if (isInserting) {
-      context.missing(_userIdMeta);
-    }
-    if (data.containsKey('song_id')) {
-      context.handle(_songIdMeta,
-          songId.isAcceptableOrUnknown(data['song_id']!, _songIdMeta));
-    } else if (isInserting) {
-      context.missing(_songIdMeta);
-    }
-    if (data.containsKey('track_id')) {
-      context.handle(_trackIdMeta,
-          trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta));
-    } else if (isInserting) {
-      context.missing(_trackIdMeta);
-    }
-    if (data.containsKey('position')) {
-      context.handle(_positionMeta,
-          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
-    } else if (isInserting) {
-      context.missing(_positionMeta);
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(_updatedAtMeta,
-          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  UserPlaybackState map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return UserPlaybackState(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      userId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
-      songId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}song_id'])!,
-      trackId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
-      position: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}position'])!,
-      updatedAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
-    );
-  }
-
-  @override
-  $UserPlaybackStatesTable createAlias(String alias) {
-    return $UserPlaybackStatesTable(attachedDatabase, alias);
-  }
-}
-
-class UserPlaybackState extends DataClass
-    implements Insertable<UserPlaybackState> {
-  /// Composite ID: userId_trackId
-  final String id;
-
-  /// ID of the user
-  final String userId;
-
-  /// ID of the song this playback state belongs to
-  final String songId;
-
-  /// ID of the track
-  final String trackId;
-
-  /// Last playback position in milliseconds
-  final int position;
-
-  /// When this playback state was last updated
-  final DateTime updatedAt;
-  const UserPlaybackState(
-      {required this.id,
-      required this.userId,
-      required this.songId,
-      required this.trackId,
-      required this.position,
-      required this.updatedAt});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['user_id'] = Variable<String>(userId);
-    map['song_id'] = Variable<String>(songId);
-    map['track_id'] = Variable<String>(trackId);
-    map['position'] = Variable<int>(position);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    return map;
-  }
-
-  UserPlaybackStatesCompanion toCompanion(bool nullToAbsent) {
-    return UserPlaybackStatesCompanion(
-      id: Value(id),
-      userId: Value(userId),
-      songId: Value(songId),
-      trackId: Value(trackId),
-      position: Value(position),
-      updatedAt: Value(updatedAt),
-    );
-  }
-
-  factory UserPlaybackState.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return UserPlaybackState(
-      id: serializer.fromJson<String>(json['id']),
-      userId: serializer.fromJson<String>(json['userId']),
-      songId: serializer.fromJson<String>(json['songId']),
-      trackId: serializer.fromJson<String>(json['trackId']),
-      position: serializer.fromJson<int>(json['position']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'userId': serializer.toJson<String>(userId),
-      'songId': serializer.toJson<String>(songId),
-      'trackId': serializer.toJson<String>(trackId),
-      'position': serializer.toJson<int>(position),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-    };
-  }
-
-  UserPlaybackState copyWith(
-          {String? id,
-          String? userId,
-          String? songId,
-          String? trackId,
-          int? position,
-          DateTime? updatedAt}) =>
-      UserPlaybackState(
-        id: id ?? this.id,
-        userId: userId ?? this.userId,
-        songId: songId ?? this.songId,
-        trackId: trackId ?? this.trackId,
-        position: position ?? this.position,
-        updatedAt: updatedAt ?? this.updatedAt,
-      );
-  UserPlaybackState copyWithCompanion(UserPlaybackStatesCompanion data) {
-    return UserPlaybackState(
-      id: data.id.present ? data.id.value : this.id,
-      userId: data.userId.present ? data.userId.value : this.userId,
-      songId: data.songId.present ? data.songId.value : this.songId,
-      trackId: data.trackId.present ? data.trackId.value : this.trackId,
-      position: data.position.present ? data.position.value : this.position,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('UserPlaybackState(')
-          ..write('id: $id, ')
-          ..write('userId: $userId, ')
-          ..write('songId: $songId, ')
-          ..write('trackId: $trackId, ')
-          ..write('position: $position, ')
-          ..write('updatedAt: $updatedAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(id, userId, songId, trackId, position, updatedAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is UserPlaybackState &&
-          other.id == this.id &&
-          other.userId == this.userId &&
-          other.songId == this.songId &&
-          other.trackId == this.trackId &&
-          other.position == this.position &&
-          other.updatedAt == this.updatedAt);
-}
-
-class UserPlaybackStatesCompanion extends UpdateCompanion<UserPlaybackState> {
-  final Value<String> id;
-  final Value<String> userId;
-  final Value<String> songId;
-  final Value<String> trackId;
-  final Value<int> position;
-  final Value<DateTime> updatedAt;
-  final Value<int> rowid;
-  const UserPlaybackStatesCompanion({
-    this.id = const Value.absent(),
-    this.userId = const Value.absent(),
-    this.songId = const Value.absent(),
-    this.trackId = const Value.absent(),
-    this.position = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  UserPlaybackStatesCompanion.insert({
-    required String id,
-    required String userId,
-    required String songId,
-    required String trackId,
-    required int position,
-    required DateTime updatedAt,
-    this.rowid = const Value.absent(),
-  })  : id = Value(id),
-        userId = Value(userId),
-        songId = Value(songId),
-        trackId = Value(trackId),
-        position = Value(position),
-        updatedAt = Value(updatedAt);
-  static Insertable<UserPlaybackState> custom({
-    Expression<String>? id,
-    Expression<String>? userId,
-    Expression<String>? songId,
-    Expression<String>? trackId,
-    Expression<int>? position,
-    Expression<DateTime>? updatedAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (userId != null) 'user_id': userId,
-      if (songId != null) 'song_id': songId,
-      if (trackId != null) 'track_id': trackId,
-      if (position != null) 'position': position,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  UserPlaybackStatesCompanion copyWith(
-      {Value<String>? id,
-      Value<String>? userId,
-      Value<String>? songId,
-      Value<String>? trackId,
-      Value<int>? position,
-      Value<DateTime>? updatedAt,
-      Value<int>? rowid}) {
-    return UserPlaybackStatesCompanion(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      songId: songId ?? this.songId,
-      trackId: trackId ?? this.trackId,
-      position: position ?? this.position,
-      updatedAt: updatedAt ?? this.updatedAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (userId.present) {
-      map['user_id'] = Variable<String>(userId.value);
-    }
-    if (songId.present) {
-      map['song_id'] = Variable<String>(songId.value);
-    }
-    if (trackId.present) {
-      map['track_id'] = Variable<String>(trackId.value);
-    }
-    if (position.present) {
-      map['position'] = Variable<int>(position.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('UserPlaybackStatesCompanion(')
-          ..write('id: $id, ')
-          ..write('userId: $userId, ')
-          ..write('songId: $songId, ')
-          ..write('trackId: $trackId, ')
-          ..write('position: $position, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $MarkerSetsTable extends MarkerSets
     with TableInfo<$MarkerSetsTable, MarkerSet> {
   @override
@@ -3062,6 +2786,12 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, Marker> {
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   static const VerificationMeta _deletedMeta =
       const VerificationMeta('deleted');
   @override
@@ -3089,6 +2819,7 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, Marker> {
         positionMs,
         displayOrder,
         createdAt,
+        updatedAt,
         deleted,
         synced
       ];
@@ -3143,6 +2874,12 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, Marker> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
     if (data.containsKey('deleted')) {
       context.handle(_deletedMeta,
           deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
@@ -3172,6 +2909,8 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, Marker> {
           .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
       synced: attachedDatabase.typeMapping
@@ -3204,6 +2943,9 @@ class Marker extends DataClass implements Insertable<Marker> {
   /// When this record was created
   final DateTime createdAt;
 
+  /// When this record was last updated (for sync)
+  final DateTime updatedAt;
+
   /// Soft delete flag (true = deleted, false = active)
   final bool deleted;
 
@@ -3216,6 +2958,7 @@ class Marker extends DataClass implements Insertable<Marker> {
       required this.positionMs,
       required this.displayOrder,
       required this.createdAt,
+      required this.updatedAt,
       required this.deleted,
       required this.synced});
   @override
@@ -3227,6 +2970,7 @@ class Marker extends DataClass implements Insertable<Marker> {
     map['position_ms'] = Variable<int>(positionMs);
     map['display_order'] = Variable<int>(displayOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
     map['deleted'] = Variable<bool>(deleted);
     map['synced'] = Variable<bool>(synced);
     return map;
@@ -3240,6 +2984,7 @@ class Marker extends DataClass implements Insertable<Marker> {
       positionMs: Value(positionMs),
       displayOrder: Value(displayOrder),
       createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
       deleted: Value(deleted),
       synced: Value(synced),
     );
@@ -3255,6 +3000,7 @@ class Marker extends DataClass implements Insertable<Marker> {
       positionMs: serializer.fromJson<int>(json['positionMs']),
       displayOrder: serializer.fromJson<int>(json['displayOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deleted: serializer.fromJson<bool>(json['deleted']),
       synced: serializer.fromJson<bool>(json['synced']),
     );
@@ -3269,6 +3015,7 @@ class Marker extends DataClass implements Insertable<Marker> {
       'positionMs': serializer.toJson<int>(positionMs),
       'displayOrder': serializer.toJson<int>(displayOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deleted': serializer.toJson<bool>(deleted),
       'synced': serializer.toJson<bool>(synced),
     };
@@ -3281,6 +3028,7 @@ class Marker extends DataClass implements Insertable<Marker> {
           int? positionMs,
           int? displayOrder,
           DateTime? createdAt,
+          DateTime? updatedAt,
           bool? deleted,
           bool? synced}) =>
       Marker(
@@ -3290,6 +3038,7 @@ class Marker extends DataClass implements Insertable<Marker> {
         positionMs: positionMs ?? this.positionMs,
         displayOrder: displayOrder ?? this.displayOrder,
         createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
         deleted: deleted ?? this.deleted,
         synced: synced ?? this.synced,
       );
@@ -3305,6 +3054,7 @@ class Marker extends DataClass implements Insertable<Marker> {
           ? data.displayOrder.value
           : this.displayOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
       synced: data.synced.present ? data.synced.value : this.synced,
     );
@@ -3319,6 +3069,7 @@ class Marker extends DataClass implements Insertable<Marker> {
           ..write('positionMs: $positionMs, ')
           ..write('displayOrder: $displayOrder, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
           ..write('synced: $synced')
           ..write(')'))
@@ -3327,7 +3078,7 @@ class Marker extends DataClass implements Insertable<Marker> {
 
   @override
   int get hashCode => Object.hash(id, markerSetId, label, positionMs,
-      displayOrder, createdAt, deleted, synced);
+      displayOrder, createdAt, updatedAt, deleted, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3338,6 +3089,7 @@ class Marker extends DataClass implements Insertable<Marker> {
           other.positionMs == this.positionMs &&
           other.displayOrder == this.displayOrder &&
           other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
           other.deleted == this.deleted &&
           other.synced == this.synced);
 }
@@ -3349,6 +3101,7 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
   final Value<int> positionMs;
   final Value<int> displayOrder;
   final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
   final Value<bool> deleted;
   final Value<bool> synced;
   final Value<int> rowid;
@@ -3359,6 +3112,7 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
     this.positionMs = const Value.absent(),
     this.displayOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3370,6 +3124,7 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
     required int positionMs,
     required int displayOrder,
     required DateTime createdAt,
+    required DateTime updatedAt,
     this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3378,7 +3133,8 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
         label = Value(label),
         positionMs = Value(positionMs),
         displayOrder = Value(displayOrder),
-        createdAt = Value(createdAt);
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
   static Insertable<Marker> custom({
     Expression<String>? id,
     Expression<String>? markerSetId,
@@ -3386,6 +3142,7 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
     Expression<int>? positionMs,
     Expression<int>? displayOrder,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
     Expression<bool>? deleted,
     Expression<bool>? synced,
     Expression<int>? rowid,
@@ -3397,6 +3154,7 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
       if (positionMs != null) 'position_ms': positionMs,
       if (displayOrder != null) 'display_order': displayOrder,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (deleted != null) 'deleted': deleted,
       if (synced != null) 'synced': synced,
       if (rowid != null) 'rowid': rowid,
@@ -3410,6 +3168,7 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
       Value<int>? positionMs,
       Value<int>? displayOrder,
       Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
       Value<bool>? deleted,
       Value<bool>? synced,
       Value<int>? rowid}) {
@@ -3420,6 +3179,7 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
       positionMs: positionMs ?? this.positionMs,
       displayOrder: displayOrder ?? this.displayOrder,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
       synced: synced ?? this.synced,
       rowid: rowid ?? this.rowid,
@@ -3447,6 +3207,9 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
@@ -3468,6 +3231,7 @@ class MarkersCompanion extends UpdateCompanion<Marker> {
           ..write('positionMs: $positionMs, ')
           ..write('displayOrder: $displayOrder, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
           ..write('synced: $synced, ')
           ..write('rowid: $rowid')
@@ -3504,6 +3268,12 @@ class $FavoriteTracksTable extends FavoriteTracks
   late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
       'added_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   static const VerificationMeta _deletedMeta =
       const VerificationMeta('deleted');
   @override
@@ -3525,7 +3295,7 @@ class $FavoriteTracksTable extends FavoriteTracks
       defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns =>
-      [userId, trackId, songId, addedAt, deleted, synced];
+      [userId, trackId, songId, addedAt, updatedAt, deleted, synced];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3560,6 +3330,12 @@ class $FavoriteTracksTable extends FavoriteTracks
     } else if (isInserting) {
       context.missing(_addedAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
     if (data.containsKey('deleted')) {
       context.handle(_deletedMeta,
           deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
@@ -3585,6 +3361,8 @@ class $FavoriteTracksTable extends FavoriteTracks
           .read(DriftSqlType.string, data['${effectivePrefix}song_id'])!,
       addedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}added_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
       synced: attachedDatabase.typeMapping
@@ -3611,6 +3389,9 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
   /// When this track was added to favorites
   final DateTime addedAt;
 
+  /// When this record was last updated (for sync)
+  final DateTime updatedAt;
+
   /// Soft delete flag (true = deleted, false = active)
   final bool deleted;
 
@@ -3621,6 +3402,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       required this.trackId,
       required this.songId,
       required this.addedAt,
+      required this.updatedAt,
       required this.deleted,
       required this.synced});
   @override
@@ -3630,6 +3412,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
     map['track_id'] = Variable<String>(trackId);
     map['song_id'] = Variable<String>(songId);
     map['added_at'] = Variable<DateTime>(addedAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
     map['deleted'] = Variable<bool>(deleted);
     map['synced'] = Variable<bool>(synced);
     return map;
@@ -3641,6 +3424,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       trackId: Value(trackId),
       songId: Value(songId),
       addedAt: Value(addedAt),
+      updatedAt: Value(updatedAt),
       deleted: Value(deleted),
       synced: Value(synced),
     );
@@ -3654,6 +3438,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       trackId: serializer.fromJson<String>(json['trackId']),
       songId: serializer.fromJson<String>(json['songId']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deleted: serializer.fromJson<bool>(json['deleted']),
       synced: serializer.fromJson<bool>(json['synced']),
     );
@@ -3666,6 +3451,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       'trackId': serializer.toJson<String>(trackId),
       'songId': serializer.toJson<String>(songId),
       'addedAt': serializer.toJson<DateTime>(addedAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deleted': serializer.toJson<bool>(deleted),
       'synced': serializer.toJson<bool>(synced),
     };
@@ -3676,6 +3462,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
           String? trackId,
           String? songId,
           DateTime? addedAt,
+          DateTime? updatedAt,
           bool? deleted,
           bool? synced}) =>
       FavoriteTrack(
@@ -3683,6 +3470,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
         trackId: trackId ?? this.trackId,
         songId: songId ?? this.songId,
         addedAt: addedAt ?? this.addedAt,
+        updatedAt: updatedAt ?? this.updatedAt,
         deleted: deleted ?? this.deleted,
         synced: synced ?? this.synced,
       );
@@ -3692,6 +3480,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
       trackId: data.trackId.present ? data.trackId.value : this.trackId,
       songId: data.songId.present ? data.songId.value : this.songId,
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
       synced: data.synced.present ? data.synced.value : this.synced,
     );
@@ -3704,6 +3493,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
           ..write('trackId: $trackId, ')
           ..write('songId: $songId, ')
           ..write('addedAt: $addedAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
           ..write('synced: $synced')
           ..write(')'))
@@ -3712,7 +3502,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
 
   @override
   int get hashCode =>
-      Object.hash(userId, trackId, songId, addedAt, deleted, synced);
+      Object.hash(userId, trackId, songId, addedAt, updatedAt, deleted, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3721,6 +3511,7 @@ class FavoriteTrack extends DataClass implements Insertable<FavoriteTrack> {
           other.trackId == this.trackId &&
           other.songId == this.songId &&
           other.addedAt == this.addedAt &&
+          other.updatedAt == this.updatedAt &&
           other.deleted == this.deleted &&
           other.synced == this.synced);
 }
@@ -3730,6 +3521,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
   final Value<String> trackId;
   final Value<String> songId;
   final Value<DateTime> addedAt;
+  final Value<DateTime> updatedAt;
   final Value<bool> deleted;
   final Value<bool> synced;
   final Value<int> rowid;
@@ -3738,6 +3530,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
     this.trackId = const Value.absent(),
     this.songId = const Value.absent(),
     this.addedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3747,18 +3540,21 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
     required String trackId,
     required String songId,
     required DateTime addedAt,
+    required DateTime updatedAt,
     this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : userId = Value(userId),
         trackId = Value(trackId),
         songId = Value(songId),
-        addedAt = Value(addedAt);
+        addedAt = Value(addedAt),
+        updatedAt = Value(updatedAt);
   static Insertable<FavoriteTrack> custom({
     Expression<String>? userId,
     Expression<String>? trackId,
     Expression<String>? songId,
     Expression<DateTime>? addedAt,
+    Expression<DateTime>? updatedAt,
     Expression<bool>? deleted,
     Expression<bool>? synced,
     Expression<int>? rowid,
@@ -3768,6 +3564,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
       if (trackId != null) 'track_id': trackId,
       if (songId != null) 'song_id': songId,
       if (addedAt != null) 'added_at': addedAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (deleted != null) 'deleted': deleted,
       if (synced != null) 'synced': synced,
       if (rowid != null) 'rowid': rowid,
@@ -3779,6 +3576,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
       Value<String>? trackId,
       Value<String>? songId,
       Value<DateTime>? addedAt,
+      Value<DateTime>? updatedAt,
       Value<bool>? deleted,
       Value<bool>? synced,
       Value<int>? rowid}) {
@@ -3787,6 +3585,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
       trackId: trackId ?? this.trackId,
       songId: songId ?? this.songId,
       addedAt: addedAt ?? this.addedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
       synced: synced ?? this.synced,
       rowid: rowid ?? this.rowid,
@@ -3808,6 +3607,9 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
     if (addedAt.present) {
       map['added_at'] = Variable<DateTime>(addedAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
@@ -3827,6 +3629,7 @@ class FavoriteTracksCompanion extends UpdateCompanion<FavoriteTrack> {
           ..write('trackId: $trackId, ')
           ..write('songId: $songId, ')
           ..write('addedAt: $addedAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
           ..write('synced: $synced, ')
           ..write('rowid: $rowid')
@@ -3843,8 +3646,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ConcertsTable concerts = $ConcertsTable(this);
   late final $SongsTable songs = $SongsTable(this);
   late final $TracksTable tracks = $TracksTable(this);
-  late final $UserPlaybackStatesTable userPlaybackStates =
-      $UserPlaybackStatesTable(this);
   late final $MarkerSetsTable markerSets = $MarkerSetsTable(this);
   late final $MarkersTable markers = $MarkersTable(this);
   late final $FavoriteTracksTable favoriteTracks = $FavoriteTracksTable(this);
@@ -3858,7 +3659,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         concerts,
         songs,
         tracks,
-        userPlaybackStates,
         markerSets,
         markers,
         favoriteTracks
@@ -4065,6 +3865,8 @@ typedef $$ChoirMembersTableCreateCompanionBuilder = ChoirMembersCompanion
   required String choirId,
   required String userId,
   required DateTime joinedAt,
+  required DateTime updatedAt,
+  Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
 });
@@ -4073,6 +3875,8 @@ typedef $$ChoirMembersTableUpdateCompanionBuilder = ChoirMembersCompanion
   Value<String> choirId,
   Value<String> userId,
   Value<DateTime> joinedAt,
+  Value<DateTime> updatedAt,
+  Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
 });
@@ -4094,6 +3898,12 @@ class $$ChoirMembersTableFilterComposer
 
   ColumnFilters<DateTime> get joinedAt => $composableBuilder(
       column: $table.joinedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get synced => $composableBuilder(
       column: $table.synced, builder: (column) => ColumnFilters(column));
@@ -4117,6 +3927,12 @@ class $$ChoirMembersTableOrderingComposer
   ColumnOrderings<DateTime> get joinedAt => $composableBuilder(
       column: $table.joinedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+      column: $table.deleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get synced => $composableBuilder(
       column: $table.synced, builder: (column) => ColumnOrderings(column));
 }
@@ -4138,6 +3954,12 @@ class $$ChoirMembersTableAnnotationComposer
 
   GeneratedColumn<DateTime> get joinedAt =>
       $composableBuilder(column: $table.joinedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   GeneratedColumn<bool> get synced =>
       $composableBuilder(column: $table.synced, builder: (column) => column);
@@ -4172,6 +3994,8 @@ class $$ChoirMembersTableTableManager extends RootTableManager<
             Value<String> choirId = const Value.absent(),
             Value<String> userId = const Value.absent(),
             Value<DateTime> joinedAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -4179,6 +4003,8 @@ class $$ChoirMembersTableTableManager extends RootTableManager<
             choirId: choirId,
             userId: userId,
             joinedAt: joinedAt,
+            updatedAt: updatedAt,
+            deleted: deleted,
             synced: synced,
             rowid: rowid,
           ),
@@ -4186,6 +4012,8 @@ class $$ChoirMembersTableTableManager extends RootTableManager<
             required String choirId,
             required String userId,
             required DateTime joinedAt,
+            required DateTime updatedAt,
+            Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -4193,6 +4021,8 @@ class $$ChoirMembersTableTableManager extends RootTableManager<
             choirId: choirId,
             userId: userId,
             joinedAt: joinedAt,
+            updatedAt: updatedAt,
+            deleted: deleted,
             synced: synced,
             rowid: rowid,
           ),
@@ -4892,196 +4722,6 @@ typedef $$TracksTableProcessedTableManager = ProcessedTableManager<
     (Track, BaseReferences<_$AppDatabase, $TracksTable, Track>),
     Track,
     PrefetchHooks Function()>;
-typedef $$UserPlaybackStatesTableCreateCompanionBuilder
-    = UserPlaybackStatesCompanion Function({
-  required String id,
-  required String userId,
-  required String songId,
-  required String trackId,
-  required int position,
-  required DateTime updatedAt,
-  Value<int> rowid,
-});
-typedef $$UserPlaybackStatesTableUpdateCompanionBuilder
-    = UserPlaybackStatesCompanion Function({
-  Value<String> id,
-  Value<String> userId,
-  Value<String> songId,
-  Value<String> trackId,
-  Value<int> position,
-  Value<DateTime> updatedAt,
-  Value<int> rowid,
-});
-
-class $$UserPlaybackStatesTableFilterComposer
-    extends Composer<_$AppDatabase, $UserPlaybackStatesTable> {
-  $$UserPlaybackStatesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get userId => $composableBuilder(
-      column: $table.userId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get songId => $composableBuilder(
-      column: $table.songId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get trackId => $composableBuilder(
-      column: $table.trackId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get position => $composableBuilder(
-      column: $table.position, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
-}
-
-class $$UserPlaybackStatesTableOrderingComposer
-    extends Composer<_$AppDatabase, $UserPlaybackStatesTable> {
-  $$UserPlaybackStatesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get userId => $composableBuilder(
-      column: $table.userId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get songId => $composableBuilder(
-      column: $table.songId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get trackId => $composableBuilder(
-      column: $table.trackId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get position => $composableBuilder(
-      column: $table.position, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
-}
-
-class $$UserPlaybackStatesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $UserPlaybackStatesTable> {
-  $$UserPlaybackStatesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get userId =>
-      $composableBuilder(column: $table.userId, builder: (column) => column);
-
-  GeneratedColumn<String> get songId =>
-      $composableBuilder(column: $table.songId, builder: (column) => column);
-
-  GeneratedColumn<String> get trackId =>
-      $composableBuilder(column: $table.trackId, builder: (column) => column);
-
-  GeneratedColumn<int> get position =>
-      $composableBuilder(column: $table.position, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-}
-
-class $$UserPlaybackStatesTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $UserPlaybackStatesTable,
-    UserPlaybackState,
-    $$UserPlaybackStatesTableFilterComposer,
-    $$UserPlaybackStatesTableOrderingComposer,
-    $$UserPlaybackStatesTableAnnotationComposer,
-    $$UserPlaybackStatesTableCreateCompanionBuilder,
-    $$UserPlaybackStatesTableUpdateCompanionBuilder,
-    (
-      UserPlaybackState,
-      BaseReferences<_$AppDatabase, $UserPlaybackStatesTable, UserPlaybackState>
-    ),
-    UserPlaybackState,
-    PrefetchHooks Function()> {
-  $$UserPlaybackStatesTableTableManager(
-      _$AppDatabase db, $UserPlaybackStatesTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$UserPlaybackStatesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$UserPlaybackStatesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$UserPlaybackStatesTableAnnotationComposer(
-                  $db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String> userId = const Value.absent(),
-            Value<String> songId = const Value.absent(),
-            Value<String> trackId = const Value.absent(),
-            Value<int> position = const Value.absent(),
-            Value<DateTime> updatedAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              UserPlaybackStatesCompanion(
-            id: id,
-            userId: userId,
-            songId: songId,
-            trackId: trackId,
-            position: position,
-            updatedAt: updatedAt,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String id,
-            required String userId,
-            required String songId,
-            required String trackId,
-            required int position,
-            required DateTime updatedAt,
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              UserPlaybackStatesCompanion.insert(
-            id: id,
-            userId: userId,
-            songId: songId,
-            trackId: trackId,
-            position: position,
-            updatedAt: updatedAt,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$UserPlaybackStatesTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $UserPlaybackStatesTable,
-    UserPlaybackState,
-    $$UserPlaybackStatesTableFilterComposer,
-    $$UserPlaybackStatesTableOrderingComposer,
-    $$UserPlaybackStatesTableAnnotationComposer,
-    $$UserPlaybackStatesTableCreateCompanionBuilder,
-    $$UserPlaybackStatesTableUpdateCompanionBuilder,
-    (
-      UserPlaybackState,
-      BaseReferences<_$AppDatabase, $UserPlaybackStatesTable, UserPlaybackState>
-    ),
-    UserPlaybackState,
-    PrefetchHooks Function()>;
 typedef $$MarkerSetsTableCreateCompanionBuilder = MarkerSetsCompanion Function({
   required String id,
   required String trackId,
@@ -5332,6 +4972,7 @@ typedef $$MarkersTableCreateCompanionBuilder = MarkersCompanion Function({
   required int positionMs,
   required int displayOrder,
   required DateTime createdAt,
+  required DateTime updatedAt,
   Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
@@ -5343,6 +4984,7 @@ typedef $$MarkersTableUpdateCompanionBuilder = MarkersCompanion Function({
   Value<int> positionMs,
   Value<int> displayOrder,
   Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
   Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
@@ -5374,6 +5016,9 @@ class $$MarkersTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get deleted => $composableBuilder(
       column: $table.deleted, builder: (column) => ColumnFilters(column));
@@ -5410,6 +5055,9 @@ class $$MarkersTableOrderingComposer
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get deleted => $composableBuilder(
       column: $table.deleted, builder: (column) => ColumnOrderings(column));
 
@@ -5443,6 +5091,9 @@ class $$MarkersTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
@@ -5480,6 +5131,7 @@ class $$MarkersTableTableManager extends RootTableManager<
             Value<int> positionMs = const Value.absent(),
             Value<int> displayOrder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
             Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -5491,6 +5143,7 @@ class $$MarkersTableTableManager extends RootTableManager<
             positionMs: positionMs,
             displayOrder: displayOrder,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             deleted: deleted,
             synced: synced,
             rowid: rowid,
@@ -5502,6 +5155,7 @@ class $$MarkersTableTableManager extends RootTableManager<
             required int positionMs,
             required int displayOrder,
             required DateTime createdAt,
+            required DateTime updatedAt,
             Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -5513,6 +5167,7 @@ class $$MarkersTableTableManager extends RootTableManager<
             positionMs: positionMs,
             displayOrder: displayOrder,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             deleted: deleted,
             synced: synced,
             rowid: rowid,
@@ -5542,6 +5197,7 @@ typedef $$FavoriteTracksTableCreateCompanionBuilder = FavoriteTracksCompanion
   required String trackId,
   required String songId,
   required DateTime addedAt,
+  required DateTime updatedAt,
   Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
@@ -5552,6 +5208,7 @@ typedef $$FavoriteTracksTableUpdateCompanionBuilder = FavoriteTracksCompanion
   Value<String> trackId,
   Value<String> songId,
   Value<DateTime> addedAt,
+  Value<DateTime> updatedAt,
   Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
@@ -5577,6 +5234,9 @@ class $$FavoriteTracksTableFilterComposer
 
   ColumnFilters<DateTime> get addedAt => $composableBuilder(
       column: $table.addedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get deleted => $composableBuilder(
       column: $table.deleted, builder: (column) => ColumnFilters(column));
@@ -5606,6 +5266,9 @@ class $$FavoriteTracksTableOrderingComposer
   ColumnOrderings<DateTime> get addedAt => $composableBuilder(
       column: $table.addedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get deleted => $composableBuilder(
       column: $table.deleted, builder: (column) => ColumnOrderings(column));
 
@@ -5633,6 +5296,9 @@ class $$FavoriteTracksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get addedAt =>
       $composableBuilder(column: $table.addedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
@@ -5672,6 +5338,7 @@ class $$FavoriteTracksTableTableManager extends RootTableManager<
             Value<String> trackId = const Value.absent(),
             Value<String> songId = const Value.absent(),
             Value<DateTime> addedAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
             Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -5681,6 +5348,7 @@ class $$FavoriteTracksTableTableManager extends RootTableManager<
             trackId: trackId,
             songId: songId,
             addedAt: addedAt,
+            updatedAt: updatedAt,
             deleted: deleted,
             synced: synced,
             rowid: rowid,
@@ -5690,6 +5358,7 @@ class $$FavoriteTracksTableTableManager extends RootTableManager<
             required String trackId,
             required String songId,
             required DateTime addedAt,
+            required DateTime updatedAt,
             Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -5699,6 +5368,7 @@ class $$FavoriteTracksTableTableManager extends RootTableManager<
             trackId: trackId,
             songId: songId,
             addedAt: addedAt,
+            updatedAt: updatedAt,
             deleted: deleted,
             synced: synced,
             rowid: rowid,
@@ -5739,8 +5409,6 @@ class $AppDatabaseManager {
       $$SongsTableTableManager(_db, _db.songs);
   $$TracksTableTableManager get tracks =>
       $$TracksTableTableManager(_db, _db.tracks);
-  $$UserPlaybackStatesTableTableManager get userPlaybackStates =>
-      $$UserPlaybackStatesTableTableManager(_db, _db.userPlaybackStates);
   $$MarkerSetsTableTableManager get markerSets =>
       $$MarkerSetsTableTableManager(_db, _db.markerSets);
   $$MarkersTableTableManager get markers =>

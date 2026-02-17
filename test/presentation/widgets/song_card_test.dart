@@ -12,7 +12,7 @@ void main() {
         concertId: 'concert1',
         title: 'Ave Verum Corpus',
         createdAt: DateTime(2024, 12, 1),
-        updatedAt: DateTime(2024, 12, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -37,7 +37,7 @@ void main() {
         concertId: 'concert1',
         title: 'Test Song',
         createdAt: DateTime(2024, 12, 1),
-        updatedAt: DateTime(2024, 12, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -66,7 +66,7 @@ void main() {
         concertId: 'concert1',
         title: 'Test Song',
         createdAt: DateTime(2024, 12, 1),
-        updatedAt: DateTime(2024, 12, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -90,7 +90,7 @@ void main() {
         concertId: 'concert1',
         title: 'Test Song',
         createdAt: DateTime(2024, 12, 1),
-        updatedAt: DateTime(2024, 12, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -119,7 +119,7 @@ void main() {
         concertId: 'concert1',
         title: 'Recent Song',
         createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -142,7 +142,7 @@ void main() {
         concertId: 'concert1',
         title: 'Yesterday Song',
         createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -165,7 +165,7 @@ void main() {
         concertId: 'concert1',
         title: 'Old Song',
         createdAt: DateTime.now().subtract(const Duration(days: 5)),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -188,7 +188,7 @@ void main() {
         concertId: 'concert1',
         title: 'This Is A Very Long Song Title That Should Be Truncated',
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act

@@ -49,6 +49,7 @@ void main() {
         final mockRepository = MockTrackRepository();
         final tracks = [
           Track(id: 't1', songId: 's1', name: 'Track 1', createdAt: DateTime.now(), updatedAt: DateTime.now()),
+        updatedAt: DateTime(2024, 1, 1),
         ];
         when(mockRepository.getTracksBySong('s1'))
             .thenAnswer((_) async => tracks);
@@ -82,6 +83,7 @@ void main() {
       test('returns a track on success', () async {
         final mockRepository = MockTrackRepository();
         final track = Track(id: 't1', songId: 's1', name: 'Track 1', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
         when(mockRepository.getTrackById('t1'))
             .thenAnswer((_) async => track);
 

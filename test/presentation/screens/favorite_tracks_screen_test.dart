@@ -37,6 +37,7 @@ void main() {
         name: 'City Choir',
         ownerId: 'user-1',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       testChoir2 = Choir(
@@ -44,6 +45,7 @@ void main() {
         name: 'Community Choir',
         ownerId: 'user-1',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Create concerts
@@ -54,6 +56,7 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2024, 3, 15),
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       testConcert2 = Concert(
@@ -63,6 +66,7 @@ void main() {
         name: 'Winter Concert',
         concertDate: DateTime(2024, 12, 15),
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Create songs
@@ -95,7 +99,7 @@ void main() {
             durationMs: 180000,
             filePath: null,
             createdAt: DateTime(2024, 1, 1),
-            updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
           ),
         ),
         FavoriteTrack(
@@ -109,7 +113,7 @@ void main() {
             durationMs: 240000,
             filePath: null,
             createdAt: DateTime(2024, 1, 1),
-            updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
           ),
         ),
       ];

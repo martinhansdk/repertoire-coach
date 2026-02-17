@@ -9,11 +9,16 @@ import '../datasources/local/database.dart' as db;
 /// Handles conversions between domain entities, Drift database records,
 /// and future JSON for Supabase integration.
 class ChoirModel extends Choir {
+  /// Whether this choir has been soft-deleted (for sync tracking)
+  final bool deleted;
+
   const ChoirModel({
     required super.id,
     required super.name,
     required super.ownerId,
     required super.createdAt,
+    required super.updatedAt,
+    this.deleted = false,
   });
 
   /// Create a ChoirModel from a domain Choir entity
@@ -23,6 +28,8 @@ class ChoirModel extends Choir {
       name: choir.name,
       ownerId: choir.ownerId,
       createdAt: choir.createdAt,
+      updatedAt: choir.updatedAt,
+      deleted: false, // Domain entities are never deleted
     );
   }
 
@@ -33,6 +40,7 @@ class ChoirModel extends Choir {
       name: name,
       ownerId: ownerId,
       createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 
@@ -43,6 +51,8 @@ class ChoirModel extends Choir {
       name: driftChoir.name,
       ownerId: driftChoir.ownerId,
       createdAt: driftChoir.createdAt,
+      updatedAt: driftChoir.updatedAt,
+      deleted: driftChoir.deleted,
     );
   }
 
@@ -53,13 +63,11 @@ class ChoirModel extends Choir {
       name: Value(name),
       ownerId: Value(ownerId),
       createdAt: Value(createdAt),
-      updatedAt: Value(DateTime.now().toUtc()),
-      deleted: const Value(false),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }
-
-  // Future: Add fromJson and toJson methods for Supabase
 
   factory ChoirModel.fromJson(Map<String, dynamic> json) {
     return ChoirModel(
@@ -67,6 +75,7 @@ class ChoirModel extends Choir {
       name: json['name'],
       ownerId: json['owner_id'],
       createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 
@@ -76,6 +85,7 @@ class ChoirModel extends Choir {
       'name': name,
       'owner_id': ownerId,
       'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 }

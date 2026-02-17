@@ -9,6 +9,9 @@ import '../datasources/local/database.dart' as db;
 /// Handles conversions between domain entities, Drift database records,
 /// and future JSON for Supabase integration.
 class MarkerModel extends Marker {
+  /// Whether this marker has been soft-deleted (for sync tracking)
+  final bool deleted;
+
   const MarkerModel({
     required super.id,
     required super.markerSetId,
@@ -16,6 +19,8 @@ class MarkerModel extends Marker {
     required super.positionMs,
     required super.order,
     required super.createdAt,
+    required super.updatedAt,
+    this.deleted = false,
   });
 
   /// Create a MarkerModel from a domain Marker entity
@@ -27,6 +32,7 @@ class MarkerModel extends Marker {
       positionMs: marker.positionMs,
       order: marker.order,
       createdAt: marker.createdAt,
+      updatedAt: marker.updatedAt,
     );
   }
 
@@ -39,6 +45,7 @@ class MarkerModel extends Marker {
       positionMs: positionMs,
       order: order,
       createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 
@@ -51,6 +58,8 @@ class MarkerModel extends Marker {
       positionMs: driftMarker.positionMs,
       order: driftMarker.displayOrder, // Map displayOrder to order
       createdAt: driftMarker.createdAt,
+      updatedAt: driftMarker.updatedAt,
+      deleted: driftMarker.deleted,
     );
   }
 
@@ -63,7 +72,8 @@ class MarkerModel extends Marker {
       positionMs: Value(positionMs),
       displayOrder: Value(order), // Map order to displayOrder
       createdAt: Value(createdAt),
-      deleted: const Value(false),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }
@@ -77,6 +87,7 @@ class MarkerModel extends Marker {
       positionMs: json['position_ms'],
       order: json['display_order'],
       createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 
@@ -89,6 +100,7 @@ class MarkerModel extends Marker {
       'position_ms': positionMs,
       'display_order': order,
       'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 }

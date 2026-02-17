@@ -235,7 +235,7 @@ void main() {
         isTimeSynced: true,
         createdByUserId: 'local-user-1',
         createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        updatedAt: DateTime.now().subtract(const Duration(days: 1)),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       testWidgets('should display edit dialog with existing data', (tester) async {
@@ -271,7 +271,7 @@ void main() {
           isTimeSynced: true,
           createdByUserId: 'local-user-1',
           createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await tester.pumpWidget(createWidgetUnderTest(markerSet: sharedMarkerSet));
@@ -458,7 +458,7 @@ void main() {
           isTimeSynced: true,
           createdByUserId: 'local-user-1',
           createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         // Close database to cause error

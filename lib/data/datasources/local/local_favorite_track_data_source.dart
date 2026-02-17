@@ -284,4 +284,47 @@ class LocalFavoriteTrackDataSource {
           ..where((f) => f.deleted.equals(false)))
         .go();
   }
+
+  /// Get all synced favorites as a map (trackId -> FavoriteTrackModel)
+  ///
+  /// Used during pull phase to avoid re-pulling items already up-to-date.
+  /// Map keys are track IDs (the syncId for favorites).
+  Future<Map<String, FavoriteTrackModel>> getSyncedFavorites(
+      String userId) async {
+    final query = _database.select(_database.favoriteTracks).join([
+      innerJoin(
+        _database.tracks,
+        _database.tracks.id.equalsExp(_database.favoriteTracks.trackId),
+      ),
+    ])
+      ..where(_database.favoriteTracks.userId.equals(userId))
+      ..where(_database.favoriteTracks.synced.equals(true));
+
+    final rows = await query.get();
+    final favorites = rows.map((row) {
+      final favorite = row.readTable(_database.favoriteTracks);
+      final trackRow = row.readTable(_database.tracks);
+
+      final track = Track(
+        id: trackRow.id,
+        songId: trackRow.songId,
+        name: trackRow.name,
+        audioUrl: trackRow.audioUrl,
+        storagePath: trackRow.storagePath,
+        durationMs: trackRow.durationMs,
+        filePath: trackRow.filePath,
+        createdAt: trackRow.createdAt,
+        updatedAt: trackRow.updatedAt,
+      );
+
+      return FavoriteTrackModel.fromDrift(
+        driftFavorite: favorite,
+        track: track,
+      );
+    }).toList();
+
+    return Map.fromEntries(
+      favorites.map((f) => MapEntry(f.track.id, f)),
+    );
+  }
 }

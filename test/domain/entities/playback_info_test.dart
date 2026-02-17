@@ -12,7 +12,7 @@ void main() {
       name: 'Soprano Part',
       filePath: '/path/to/audio.mp3',
       createdAt: now,
-      updatedAt: now,
+        updatedAt: now,
     );
 
     test('should create PlaybackInfo with all fields', () {

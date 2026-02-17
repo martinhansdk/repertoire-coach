@@ -55,6 +55,7 @@ void main() {
         final mockRepository = MockChoirRepository();
         final choirs = [
           Choir(id: 'c1', name: 'Choir 1', ownerId: 'u1', createdAt: DateTime.now()),
+        updatedAt: DateTime(2024, 1, 1),
         ];
         when(mockRepository.getChoirs('user1'))
             .thenAnswer((_) async => choirs);
@@ -91,6 +92,7 @@ void main() {
       test('returns a choir on success', () async {
         final mockRepository = MockChoirRepository();
         final choir = Choir(id: 'c1', name: 'Choir 1', ownerId: 'u1', createdAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
         when(mockRepository.getChoirById('c1'))
             .thenAnswer((_) async => choir);
 

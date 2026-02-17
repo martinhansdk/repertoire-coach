@@ -26,7 +26,9 @@ void main() {
   late MockSupabaseService mockSupabaseService;
 
   final tTrack1 = Track(id: 't1', songId: 's1', name: 'Track 1', filePath: '/path/to/track1.mp3', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
   final tTrack2 = Track(id: 't2', songId: 's1', name: 'Track 2', filePath: '/path/to/track2.mp3', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
 
   setUp(() {
     mockAudioPlayerRepository = MockAudioPlayerRepository();
@@ -155,7 +157,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'local-user-1',
       createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     await tester.pumpWidget(
@@ -184,7 +186,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'local-user-1',
       createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     await tester.pumpWidget(
@@ -295,7 +297,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'local-user-1',
       createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
     );
     final marker1 = Marker(
       id: 'm1',
@@ -304,6 +306,7 @@ void main() {
       positionMs: 1000,
       order: 1000,
       createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     await tester.pumpWidget(

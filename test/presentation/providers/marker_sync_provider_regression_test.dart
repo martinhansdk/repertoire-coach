@@ -99,7 +99,7 @@ void main() {
             isTimeSynced: true,
             createdByUserId: 'owner-user',
             createdAt: now,
-            updatedAt: now,
+        updatedAt: now,
           ),
         );
 
@@ -111,6 +111,7 @@ void main() {
             positionMs: 1000,
             order: 0,
             createdAt: now,
+        updatedAt: now,
           ),
         );
         await repository.createMarker(
@@ -121,6 +122,7 @@ void main() {
             positionMs: 2000,
             order: 1,
             createdAt: now,
+        updatedAt: now,
           ),
         );
         await repository.createMarker(
@@ -131,6 +133,7 @@ void main() {
             positionMs: 3000,
             order: 2,
             createdAt: now,
+        updatedAt: now,
           ),
         );
 
@@ -158,6 +161,7 @@ void main() {
             positionMs: 1000,
             order: 0,
             createdAt: now,
+        updatedAt: now,
           ),
           markForSync: false,
         );
@@ -169,6 +173,7 @@ void main() {
             positionMs: 2000,
             order: 1,
             createdAt: now,
+        updatedAt: now,
           ),
           markForSync: false,
         );
@@ -180,6 +185,7 @@ void main() {
             positionMs: 3000,
             order: 2,
             createdAt: now,
+        updatedAt: now,
           ),
           markForSync: false,
         );

@@ -94,12 +94,14 @@ void main() {
           name: 'Choir 1',
           ownerId: 'u1',
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
         Choir(
           id: 'c2',
           name: 'Choir 2',
           ownerId: 'u1',
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
       ];
 
@@ -190,6 +192,7 @@ void main() {
         name: 'Test Choir',
         ownerId: 'u1',
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       await tester.pumpWidget(
@@ -273,6 +276,7 @@ void main() {
                 name: 'Choir $loadCount',
                 ownerId: 'u1',
                 createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
               ),
             ]);
           }),
@@ -322,6 +326,7 @@ void main() {
           name: 'Choir $index',
           ownerId: 'u1',
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
       );
 

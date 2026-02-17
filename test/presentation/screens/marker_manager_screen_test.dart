@@ -212,7 +212,7 @@ void main() {
         isTimeSynced: true,
         createdByUserId: testUserId,
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final testMarkerSet2 = MarkerSet(
@@ -223,7 +223,7 @@ void main() {
         isTimeSynced: true,
         createdByUserId: testUserId,
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       testWidgets('should display marker sets in a list', (tester) async {
@@ -248,7 +248,7 @@ void main() {
           isTimeSynced: false,
           createdByUserId: userId,
           createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await tester.pumpWidget(createWidgetUnderTest(
@@ -305,7 +305,7 @@ void main() {
         isTimeSynced: true,
         createdByUserId: testUserId,
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // SKIP: PopupMenuButton not found in widget tree despite ExpansionTile rendering correctly.
@@ -419,7 +419,7 @@ void main() {
         isTimeSynced: true,
         createdByUserId: testUserId,
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       testWidgets('should show empty markers state when marker set has no markers', (tester) async {
@@ -462,6 +462,7 @@ void main() {
           positionMs: 0,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         final marker2 = Marker(
@@ -471,6 +472,7 @@ void main() {
           positionMs: 30000,
           order: 1,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await repository.createMarker(marker1);
@@ -498,6 +500,7 @@ void main() {
           positionMs: 60000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await repository.createMarkerSet(testMarkerSet);
@@ -526,6 +529,7 @@ void main() {
           positionMs: 90000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await repository.createMarkerSet(testMarkerSet);
@@ -555,6 +559,7 @@ void main() {
           positionMs: 120000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await repository.createMarkerSet(testMarkerSet);
@@ -585,6 +590,7 @@ void main() {
           positionMs: 75000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await repository.createMarkerSet(testMarkerSet);
@@ -654,7 +660,7 @@ void main() {
         isTimeSynced: true,
         createdByUserId: testUserId,
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       testWidgets('should not display marker times in set text view', (tester) async {
@@ -667,6 +673,7 @@ void main() {
           positionMs: 125500, // 2 min 5.5 sec
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await repository.createMarker(marker);

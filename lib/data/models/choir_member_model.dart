@@ -9,10 +9,15 @@ import '../datasources/local/database.dart' as db;
 /// Handles conversions between domain entities, Drift database records,
 /// and future JSON for Supabase integration.
 class ChoirMemberModel extends ChoirMember {
+  /// Whether this choir membership has been soft-deleted (for sync tracking)
+  final bool deleted;
+
   const ChoirMemberModel({
     required super.choirId,
     required super.userId,
     required super.joinedAt,
+    required super.updatedAt,
+    this.deleted = false,
   });
 
   /// Create a ChoirMemberModel from a domain ChoirMember entity
@@ -21,6 +26,7 @@ class ChoirMemberModel extends ChoirMember {
       choirId: choirMember.choirId,
       userId: choirMember.userId,
       joinedAt: choirMember.joinedAt,
+      updatedAt: choirMember.updatedAt,
     );
   }
 
@@ -30,6 +36,7 @@ class ChoirMemberModel extends ChoirMember {
       choirId: choirId,
       userId: userId,
       joinedAt: joinedAt,
+      updatedAt: updatedAt,
     );
   }
 
@@ -39,6 +46,8 @@ class ChoirMemberModel extends ChoirMember {
       choirId: driftChoirMember.choirId,
       userId: driftChoirMember.userId,
       joinedAt: driftChoirMember.joinedAt,
+      updatedAt: driftChoirMember.updatedAt,
+      deleted: driftChoirMember.deleted,
     );
   }
 
@@ -48,17 +57,18 @@ class ChoirMemberModel extends ChoirMember {
       choirId: Value(choirId),
       userId: Value(userId),
       joinedAt: Value(joinedAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }
-
-  // Future: Add fromJson and toJson methods for Supabase
 
   factory ChoirMemberModel.fromJson(Map<String, dynamic> json) {
     return ChoirMemberModel(
       choirId: json['choir_id'],
       userId: json['user_id'],
       joinedAt: DateTime.parse(json['joined_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 
@@ -67,6 +77,7 @@ class ChoirMemberModel extends ChoirMember {
       'choir_id': choirId,
       'user_id': userId,
       'joined_at': joinedAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 }

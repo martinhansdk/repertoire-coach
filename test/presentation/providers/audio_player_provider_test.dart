@@ -80,6 +80,7 @@ void main() {
 
       test('playTrack calls repository', () async {
         final track = Track(id: 't1', songId: 's1', name: 'Track 1', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
         await controls.playTrack(track);
         verify(mockRepository.playTrack(track)).called(1);
       });

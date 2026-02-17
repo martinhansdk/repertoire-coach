@@ -34,7 +34,7 @@ void main() {
       storagePath: '/tracks/audio.mp3',
       durationMs: 180000,
       createdAt: now,
-      updatedAt: now,
+        updatedAt: now,
     );
 
     setUp(() {

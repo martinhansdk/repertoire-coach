@@ -104,6 +104,7 @@ void main() {
             positionMs: 20000,
             order: 1,
             createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
           ),
           Marker(
             id: 'm1',
@@ -112,6 +113,7 @@ void main() {
             positionMs: 10000,
             order: 0,
             createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
           ),
         ];
 

@@ -10,7 +10,7 @@ void main() {
     name: 'Test Track',
     filePath: '/path/to/file.mp3',
     createdAt: now,
-    updatedAt: now,
+        updatedAt: now,
   );
 
   final tTrack = Track(
@@ -19,7 +19,7 @@ void main() {
     name: 'Test Track',
     filePath: '/path/to/file.mp3',
     createdAt: now,
-    updatedAt: now,
+        updatedAt: now,
   );
 
   test('should be a subclass of Track entity', () async {

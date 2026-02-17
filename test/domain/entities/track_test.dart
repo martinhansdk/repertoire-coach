@@ -10,7 +10,7 @@ void main() {
       name: 'Soprano Part',
       filePath: '/path/to/audio.mp3',
       createdAt: now,
-      updatedAt: now,
+        updatedAt: now,
     );
 
     test('should create Track with all required fields', () {
@@ -96,7 +96,7 @@ void main() {
           name: name,
           filePath: null,
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         expect(track.name, name);

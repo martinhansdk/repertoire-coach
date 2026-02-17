@@ -13,6 +13,7 @@ void main() {
         positionMs: 0,
         order: 0,
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ),
       Marker(
         id: 'm2',
@@ -21,6 +22,7 @@ void main() {
         positionMs: 10000,
         order: 1,
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ),
       Marker(
         id: 'm3',
@@ -29,6 +31,7 @@ void main() {
         positionMs: 20000,
         order: 2,
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ),
     ];
   }
@@ -82,6 +85,7 @@ void main() {
         positionMs: 0,
         order: 0,
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ),
       Marker(
         id: 'm2',
@@ -90,6 +94,7 @@ void main() {
         positionMs: 5000,
         order: 1,
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ),
       Marker(
         id: 'm3',
@@ -98,6 +103,7 @@ void main() {
         positionMs: 10000,
         order: 2,
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ),
     ];
 
@@ -171,6 +177,7 @@ void main() {
             positionMs: i * 1000,
             order: i,
             createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
           ),
         ),
         currentPosition: const Duration(seconds: 20),

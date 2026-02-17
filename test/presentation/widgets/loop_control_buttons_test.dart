@@ -85,6 +85,7 @@ void main() {
       positionMs: 0,
       order: 0,
       createdAt: now,
+        updatedAt: now,
     );
 
     final marker2 = Marker(
@@ -94,6 +95,7 @@ void main() {
       positionMs: 30000,
       order: 1,
       createdAt: now,
+        updatedAt: now,
     );
 
     final marker3 = Marker(
@@ -103,6 +105,7 @@ void main() {
       positionMs: 60000,
       order: 2,
       createdAt: now,
+        updatedAt: now,
     );
 
     setUp(() {

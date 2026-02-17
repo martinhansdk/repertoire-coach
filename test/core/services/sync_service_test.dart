@@ -165,6 +165,7 @@ void main() {
           name: 'Test Choir',
           ownerId: testUserId,
           createdAt: now,
+        updatedAt: now,
         );
         final testMember = ChoirMemberModel(
           choirId: 'choir-1',
@@ -199,7 +200,7 @@ void main() {
           name: 'Test Concert',
           concertDate: now,
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         when(mockRemoteConcertDataSource.getConcerts(testUserId))
@@ -222,7 +223,7 @@ void main() {
           concertId: 'concert-1',
           title: 'Test Song',
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         when(mockRemoteSongDataSource.getSongsForUser(testUserId))
@@ -247,7 +248,7 @@ void main() {
           storagePath: '/tracks/track.mp3',
           durationMs: 180000,
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
@@ -316,7 +317,7 @@ void main() {
           storagePath: '/tracks/keep.mp3',
           durationMs: 120000,
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         when(mockRemoteTrackDataSource.getTracksForUser(testUserId))
@@ -403,7 +404,7 @@ void main() {
           storagePath: '/tracks/track.mp3',
           durationMs: 180000,
           createdAt: now.subtract(const Duration(hours: 2)),
-          updatedAt: now, // Local is newer
+        updatedAt: now,
         );
         final remoteTrack = TrackModel(
           id: 'track-1',
@@ -413,7 +414,7 @@ void main() {
           storagePath: '/tracks/track.mp3',
           durationMs: 180000,
           createdAt: now.subtract(const Duration(hours: 2)),
-          updatedAt: now.subtract(const Duration(hours: 1)), // Remote is older
+        updatedAt: now,
         );
 
         when(mockLocalTrackDataSource.getUnsyncedTracks())
@@ -442,7 +443,7 @@ void main() {
           storagePath: '/tracks/track.mp3',
           durationMs: 180000,
           createdAt: now.subtract(const Duration(hours: 2)),
-          updatedAt: now.subtract(const Duration(hours: 1)), // Local is older
+        updatedAt: now,
         );
         final remoteTrack = TrackModel(
           id: 'track-1',
@@ -452,7 +453,7 @@ void main() {
           storagePath: '/tracks/track.mp3',
           durationMs: 180000,
           createdAt: now.subtract(const Duration(hours: 2)),
-          updatedAt: now, // Remote is newer
+        updatedAt: now,
         );
 
         when(mockLocalTrackDataSource.getUnsyncedTracks())
@@ -483,7 +484,7 @@ void main() {
           name: 'New Concert',
           concertDate: now,
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         when(mockLocalConcertDataSource.getUnsyncedConcerts())
@@ -512,7 +513,7 @@ void main() {
           concertId: 'concert-1',
           title: 'New Song',
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         when(mockLocalSongDataSource.getUnsyncedSongs())
@@ -655,7 +656,7 @@ void main() {
           isTimeSynced: false, // This was the bug - it was defaulting to true
           createdByUserId: testUserId,
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))

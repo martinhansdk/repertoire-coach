@@ -280,6 +280,100 @@ class LocalChoirDataSource {
         .write(const db.ChoirMembersCompanion(synced: Value(true)));
   }
 
+  /// Hard-delete synced choirs whose IDs are NOT in the provided set
+  ///
+  /// Called after pull phase to remove choirs that exist locally but were
+  /// deleted remotely. Only synced choirs are deleted to avoid losing unsynced changes.
+  Future<void> hardDeleteSyncedChoirsNotIn(Set<String> keepIds) async {
+    if (keepIds.isEmpty) {
+      // Delete all synced choirs
+      await (_database.delete(_database.choirs)
+            ..where((c) => c.synced.equals(true)))
+          .go();
+    } else {
+      // Delete synced choirs not in the keep set
+      await (_database.delete(_database.choirs)
+            ..where((c) => c.synced.equals(true))
+            ..where((c) => c.id.isNotIn(keepIds)))
+          .go();
+    }
+  }
+
+  /// Hard-delete synced choirs that are soft-deleted
+  ///
+  /// Called after push phase to clean up choirs that were successfully deleted
+  /// on remote. Only synced+deleted choirs are removed.
+  Future<void> hardDeleteSyncedDeletedChoirs() async {
+    await (_database.delete(_database.choirs)
+          ..where((c) => c.synced.equals(true))
+          ..where((c) => c.deleted.equals(true)))
+        .go();
+  }
+
+  /// Hard-delete synced choir members whose composite keys are NOT in the provided set
+  ///
+  /// Called after pull phase to remove memberships that exist locally but were
+  /// deleted remotely. Only synced members are deleted.
+  /// [keepIds] should contain strings in format "choirId:userId"
+  Future<void> hardDeleteSyncedMembersNotIn(Set<String> keepIds) async {
+    // Get all synced members
+    final syncedMembers = await (_database.select(_database.choirMembers)
+          ..where((m) => m.synced.equals(true)))
+        .get();
+
+    // Delete those not in keep set
+    for (final member in syncedMembers) {
+      final compositeId = '${member.choirId}:${member.userId}';
+      if (!keepIds.contains(compositeId)) {
+        await (_database.delete(_database.choirMembers)
+              ..where((m) => m.choirId.equals(member.choirId))
+              ..where((m) => m.userId.equals(member.userId)))
+            .go();
+      }
+    }
+  }
+
+  /// Hard-delete synced choir members that are soft-deleted
+  ///
+  /// Called after push phase to clean up memberships that were successfully
+  /// deleted on remote. Only synced+deleted members are removed.
+  Future<void> hardDeleteSyncedDeletedMembers() async {
+    await (_database.delete(_database.choirMembers)
+          ..where((m) => m.synced.equals(true))
+          ..where((m) => m.deleted.equals(true)))
+        .go();
+  }
+
+  /// Get all synced choirs as a map (ID -> ChoirModel)
+  ///
+  /// Used during pull phase to avoid re-pulling items that are already up-to-date.
+  Future<Map<String, ChoirModel>> getSyncedChoirs() async {
+    final choirs = await (_database.select(_database.choirs)
+          ..where((c) => c.synced.equals(true)))
+        .get();
+
+    return Map.fromEntries(
+      choirs.map((c) => MapEntry(c.id, ChoirModel.fromDrift(c))),
+    );
+  }
+
+  /// Get all synced choir members as a map (compositeId -> ChoirMemberModel)
+  ///
+  /// Used during pull phase to avoid re-pulling items that are already up-to-date.
+  /// Map keys are in format "choirId:userId"
+  Future<Map<String, ChoirMemberModel>> getSyncedMembers() async {
+    final members = await (_database.select(_database.choirMembers)
+          ..where((m) => m.synced.equals(true)))
+        .get();
+
+    return Map.fromEntries(
+      members.map((m) => MapEntry(
+            '${m.choirId}:${m.userId}',
+            ChoirMemberModel.fromDrift(m),
+          )),
+    );
+  }
+
   // ============================================================================
   // TESTING/ADMIN OPERATIONS
   // ============================================================================

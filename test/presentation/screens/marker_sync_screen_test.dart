@@ -87,6 +87,7 @@ void main() {
         positionMs: 1000,
         order: 0,
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ),
       Marker(
         id: 'm2',
@@ -95,6 +96,7 @@ void main() {
         positionMs: 5000,
         order: 1,
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ),
     ];
 

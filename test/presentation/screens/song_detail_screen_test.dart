@@ -26,7 +26,7 @@ void main() {
       name: 'Test Track',
       filePath: '/path/to/audio.mp3',
       createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     testWidgets('should display app bar with song title and concert name',
@@ -197,7 +197,7 @@ void main() {
           name: 'Another Track',
           filePath: '/path/to/audio2.mp3',
           createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
       ];
 
@@ -395,7 +395,7 @@ void main() {
           name: 'Track $index',
           filePath: '/path/to/audio$index.mp3',
           createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
       );
 

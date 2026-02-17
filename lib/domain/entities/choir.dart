@@ -9,16 +9,18 @@ class Choir extends Equatable {
   final String name;
   final String ownerId;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   const Choir({
     required this.id,
     required this.name,
     required this.ownerId,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   @override
-  List<Object?> get props => [id, name, ownerId, createdAt];
+  List<Object?> get props => [id, name, ownerId, createdAt, updatedAt];
 
   @override
   String toString() => 'Choir(id: $id, name: $name, ownerId: $ownerId)';

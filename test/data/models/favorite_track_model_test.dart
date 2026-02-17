@@ -15,7 +15,7 @@ void main() {
       durationMs: 180000,
       filePath: null,
       createdAt: DateTime(2024, 1, 1),
-      updatedAt: DateTime(2024, 1, 10),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     group('fromEntity', () {

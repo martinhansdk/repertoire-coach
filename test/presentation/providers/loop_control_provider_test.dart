@@ -41,6 +41,7 @@ void main() {
           positionMs: 10000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         final endMarker = Marker(
@@ -50,6 +51,7 @@ void main() {
           positionMs: 20000,
           order: 1,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         // Act
@@ -72,6 +74,7 @@ void main() {
           positionMs: 20000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         final endMarker = Marker(
@@ -81,6 +84,7 @@ void main() {
           positionMs: 10000,
           order: 1,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         // Act & Assert
@@ -100,6 +104,7 @@ void main() {
           positionMs: 15000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         final endMarker = Marker(
@@ -109,6 +114,7 @@ void main() {
           positionMs: 15000,
           order: 1,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         // Act & Assert
@@ -130,6 +136,7 @@ void main() {
           positionMs: 10000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
         final customPosition = const Duration(milliseconds: 25000);
 
@@ -157,6 +164,7 @@ void main() {
           positionMs: 30000,
           order: 1,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
         final customPosition = const Duration(milliseconds: 5000);
 
@@ -184,6 +192,7 @@ void main() {
           positionMs: 20000,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
         final customPosition = const Duration(milliseconds: 10000);
 
@@ -208,6 +217,7 @@ void main() {
           positionMs: 10000,
           order: 1,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         );
         final customPosition = const Duration(milliseconds: 20000);
 

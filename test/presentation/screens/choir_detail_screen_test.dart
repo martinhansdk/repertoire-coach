@@ -18,6 +18,7 @@ void main() {
       name: 'Test Choir',
       ownerId: 'u1',
       createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     final testConcert = Concert(
@@ -27,6 +28,7 @@ void main() {
       choirName: 'Test Choir',
       concertDate: DateTime.now().add(const Duration(days: 7)),
       createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     testWidgets('should display loading indicator while loading choir',
@@ -243,6 +245,7 @@ void main() {
           choirName: 'Test Choir',
           concertDate: DateTime.now().add(const Duration(days: 14)),
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
       ];
 

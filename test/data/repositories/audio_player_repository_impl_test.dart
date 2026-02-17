@@ -77,7 +77,7 @@ void main() {
         name: 'Test Track',
         filePath: null,
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act & Assert
@@ -95,7 +95,7 @@ void main() {
         name: 'Test Track',
         filePath: '/path/to/nonexistent/file.mp3',
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act & Assert
@@ -306,7 +306,7 @@ void main() {
         name: 'Test Track',
         filePath: '',
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act: Try to play track with invalid path

@@ -13,6 +13,7 @@ void main() {
         choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Assert
@@ -30,6 +31,7 @@ void main() {
         lastAccessedConcertId: 'concert1',
         languagePreference: 'da',
         createdAt: now,
+        updatedAt: now,
       );
 
       // Act
@@ -55,6 +57,7 @@ void main() {
         choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: now,
+        updatedAt: now,
       );
 
       // Act
@@ -79,6 +82,7 @@ void main() {
         choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Assert
@@ -95,6 +99,7 @@ void main() {
         choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: now,
+        updatedAt: now,
       );
       final userModel2 = UserModel(
         id: '1',
@@ -103,6 +108,7 @@ void main() {
         choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: now,
+        updatedAt: now,
       );
       final userModel3 = UserModel(
         id: '2',
@@ -111,6 +117,7 @@ void main() {
         choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: now,
+        updatedAt: now,
       );
 
       // Assert
@@ -127,6 +134,7 @@ void main() {
         choirIds: const ['choir1'],
         languagePreference: 'en',
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
       final userModelDa = UserModel(
         id: '2',
@@ -135,6 +143,7 @@ void main() {
         choirIds: const ['choir1'],
         languagePreference: 'da',
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Assert

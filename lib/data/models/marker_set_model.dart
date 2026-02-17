@@ -9,6 +9,9 @@ import '../datasources/local/database.dart' as db;
 /// Handles conversions between domain entities, Drift database records,
 /// and future JSON for Supabase integration.
 class MarkerSetModel extends MarkerSet {
+  /// Whether this marker set has been soft-deleted (for sync tracking)
+  final bool deleted;
+
   const MarkerSetModel({
     required super.id,
     required super.trackId,
@@ -18,6 +21,7 @@ class MarkerSetModel extends MarkerSet {
     required super.createdByUserId,
     required super.createdAt,
     required super.updatedAt,
+    this.deleted = false,
   });
 
   /// Create a MarkerSetModel from a domain MarkerSet entity
@@ -59,6 +63,7 @@ class MarkerSetModel extends MarkerSet {
       createdByUserId: driftMarkerSet.createdByUserId,
       createdAt: driftMarkerSet.createdAt,
       updatedAt: driftMarkerSet.updatedAt,
+      deleted: driftMarkerSet.deleted,
     );
   }
 
@@ -73,7 +78,7 @@ class MarkerSetModel extends MarkerSet {
       createdByUserId: Value(createdByUserId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
-      deleted: const Value(false),
+      deleted: Value(deleted),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }

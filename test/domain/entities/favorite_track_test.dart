@@ -14,7 +14,7 @@ void main() {
       durationMs: 180000,
       filePath: null,
       createdAt: DateTime(2024, 1, 1),
-      updatedAt: DateTime(2024, 1, 10),
+        updatedAt: DateTime(2024, 1, 1),
     );
 
     test('creates instance with required fields', () {
@@ -42,7 +42,7 @@ void main() {
         durationMs: null,
         filePath: null,
         createdAt: DateTime(2024, 1, 1),
-        updatedAt: DateTime(2024, 1, 10),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final favoriteWithoutAudio = FavoriteTrack(
@@ -83,7 +83,7 @@ void main() {
         durationMs: 150000,
         filePath: null,
         createdAt: DateTime(2024, 1, 1),
-        updatedAt: DateTime(2024, 1, 10),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final favorite2 = FavoriteTrack(

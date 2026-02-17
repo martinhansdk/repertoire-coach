@@ -266,18 +266,21 @@ Future<void> _seedTestData(LocalChoirDataSource dataSource) async {
       name: 'City Chamber Choir',
       ownerId: 'user1',
       createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
     ),
     ChoirModel(
       id: 'choir2',
       name: 'Community Singers',
       ownerId: 'user2',
       createdAt: DateTime(2024, 2, 1),
+        updatedAt: DateTime(2024, 1, 1),
     ),
     ChoirModel(
       id: 'choir3',
       name: 'Vocal Ensemble',
       ownerId: 'user3',
       createdAt: DateTime(2024, 3, 1),
+        updatedAt: DateTime(2024, 1, 1),
     ),
   ];
 

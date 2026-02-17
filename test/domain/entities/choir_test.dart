@@ -11,6 +11,7 @@ void main() {
         name: 'Test Choir',
         ownerId: 'user1',
         createdAt: now,
+        updatedAt: now,
       );
 
       // Assert
@@ -28,18 +29,21 @@ void main() {
         name: 'Test Choir',
         ownerId: 'user1',
         createdAt: now,
+        updatedAt: now,
       );
       final choir2 = Choir(
         id: '1',
         name: 'Test Choir',
         ownerId: 'user1',
         createdAt: now,
+        updatedAt: now,
       );
       final choir3 = Choir(
         id: '2',
         name: 'Test Choir',
         ownerId: 'user1',
         createdAt: now,
+        updatedAt: now,
       );
 
       // Assert
@@ -55,6 +59,7 @@ void main() {
         name: 'Test Choir',
         ownerId: 'user1',
         createdAt: now,
+        updatedAt: now,
       );
 
       // Act

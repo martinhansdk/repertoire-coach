@@ -25,7 +25,7 @@ void main() {
     concertId: 'c1',
     title: 'Test Song',
     createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
   );
 
   test('insertSong and getSongById', () async {
@@ -94,7 +94,9 @@ void main() {
   group('watchSongsByConcert', () {
     test('emits initial list of songs', () async {
       final song1 = domain.Song(id: 's1', concertId: 'c1', title: 'Song 1', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
       final song2 = domain.Song(id: 's2', concertId: 'c1', title: 'Song 2', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
       
       final stream = dataSource.watchSongsByConcert('c1');
       
@@ -120,8 +122,11 @@ void main() {
 
   test('getSongsByConcert returns correct songs', () async {
     final song1 = SongModel(id: 's1', concertId: 'c1', title: 'Song 1', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
     final song2 = SongModel(id: 's2', concertId: 'c2', title: 'Song 2', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
     final song3 = SongModel(id: 's3', concertId: 'c1', title: 'Song 3', createdAt: DateTime.now(), updatedAt: DateTime.now());
+        updatedAt: DateTime(2024, 1, 1),
 
     await dataSource.insertSong(song1);
     await dataSource.insertSong(song2);

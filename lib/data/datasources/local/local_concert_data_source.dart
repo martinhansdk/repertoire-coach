@@ -109,6 +109,30 @@ class LocalConcertDataSource {
     await _database.hardDeleteConcertsNotIn(keepIds);
   }
 
+  /// Hard-delete synced concerts that are soft-deleted
+  ///
+  /// Called after push phase to clean up concerts successfully deleted on remote.
+  /// Only synced+deleted concerts are removed.
+  Future<void> hardDeleteSyncedDeleted() async {
+    await (_database.delete(_database.concerts)
+          ..where((c) => c.synced.equals(true))
+          ..where((c) => c.deleted.equals(true)))
+        .go();
+  }
+
+  /// Get all synced concerts as a map (ID -> ConcertModel)
+  ///
+  /// Used during pull phase to avoid re-pulling items already up-to-date.
+  Future<Map<String, ConcertModel>> getSyncedConcerts() async {
+    final concerts = await (_database.select(_database.concerts)
+          ..where((c) => c.synced.equals(true)))
+        .get();
+
+    return Map.fromEntries(
+      concerts.map((c) => MapEntry(c.id, ConcertModel.fromDrift(c))),
+    );
+  }
+
   /// Clear all concert data (for testing)
   ///
   /// Permanently deletes all concerts. Use with caution!

@@ -94,21 +94,21 @@ void main() {
           concertId: concertId,
           title: 'First Song',
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         ),
         Song(
           id: 'song-2',
           concertId: concertId,
           title: 'Second Song',
           createdAt: now.add(const Duration(seconds: 1)),
-          updatedAt: now.add(const Duration(seconds: 1)),
+        updatedAt: now,
         ),
         Song(
           id: 'song-3',
           concertId: concertId,
           title: 'Third Song',
           createdAt: now.add(const Duration(seconds: 2)),
-          updatedAt: now.add(const Duration(seconds: 2)),
+        updatedAt: now,
         ),
       ];
 
@@ -288,7 +288,7 @@ void main() {
             concertId: concertId,
             title: 'Concurrent Song $index',
             createdAt: now.add(Duration(milliseconds: index)),
-            updatedAt: now.add(Duration(milliseconds: index)),
+        updatedAt: now,
           ),
         ),
       );

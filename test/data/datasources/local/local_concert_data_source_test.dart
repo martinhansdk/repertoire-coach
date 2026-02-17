@@ -27,7 +27,7 @@ void main() {
     name: 'Test Concert',
     concertDate: DateTime.now(),
     createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
   );
 
   test('insertConcert and getConcertById', () async {
@@ -101,7 +101,9 @@ void main() {
     test('emits initial list of concerts', () async {
       final now = DateTime.now();
       final concert1 = domain.Concert(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: now, createdAt: now);
+        updatedAt: now,
       final concert2 = domain.Concert(id: 'c2', name: 'Concert 2', choirId: 'choir1', choirName: 'Choir', concertDate: now, createdAt: now);
+        updatedAt: now,
       
       final stream = dataSource.watchConcerts();
       
@@ -128,7 +130,9 @@ void main() {
   test('getConcerts returns correct concerts', () async {
     final now = DateTime.now();
     final concert1 = ConcertModel(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: now, createdAt: now, updatedAt: now);
+        updatedAt: now,
     final concert2 = ConcertModel(id: 'c2', name: 'Concert 2', choirId: 'choir2', choirName: 'Choir 2', concertDate: now, createdAt: now, updatedAt: now);
+        updatedAt: now,
     
     await dataSource.insertConcert(concert1);
     await dataSource.insertConcert(concert2);

@@ -24,6 +24,7 @@ void main() {
     name: 'Test Choir',
     ownerId: 'u1',
     createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
   );
 
   group('Choir Operations', () {

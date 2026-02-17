@@ -38,6 +38,7 @@ void main() {
         name: 'Spring Concert 2025',
         concertDate: DateTime(2025, 4, 15),
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final dataSource = LocalConcertDataSource(database);
@@ -96,6 +97,7 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2025, 4, 15),
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final dataSource = LocalConcertDataSource(database);
@@ -156,6 +158,7 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2025, 4, 15),
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final dataSource = LocalConcertDataSource(database);
@@ -220,6 +223,7 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2025, 4, 15),
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final dataSource = LocalConcertDataSource(database);
@@ -275,6 +279,7 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2025, 4, 15),
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final dataSource = LocalConcertDataSource(database);
@@ -333,6 +338,7 @@ void main() {
         name: 'Future Concert',
         concertDate: DateTime.now().add(const Duration(days: 30)),
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       final dataSource = LocalConcertDataSource(database);

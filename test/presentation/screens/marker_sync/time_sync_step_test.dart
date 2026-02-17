@@ -171,7 +171,7 @@ void main() {
             songId: 'song-1',
             name: 'Test Track',
             createdAt: DateTime(2024, 1, 1),
-            updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
           );
       Stream<PlaybackInfo> playbackStreamWithInitial() async* {
         yield fakeAudioRepository.currentPlayback;
@@ -908,7 +908,7 @@ void main() {
           isTimeSynced: false,
           createdByUserId: 'user-1',
           createdAt: DateTime(2024, 1, 1),
-          updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         when(mockMarkerRepository.createMarker(any)).thenAnswer((_) async {});
@@ -942,7 +942,7 @@ void main() {
           isTimeSynced: false,
           createdByUserId: 'user-1',
           createdAt: DateTime(2024, 1, 1),
-          updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         when(mockMarkerRepository.createMarker(any)).thenAnswer((_) async {});
@@ -976,7 +976,7 @@ void main() {
           songId: 'song-1',
           name: 'Test Track',
           createdAt: DateTime(2024, 1, 1),
-          updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));
@@ -1006,7 +1006,7 @@ void main() {
           songId: 'song-1',
           name: 'Test Track',
           createdAt: DateTime(2024, 1, 1),
-          updatedAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
         );
 
         await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse']));

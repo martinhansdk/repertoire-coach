@@ -17,7 +17,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'user-1',
       createdAt: now,
-      updatedAt: now,
+        updatedAt: now,
     );
 
     final markerSet2 = MarkerSet(
@@ -28,7 +28,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'user-1',
       createdAt: now,
-      updatedAt: now,
+        updatedAt: now,
     );
 
     final markerSet3 = MarkerSet(
@@ -39,7 +39,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'user-1',
       createdAt: now,
-      updatedAt: now,
+        updatedAt: now,
     );
 
     Widget createWidgetUnderTest({
@@ -334,7 +334,7 @@ void main() {
           isTimeSynced: true,
           createdByUserId: 'user-1',
           createdAt: now,
-          updatedAt: now,
+        updatedAt: now,
         );
 
         await tester.pumpWidget(createWidgetUnderTest(
@@ -360,7 +360,7 @@ void main() {
             isTimeSynced: true,
             createdByUserId: 'user-1',
             createdAt: now,
-            updatedAt: now,
+        updatedAt: now,
           ),
         );
 

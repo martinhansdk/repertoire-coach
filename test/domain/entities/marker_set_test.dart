@@ -37,7 +37,7 @@ void main() {
         isTimeSynced: false,
         createdByUserId: 'user1',
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Assert
@@ -94,7 +94,7 @@ void main() {
         isTimeSynced: true,
         createdByUserId: 'user1',
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act

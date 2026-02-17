@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/datasources/local/local_user_playback_state_data_source.dart';
 import '../../data/repositories/audio_player_repository_impl.dart';
 import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/playback_info.dart';
@@ -7,15 +6,6 @@ import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
 import 'auth_provider.dart'; // For supabaseServiceProvider
 import 'concert_provider.dart'; // For databaseProvider
-
-/// Provider for the user playback state data source
-///
-/// Used by the sync service for cloud sync of playback positions.
-/// The audio player itself does not persist positions.
-final playbackStateDataSourceProvider = Provider<LocalUserPlaybackStateDataSource>((ref) {
-  final database = ref.watch(databaseProvider);
-  return LocalUserPlaybackStateDataSource(database);
-});
 
 /// Provider for the audio player repository
 ///

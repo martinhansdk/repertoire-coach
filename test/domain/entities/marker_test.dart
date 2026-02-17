@@ -13,6 +13,7 @@ void main() {
         positionMs: 30000,
         order: 1,
         createdAt: now,
+        updatedAt: now,
       );
 
       // Assert
@@ -33,6 +34,7 @@ void main() {
         positionMs: 0,
         order: 0,
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Assert
@@ -50,6 +52,7 @@ void main() {
           positionMs: 0,
           order: 0,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
         Marker(
           id: '2',
@@ -58,6 +61,7 @@ void main() {
           positionMs: 30000,
           order: 1,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
         Marker(
           id: '3',
@@ -66,6 +70,7 @@ void main() {
           positionMs: 75000,
           order: 2,
           createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
         ),
       ];
 
@@ -85,6 +90,7 @@ void main() {
         positionMs: 30000,
         order: 1,
         createdAt: now,
+        updatedAt: now,
       );
       final marker2 = Marker(
         id: '1',
@@ -93,6 +99,7 @@ void main() {
         positionMs: 30000,
         order: 1,
         createdAt: now,
+        updatedAt: now,
       );
       final marker3 = Marker(
         id: '2',
@@ -101,6 +108,7 @@ void main() {
         positionMs: 30000,
         order: 1,
         createdAt: now,
+        updatedAt: now,
       );
 
       // Assert
@@ -117,6 +125,7 @@ void main() {
         positionMs: 30000,
         order: 1,
         createdAt: DateTime.now(),
+        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act

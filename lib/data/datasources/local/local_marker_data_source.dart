@@ -193,6 +193,30 @@ class LocalMarkerDataSource {
     await _database.hardDeleteMarkerSetsNotIn(keepIds);
   }
 
+  /// Hard-delete synced marker sets that are soft-deleted
+  ///
+  /// Called after push phase to clean up marker sets successfully deleted on remote.
+  /// Only synced+deleted marker sets are removed.
+  Future<void> hardDeleteSyncedDeletedMarkerSets() async {
+    await (_database.delete(_database.markerSets)
+          ..where((ms) => ms.synced.equals(true))
+          ..where((ms) => ms.deleted.equals(true)))
+        .go();
+  }
+
+  /// Get all synced marker sets as a map (ID -> MarkerSetModel)
+  ///
+  /// Used during pull phase to avoid re-pulling items already up-to-date.
+  Future<Map<String, MarkerSetModel>> getSyncedMarkerSets() async {
+    final sets = await (_database.select(_database.markerSets)
+          ..where((ms) => ms.synced.equals(true)))
+        .get();
+
+    return Map.fromEntries(
+      sets.map((s) => MapEntry(s.id, MarkerSetModel.fromDrift(s))),
+    );
+  }
+
   // ==================== Marker Operations ====================
 
   /// Get all active (non-deleted) markers for a specific marker set
@@ -343,5 +367,29 @@ class LocalMarkerDataSource {
   Future<void> markMarkerAsSynced(String id) async {
     await (_database.update(_database.markers)..where((m) => m.id.equals(id)))
         .write(const db.MarkersCompanion(synced: Value(true)));
+  }
+
+  /// Hard-delete synced markers that are soft-deleted
+  ///
+  /// Called after push phase to clean up markers successfully deleted on remote.
+  /// Only synced+deleted markers are removed.
+  Future<void> hardDeleteSyncedDeletedMarkers() async {
+    await (_database.delete(_database.markers)
+          ..where((m) => m.synced.equals(true))
+          ..where((m) => m.deleted.equals(true)))
+        .go();
+  }
+
+  /// Get all synced markers as a map (ID -> MarkerModel)
+  ///
+  /// Used during pull phase to avoid re-pulling items already up-to-date.
+  Future<Map<String, MarkerModel>> getSyncedMarkers() async {
+    final markers = await (_database.select(_database.markers)
+          ..where((m) => m.synced.equals(true)))
+        .get();
+
+    return Map.fromEntries(
+      markers.map((m) => MapEntry(m.id, MarkerModel.fromDrift(m))),
+    );
   }
 }

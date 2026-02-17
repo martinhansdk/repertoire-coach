@@ -8,15 +8,17 @@ class ChoirMember extends Equatable {
   final String choirId;
   final String userId;
   final DateTime joinedAt;
+  final DateTime updatedAt;
 
   const ChoirMember({
     required this.choirId,
     required this.userId,
     required this.joinedAt,
+    required this.updatedAt,
   });
 
   @override
-  List<Object?> get props => [choirId, userId, joinedAt];
+  List<Object?> get props => [choirId, userId, joinedAt, updatedAt];
 
   @override
   String toString() =>

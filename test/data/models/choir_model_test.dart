@@ -9,6 +9,7 @@ void main() {
     name: 'Test Choir',
     ownerId: 'u1',
     createdAt: now,
+        updatedAt: now,
   );
 
   final tChoir = Choir(
@@ -16,6 +17,7 @@ void main() {
     name: 'Test Choir',
     ownerId: 'u1',
     createdAt: now,
+        updatedAt: now,
   );
 
   test('should be a subclass of Choir entity', () async {

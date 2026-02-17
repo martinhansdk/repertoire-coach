@@ -110,6 +110,30 @@ class LocalSongDataSource {
     await _database.hardDeleteSongsNotIn(keepIds);
   }
 
+  /// Hard-delete synced songs that are soft-deleted
+  ///
+  /// Called after push phase to clean up songs successfully deleted on remote.
+  /// Only synced+deleted songs are removed.
+  Future<void> hardDeleteSyncedDeleted() async {
+    await (_database.delete(_database.songs)
+          ..where((s) => s.synced.equals(true))
+          ..where((s) => s.deleted.equals(true)))
+        .go();
+  }
+
+  /// Get all synced songs as a map (ID -> SongModel)
+  ///
+  /// Used during pull phase to avoid re-pulling items already up-to-date.
+  Future<Map<String, SongModel>> getSyncedSongs() async {
+    final songs = await (_database.select(_database.songs)
+          ..where((s) => s.synced.equals(true)))
+        .get();
+
+    return Map.fromEntries(
+      songs.map((s) => MapEntry(s.id, SongModel.fromDrift(s))),
+    );
+  }
+
   /// Clear all song data (for testing)
   ///
   /// Permanently deletes all songs. Use with caution!

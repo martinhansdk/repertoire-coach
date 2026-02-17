@@ -10,15 +10,21 @@ import '../datasources/local/database.dart' as db;
 /// Handles conversions between domain entities, Drift database records,
 /// and JSON for Supabase integration.
 class FavoriteTrackModel extends FavoriteTrack {
+  /// Whether this favorite has been soft-deleted (for sync tracking)
+  final bool deleted;
+
   const FavoriteTrackModel({
     required super.addedAt,
+    required super.updatedAt,
     required super.track,
+    this.deleted = false,
   });
 
   /// Create a FavoriteTrackModel from a domain FavoriteTrack entity
   factory FavoriteTrackModel.fromEntity(FavoriteTrack favorite) {
     return FavoriteTrackModel(
       addedAt: favorite.addedAt,
+      updatedAt: favorite.updatedAt,
       track: favorite.track,
     );
   }
@@ -27,6 +33,7 @@ class FavoriteTrackModel extends FavoriteTrack {
   FavoriteTrack toEntity() {
     return FavoriteTrack(
       addedAt: addedAt,
+      updatedAt: updatedAt,
       track: track,
     );
   }
@@ -41,7 +48,9 @@ class FavoriteTrackModel extends FavoriteTrack {
   }) {
     return FavoriteTrackModel(
       addedAt: driftFavorite.addedAt,
+      updatedAt: driftFavorite.updatedAt,
       track: track,
+      deleted: driftFavorite.deleted,
     );
   }
 
@@ -55,6 +64,8 @@ class FavoriteTrackModel extends FavoriteTrack {
       trackId: Value(track.id),
       songId: Value(track.songId),
       addedAt: Value(addedAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
     );
   }
 
@@ -81,6 +92,7 @@ class FavoriteTrackModel extends FavoriteTrack {
 
     return FavoriteTrackModel(
       addedAt: DateTime.parse(json['added_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
       track: track,
     );
   }
@@ -95,6 +107,7 @@ class FavoriteTrackModel extends FavoriteTrack {
       'track_id': track.id,
       'song_id': track.songId,
       'added_at': addedAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 }

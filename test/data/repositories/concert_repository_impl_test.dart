@@ -243,7 +243,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Spring Concert 2025',
       concertDate: DateTime(2025, 4, 15),
       createdAt: DateTime(2024, 12, 1),
-      updatedAt: now,
+        updatedAt: DateTime(2024, 1, 1),
     ),
     ConcertModel(
       id: '2',
@@ -252,7 +252,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Christmas Concert 2024',
       concertDate: DateTime(2024, 12, 20),
       createdAt: DateTime(2024, 10, 1),
-      updatedAt: now,
+        updatedAt: DateTime(2024, 1, 1),
     ),
     ConcertModel(
       id: '3',
@@ -261,7 +261,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Summer Festival',
       concertDate: DateTime(2025, 6, 10),
       createdAt: DateTime(2024, 11, 15),
-      updatedAt: now,
+        updatedAt: DateTime(2024, 1, 1),
     ),
     ConcertModel(
       id: '4',
@@ -270,7 +270,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Autumn Recital',
       concertDate: DateTime(2024, 10, 5),
       createdAt: DateTime(2024, 8, 1),
-      updatedAt: now,
+        updatedAt: DateTime(2024, 1, 1),
     ),
     ConcertModel(
       id: '5',
@@ -279,7 +279,7 @@ Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
       name: 'Winter Showcase',
       concertDate: DateTime(2025, 2, 14),
       createdAt: DateTime(2024, 11, 20),
-      updatedAt: now,
+        updatedAt: DateTime(2024, 1, 1),
     ),
   ];
 
