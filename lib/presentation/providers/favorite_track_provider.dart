@@ -1,19 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/supabase_service.dart';
-import '../../data/datasources/local/database.dart' as db;
 import '../../data/datasources/local/local_favorite_track_data_source.dart';
 import '../../data/datasources/remote/remote_favorite_track_data_source.dart';
 import '../../data/repositories/favorite_track_repository_impl.dart';
 import '../../domain/entities/favorite_track.dart';
 import '../../domain/repositories/favorite_track_repository.dart';
 import 'auth_provider.dart';
+import 'concert_provider.dart' show databaseProvider;
 import 'track_provider.dart';
-
-/// Provides the database instance
-final databaseProvider = Provider<db.AppDatabase>((ref) {
-  return db.AppDatabase();
-});
 
 /// Provides the local favorite track data source
 final localFavoriteTrackDataSourceProvider =
