@@ -18,8 +18,10 @@ from .cache import ResultCache
 from .parsers import TestParser, AnalyzeParser, BuildParser
 from .models import (
     TestResult, AnalyzeResult, BuildResult, ValidationResult,
-    TestSummary, AnalyzeSummary, BuildError
+    TestSummary, AnalyzeSummary, AnalyzeIssue, BuildError,
+    TestFailure, SkippedTest
 )
+from datetime import datetime
 
 
 class FlutterMCPServer:
@@ -1122,7 +1124,16 @@ class FlutterMCPServer:
             }
 
         analyze_result_dict = await self._flutter_analyze({**analyze_args, "async": False})
-        analyze_result = AnalyzeResult(**analyze_result_dict)
+        # Reconstruct AnalyzeResult from dict (with nested objects)
+        analyze_summary = AnalyzeSummary(**analyze_result_dict['summary']) if analyze_result_dict.get('summary') else AnalyzeSummary()
+        analyze_issues = [AnalyzeIssue(**issue) for issue in analyze_result_dict['issues']] if analyze_result_dict.get('issues') else None
+        analyze_result = AnalyzeResult(
+            success=analyze_result_dict['success'],
+            summary=analyze_summary,
+            issues=analyze_issues,
+            runId=analyze_result_dict.get('runId', ''),
+            timestamp=analyze_result_dict.get('timestamp', datetime.now())
+        )
 
         test_result = None
         if not stop_on_analyze_failure or analyze_result.success:
@@ -1137,7 +1148,20 @@ class FlutterMCPServer:
                 ]
 
             test_result_dict = await self._flutter_test(test_args)
-            test_result = TestResult(**test_result_dict)
+            # Reconstruct TestResult from dict (with nested objects)
+            test_summary = TestSummary(**test_result_dict['summary']) if test_result_dict.get('summary') else TestSummary()
+            test_failures = [TestFailure(**failure) for failure in test_result_dict['failures']] if test_result_dict.get('failures') else None
+            test_skipped = [SkippedTest(**skip) for skip in test_result_dict['skipped']] if test_result_dict.get('skipped') else None
+            test_result = TestResult(
+                success=test_result_dict['success'],
+                summary=test_summary,
+                failures=test_failures,
+                skipped=test_skipped,
+                warnings=test_result_dict.get('warnings'),
+                coveragePercent=test_result_dict.get('coveragePercent'),
+                runId=test_result_dict.get('runId', ''),
+                timestamp=test_result_dict.get('timestamp', datetime.now())
+            )
 
         duration = time.time() - start_time
         success = analyze_result.success and (test_result is None or test_result.success)
