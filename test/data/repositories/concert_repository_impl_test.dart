@@ -234,7 +234,6 @@ void main() {
 
 /// Seed test data into the database
 Future<void> _seedTestData(LocalConcertDataSource dataSource) async {
-  final now = DateTime.now();
   final testConcerts = [
     ConcertModel(
       id: '1',

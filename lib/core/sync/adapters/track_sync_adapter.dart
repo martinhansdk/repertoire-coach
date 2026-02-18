@@ -20,7 +20,7 @@ class SyncableTrack with Syncable {
 /// Sync adapter for Track entities
 ///
 /// Bridges between the generic sync algorithm and track-specific data sources.
-class TrackSyncAdapter implements SyncAdapter<SyncableTrack> {
+class TrackSyncAdapter implements SyncAdapter<Syncable> {
   final LocalTrackDataSource _local;
   final RemoteTrackDataSource _remote;
   final String _userId;
@@ -41,22 +41,22 @@ class TrackSyncAdapter implements SyncAdapter<SyncableTrack> {
 
   @override
   Future<List<SyncableTrack>> getAllRemote() async {
-    final tracks = await _remote.getTracks(_userId);
+    final tracks = await _remote.getTracksForUser(_userId);
     return tracks.map((t) => SyncableTrack(t)).toList();
   }
 
   @override
-  bool isLocallyDeleted(SyncableTrack item) {
+  bool isLocallyDeleted(covariant SyncableTrack item) {
     return item.model.deleted;
   }
 
   @override
-  Future<void> createOnRemote(SyncableTrack item) async {
+  Future<void> createOnRemote(covariant SyncableTrack item) async {
     await _remote.createTrack(item.model);
   }
 
   @override
-  Future<void> updateOnRemote(SyncableTrack item) async {
+  Future<void> updateOnRemote(covariant SyncableTrack item) async {
     await _remote.updateTrack(item.model);
   }
 
@@ -71,7 +71,7 @@ class TrackSyncAdapter implements SyncAdapter<SyncableTrack> {
   }
 
   @override
-  Future<void> upsertLocal(SyncableTrack item) async {
+  Future<void> upsertLocal(covariant SyncableTrack item) async {
     await _local.upsertTrack(item.model, markForSync: false);
   }
 

@@ -50,6 +50,7 @@ void main() {
         'name': 'Test Choir',
         'owner_id': 'u1',
         'created_at': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
       };
       // act
       final result = ChoirModel.fromJson(jsonMap);
@@ -68,6 +69,7 @@ void main() {
         'name': 'Test Choir',
         'owner_id': 'u1',
         'created_at': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
       };
       expect(result, expectedMap);
     });

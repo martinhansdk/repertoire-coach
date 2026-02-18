@@ -130,6 +130,7 @@ void main() {
           name: newName,
           ownerId: choir.ownerId,
           createdAt: choir.createdAt,
+          updatedAt: choir.updatedAt,
         );
 
         // Act

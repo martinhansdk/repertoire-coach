@@ -14,7 +14,6 @@ void main() {
         lastAccessedConcertId: 'concert1',
         languagePreference: 'en',
         createdAt: now,
-        updatedAt: now,
       );
 
       // Assert
@@ -36,7 +35,6 @@ void main() {
         choirIds: [],
         languagePreference: 'en',
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Assert
@@ -53,7 +51,6 @@ void main() {
         choirIds: ['choir1'],
         languagePreference: 'en',
         createdAt: now,
-        updatedAt: now,
       );
       final user2 = User(
         id: '1',
@@ -62,7 +59,6 @@ void main() {
         choirIds: ['choir1'],
         languagePreference: 'en',
         createdAt: now,
-        updatedAt: now,
       );
       final user3 = User(
         id: '2',
@@ -71,7 +67,6 @@ void main() {
         choirIds: ['choir1'],
         languagePreference: 'en',
         createdAt: now,
-        updatedAt: now,
       );
 
       // Assert
@@ -89,7 +84,6 @@ void main() {
         lastAccessedConcertId: 'concert1',
         languagePreference: 'en',
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act

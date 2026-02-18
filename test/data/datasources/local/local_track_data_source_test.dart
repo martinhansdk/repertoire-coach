@@ -93,10 +93,20 @@ void main() {
 
   group('watchTracksBySong', () {
     test('emits initial list of tracks', () async {
-      final track1 = domain.Track(id: 't1', songId: 's1', name: 'Track 1', createdAt: DateTime.now(), updatedAt: DateTime.now());
+      final track1 = domain.Track(
+        id: 't1',
+        songId: 's1',
+        name: 'Track 1',
+        createdAt: DateTime.now(),
         updatedAt: DateTime(2024, 1, 1),
-      final track2 = domain.Track(id: 't2', songId: 's1', name: 'Track 2', createdAt: DateTime.now(), updatedAt: DateTime.now());
+      );
+      final track2 = domain.Track(
+        id: 't2',
+        songId: 's1',
+        name: 'Track 2',
+        createdAt: DateTime.now(),
         updatedAt: DateTime(2024, 1, 1),
+      );
       
       final stream = dataSource.watchTracksBySong('s1');
       
@@ -121,12 +131,27 @@ void main() {
   });
 
   test('getTracksBySong returns correct tracks', () async {
-    final track1 = TrackModel(id: 't1', songId: 's1', name: 'Track 1', createdAt: DateTime.now(), updatedAt: DateTime.now());
-        updatedAt: DateTime(2024, 1, 1),
-    final track2 = TrackModel(id: 't2', songId: 's2', name: 'Track 2', createdAt: DateTime.now(), updatedAt: DateTime.now());
-        updatedAt: DateTime(2024, 1, 1),
-    final track3 = TrackModel(id: 't3', songId: 's1', name: 'Track 3', createdAt: DateTime.now(), updatedAt: DateTime.now());
-        updatedAt: DateTime(2024, 1, 1),
+    final track1 = TrackModel(
+      id: 't1',
+      songId: 's1',
+      name: 'Track 1',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime(2024, 1, 1),
+    );
+    final track2 = TrackModel(
+      id: 't2',
+      songId: 's2',
+      name: 'Track 2',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime(2024, 1, 1),
+    );
+    final track3 = TrackModel(
+      id: 't3',
+      songId: 's1',
+      name: 'Track 3',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime(2024, 1, 1),
+    );
 
     await dataSource.insertTrack(track1);
     await dataSource.insertTrack(track2);

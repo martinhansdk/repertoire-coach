@@ -21,7 +21,7 @@ class SyncableChoirMember with Syncable {
 ///
 /// Bridges between the generic sync algorithm and choir member-specific data sources.
 /// Uses composite keys (choirId:userId) for sync identification.
-class ChoirMemberSyncAdapter implements SyncAdapter<SyncableChoirMember> {
+class ChoirMemberSyncAdapter implements SyncAdapter<Syncable> {
   final LocalChoirDataSource _local;
   final RemoteChoirDataSource _remote;
   final String _userId;
@@ -43,22 +43,22 @@ class ChoirMemberSyncAdapter implements SyncAdapter<SyncableChoirMember> {
 
   @override
   Future<List<SyncableChoirMember>> getAllRemote() async {
-    final members = await _remote.getChoirMembers(_userId);
+    final members = await _remote.getChoirMembersForUser(_userId);
     return members.map((m) => SyncableChoirMember(m)).toList();
   }
 
   @override
-  bool isLocallyDeleted(SyncableChoirMember item) {
+  bool isLocallyDeleted(covariant SyncableChoirMember item) {
     return item.model.deleted;
   }
 
   @override
-  Future<void> createOnRemote(SyncableChoirMember item) async {
+  Future<void> createOnRemote(covariant SyncableChoirMember item) async {
     await _remote.addMember(item.model.choirId, item.model.userId);
   }
 
   @override
-  Future<void> updateOnRemote(SyncableChoirMember item) async {
+  Future<void> updateOnRemote(covariant SyncableChoirMember item) async {
     // Choir members don't really have "update" - they're just membership records
     // If we need to update, we can treat it as re-adding (upsert on remote)
     await _remote.addMember(item.model.choirId, item.model.userId);
@@ -89,7 +89,7 @@ class ChoirMemberSyncAdapter implements SyncAdapter<SyncableChoirMember> {
   }
 
   @override
-  Future<void> upsertLocal(SyncableChoirMember item) async {
+  Future<void> upsertLocal(covariant SyncableChoirMember item) async {
     await _local.upsertMember(item.model, markForSync: false);
   }
 

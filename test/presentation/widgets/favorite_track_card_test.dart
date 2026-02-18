@@ -40,7 +40,6 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2024, 3, 15),
         createdAt: DateTime(2024, 1, 1),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       testSong = Song(
@@ -53,6 +52,7 @@ void main() {
 
       testFavorite = FavoriteTrack(
         addedAt: DateTime(2024, 1, 15),
+        updatedAt: DateTime(2024, 1, 15),
         track: Track(
           id: 'track-1',
           songId: 'song-1',
@@ -170,6 +170,7 @@ void main() {
 
       final longTitleFavorite = FavoriteTrack(
         addedAt: DateTime(2024, 1, 15),
+        updatedAt: DateTime(2024, 1, 15),
         track: Track(
           id: 'track-2',
           songId: 'song-2',

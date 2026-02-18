@@ -22,6 +22,7 @@ void main() {
       test('converts entity to model', () {
         final entity = FavoriteTrack(
           addedAt: dateTime,
+        updatedAt: dateTime,
           track: track,
         );
 
@@ -36,6 +37,7 @@ void main() {
       test('converts model to entity', () {
         final model = FavoriteTrackModel(
           addedAt: dateTime,
+        updatedAt: dateTime,
           track: track,
         );
 
@@ -50,6 +52,7 @@ void main() {
       test('creates companion with core values extracted from track', () {
         final model = FavoriteTrackModel(
           addedAt: dateTime,
+        updatedAt: dateTime,
           track: track,
         );
 
@@ -68,6 +71,7 @@ void main() {
           'track_id': 'track-1',
           'song_id': 'song-1',
           'added_at': dateTime.toIso8601String(),
+          'updated_at': dateTime.toIso8601String(),
           'tracks': {
             'name': 'Soprano',
             'audio_url': 'https://example.com/audio.mp3',
@@ -95,6 +99,7 @@ void main() {
           'track_id': 'track-1',
           'song_id': 'song-1',
           'added_at': dateTime.toIso8601String(),
+          'updated_at': dateTime.toIso8601String(),
           'tracks': {
             'name': 'Soprano',
             'audio_url': null,
@@ -116,6 +121,7 @@ void main() {
       test('serializes to JSON with core fields extracted from track', () {
         final model = FavoriteTrackModel(
           addedAt: dateTime,
+        updatedAt: dateTime,
           track: track,
         );
 
@@ -136,14 +142,15 @@ void main() {
       test('always returns only core fields', () {
         final model = FavoriteTrackModel(
           addedAt: dateTime,
+        updatedAt: dateTime,
           track: track,
         );
 
         final json = model.toJson('user-1');
 
         // Only core fields present
-        expect(json.keys.length, 4);
-        expect(json.keys, containsAll(['user_id', 'track_id', 'song_id', 'added_at']));
+        expect(json.keys.length, 5);
+        expect(json.keys, containsAll(['user_id', 'track_id', 'song_id', 'added_at', 'updated_at']));
       });
     });
 
@@ -151,6 +158,7 @@ void main() {
       test('entity -> model -> entity preserves data', () {
         final original = FavoriteTrack(
           addedAt: dateTime,
+        updatedAt: dateTime,
           track: track,
         );
 

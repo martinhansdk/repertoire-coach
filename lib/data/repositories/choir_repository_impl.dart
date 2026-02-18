@@ -57,6 +57,7 @@ class ChoirRepositoryImpl implements ChoirRepository {
       name: name,
       ownerId: ownerId,
       createdAt: DateTime.now().toUtc(),
+      updatedAt: DateTime.now().toUtc(),
     );
 
     // Save to local database (this also adds the owner as a member)

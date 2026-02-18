@@ -62,8 +62,14 @@ void main() {
       test('returns a list of concerts on success', () async {
         final mockRepository = MockConcertRepository();
         final concerts = [
-          Concert(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: DateTime.now(), createdAt: DateTime.now()),
-        updatedAt: DateTime(2024, 1, 1),
+          Concert(
+            id: 'c1',
+            name: 'Concert 1',
+            choirId: 'choir1',
+            choirName: 'Choir',
+            concertDate: DateTime.now(),
+            createdAt: DateTime.now(),
+          ),
         ];
         when(mockRepository.getConcerts()).thenAnswer((_) async => concerts);
 
@@ -96,8 +102,14 @@ void main() {
       test('returns filtered concerts on success', () async {
         final mockRepository = MockConcertRepository();
         final concerts = [
-          Concert(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: DateTime.now(), createdAt: DateTime.now()),
-        updatedAt: DateTime(2024, 1, 1),
+          Concert(
+            id: 'c1',
+            name: 'Concert 1',
+            choirId: 'choir1',
+            choirName: 'Choir',
+            concertDate: DateTime.now(),
+            createdAt: DateTime.now(),
+          ),
         ];
         when(mockRepository.getConcertsByChoir('choir1'))
             .thenAnswer((_) async => concerts);
@@ -117,8 +129,14 @@ void main() {
     group('concertByIdProvider', () {
       test('returns a concert on success', () async {
         final mockRepository = MockConcertRepository();
-        final concert = Concert(id: 'c1', name: 'Concert 1', choirId: 'choir1', choirName: 'Choir', concertDate: DateTime.now(), createdAt: DateTime.now());
-        updatedAt: DateTime(2024, 1, 1),
+        final concert = Concert(
+          id: 'c1',
+          name: 'Concert 1',
+          choirId: 'choir1',
+          choirName: 'Choir',
+          concertDate: DateTime.now(),
+          createdAt: DateTime.now(),
+        );
         when(mockRepository.getConcertById('c1'))
             .thenAnswer((_) async => concert);
 

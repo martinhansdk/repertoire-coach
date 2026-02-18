@@ -45,6 +45,7 @@ void main() {
         name: 'Updated Title',
         ownerId: 'u1',
         createdAt: testChoir.createdAt,
+        updatedAt: DateTime.now(),
       );
       final success = await dataSource.updateChoir(updatedChoir);
       final result = await dataSource.getChoirById('c1');

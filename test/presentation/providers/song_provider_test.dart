@@ -48,8 +48,13 @@ void main() {
       test('returns a list of songs on success', () async {
         final mockRepository = MockSongRepository();
         final songs = [
-          Song(id: 's1', concertId: 'c1', title: 'Song 1', createdAt: DateTime.now(), updatedAt: DateTime.now()),
-        updatedAt: DateTime(2024, 1, 1),
+          Song(
+            id: 's1',
+            concertId: 'c1',
+            title: 'Song 1',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime(2024, 1, 1),
+          ),
         ];
         when(mockRepository.getSongsByConcert('c1'))
             .thenAnswer((_) async => songs);
@@ -82,8 +87,13 @@ void main() {
     group('songByIdProvider', () {
       test('returns a song on success', () async {
         final mockRepository = MockSongRepository();
-        final song = Song(id: 's1', concertId: 'c1', title: 'Song 1', createdAt: DateTime.now(), updatedAt: DateTime.now());
-        updatedAt: DateTime(2024, 1, 1),
+        final song = Song(
+          id: 's1',
+          concertId: 'c1',
+          title: 'Song 1',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime(2024, 1, 1),
+        );
         when(mockRepository.getSongById('s1'))
             .thenAnswer((_) async => song);
 

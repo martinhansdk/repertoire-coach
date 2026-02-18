@@ -20,7 +20,7 @@ class SyncableChoir with Syncable {
 /// Sync adapter for Choir entities
 ///
 /// Bridges between the generic sync algorithm and choir-specific data sources.
-class ChoirSyncAdapter implements SyncAdapter<SyncableChoir> {
+class ChoirSyncAdapter implements SyncAdapter<Syncable> {
   final LocalChoirDataSource _local;
   final RemoteChoirDataSource _remote;
   final String _userId;
@@ -46,17 +46,17 @@ class ChoirSyncAdapter implements SyncAdapter<SyncableChoir> {
   }
 
   @override
-  bool isLocallyDeleted(SyncableChoir item) {
+  bool isLocallyDeleted(covariant SyncableChoir item) {
     return item.model.deleted;
   }
 
   @override
-  Future<void> createOnRemote(SyncableChoir item) async {
-    await _remote.createChoir(item.model);
+  Future<void> createOnRemote(covariant SyncableChoir item) async {
+    await _remote.createChoir(item.model, _userId);
   }
 
   @override
-  Future<void> updateOnRemote(SyncableChoir item) async {
+  Future<void> updateOnRemote(covariant SyncableChoir item) async {
     await _remote.updateChoir(item.model);
   }
 
@@ -71,7 +71,7 @@ class ChoirSyncAdapter implements SyncAdapter<SyncableChoir> {
   }
 
   @override
-  Future<void> upsertLocal(SyncableChoir item) async {
+  Future<void> upsertLocal(covariant SyncableChoir item) async {
     await _local.upsertChoir(item.model, markForSync: false);
   }
 

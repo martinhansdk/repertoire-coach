@@ -20,6 +20,7 @@ void main() {
     test('creates instance with required fields', () {
       final favorite = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 
@@ -30,6 +31,7 @@ void main() {
     test('hasAudio delegates to track', () {
       final favoriteWithAudio = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 
@@ -47,6 +49,7 @@ void main() {
 
       final favoriteWithoutAudio = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: trackWithoutAudio,
       );
 
@@ -57,11 +60,13 @@ void main() {
     test('supports equality comparison', () {
       final favorite1 = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 
       final favorite2 = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 
@@ -71,6 +76,7 @@ void main() {
     test('inequality when fields differ', () {
       final favorite1 = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 
@@ -88,6 +94,7 @@ void main() {
 
       final favorite2 = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: differentTrack,
       );
 
@@ -97,11 +104,13 @@ void main() {
     test('inequality when addedAt differs', () {
       final favorite1 = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 
       final favorite2 = FavoriteTrack(
         addedAt: DateTime(2024, 1, 20),
+        updatedAt: DateTime(2024, 1, 20),
         track: track,
       );
 
@@ -111,11 +120,13 @@ void main() {
     test('produces consistent hash codes for equal instances', () {
       final favorite1 = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 
       final favorite2 = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 
@@ -125,6 +136,7 @@ void main() {
     test('toString includes relevant information', () {
       final favorite = FavoriteTrack(
         addedAt: dateTime,
+        updatedAt: dateTime,
         track: track,
       );
 

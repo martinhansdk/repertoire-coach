@@ -20,7 +20,7 @@ class SyncableSong with Syncable {
 /// Sync adapter for Song entities
 ///
 /// Bridges between the generic sync algorithm and song-specific data sources.
-class SongSyncAdapter implements SyncAdapter<SyncableSong> {
+class SongSyncAdapter implements SyncAdapter<Syncable> {
   final LocalSongDataSource _local;
   final RemoteSongDataSource _remote;
   final String _userId;
@@ -41,22 +41,22 @@ class SongSyncAdapter implements SyncAdapter<SyncableSong> {
 
   @override
   Future<List<SyncableSong>> getAllRemote() async {
-    final songs = await _remote.getSongs(_userId);
+    final songs = await _remote.getSongsForUser(_userId);
     return songs.map((s) => SyncableSong(s)).toList();
   }
 
   @override
-  bool isLocallyDeleted(SyncableSong item) {
+  bool isLocallyDeleted(covariant SyncableSong item) {
     return item.model.deleted;
   }
 
   @override
-  Future<void> createOnRemote(SyncableSong item) async {
+  Future<void> createOnRemote(covariant SyncableSong item) async {
     await _remote.createSong(item.model);
   }
 
   @override
-  Future<void> updateOnRemote(SyncableSong item) async {
+  Future<void> updateOnRemote(covariant SyncableSong item) async {
     await _remote.updateSong(item.model);
   }
 
@@ -71,7 +71,7 @@ class SongSyncAdapter implements SyncAdapter<SyncableSong> {
   }
 
   @override
-  Future<void> upsertLocal(SyncableSong item) async {
+  Future<void> upsertLocal(covariant SyncableSong item) async {
     await _local.upsertSong(item.model, markForSync: false);
   }
 

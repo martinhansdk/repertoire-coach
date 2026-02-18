@@ -8,12 +8,14 @@ void main() {
     choirId: 'c1',
     userId: 'u1',
     joinedAt: now,
+    updatedAt: now,
   );
 
   final tChoirMember = ChoirMember(
     choirId: 'c1',
     userId: 'u1',
     joinedAt: now,
+    updatedAt: now,
   );
 
   test('should be a subclass of ChoirMember entity', () async {
@@ -45,6 +47,7 @@ void main() {
         'choir_id': 'c1',
         'user_id': 'u1',
         'joined_at': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
       };
       // act
       final result = ChoirMemberModel.fromJson(jsonMap);
@@ -62,6 +65,7 @@ void main() {
         'choir_id': 'c1',
         'user_id': 'u1',
         'joined_at': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
       };
       expect(result, expectedMap);
     });

@@ -113,6 +113,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
             positionMs: existing.positionMs,
             order: i,
             createdAt: existing.createdAt,
+            updatedAt: DateTime.now().toUtc(),
           );
           await _markerRepository.updateMarker(updated);
         } else {
@@ -123,6 +124,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
             positionMs: 0,
             order: i,
             createdAt: DateTime.now().toUtc(),
+            updatedAt: DateTime.now().toUtc(),
           );
           await _markerRepository.createMarker(marker);
         }
@@ -315,6 +317,7 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
         positionMs: resolvedPosition,
         order: i, // Preserve input order
         createdAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
       );
 
       await _markerRepository.createMarker(marker);

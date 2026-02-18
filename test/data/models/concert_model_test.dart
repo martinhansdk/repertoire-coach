@@ -21,7 +21,6 @@ void main() {
     name: 'Test Concert',
     concertDate: now,
     createdAt: now,
-        updatedAt: now,
   );
 
   test('should be a subclass of Concert entity', () async {

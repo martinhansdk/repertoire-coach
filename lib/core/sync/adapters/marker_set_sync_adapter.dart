@@ -20,7 +20,7 @@ class SyncableMarkerSet with Syncable {
 /// Sync adapter for MarkerSet entities
 ///
 /// Bridges between the generic sync algorithm and marker set-specific data sources.
-class MarkerSetSyncAdapter implements SyncAdapter<SyncableMarkerSet> {
+class MarkerSetSyncAdapter implements SyncAdapter<Syncable> {
   final LocalMarkerDataSource _local;
   final RemoteMarkerDataSource _remote;
   final String _userId;
@@ -41,22 +41,22 @@ class MarkerSetSyncAdapter implements SyncAdapter<SyncableMarkerSet> {
 
   @override
   Future<List<SyncableMarkerSet>> getAllRemote() async {
-    final markerSets = await _remote.getMarkerSets(_userId);
+    final markerSets = await _remote.getMarkerSetsForUser(_userId);
     return markerSets.map((ms) => SyncableMarkerSet(ms)).toList();
   }
 
   @override
-  bool isLocallyDeleted(SyncableMarkerSet item) {
+  bool isLocallyDeleted(covariant SyncableMarkerSet item) {
     return item.model.deleted;
   }
 
   @override
-  Future<void> createOnRemote(SyncableMarkerSet item) async {
+  Future<void> createOnRemote(covariant SyncableMarkerSet item) async {
     await _remote.createMarkerSet(item.model);
   }
 
   @override
-  Future<void> updateOnRemote(SyncableMarkerSet item) async {
+  Future<void> updateOnRemote(covariant SyncableMarkerSet item) async {
     await _remote.updateMarkerSet(item.model);
   }
 
@@ -71,7 +71,7 @@ class MarkerSetSyncAdapter implements SyncAdapter<SyncableMarkerSet> {
   }
 
   @override
-  Future<void> upsertLocal(SyncableMarkerSet item) async {
+  Future<void> upsertLocal(covariant SyncableMarkerSet item) async {
     await _local.upsertMarkerSet(item.model, markForSync: false);
   }
 

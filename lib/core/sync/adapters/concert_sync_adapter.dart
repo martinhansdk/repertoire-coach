@@ -20,7 +20,7 @@ class SyncableConcert with Syncable {
 /// Sync adapter for Concert entities
 ///
 /// Bridges between the generic sync algorithm and concert-specific data sources.
-class ConcertSyncAdapter implements SyncAdapter<SyncableConcert> {
+class ConcertSyncAdapter implements SyncAdapter<Syncable> {
   final LocalConcertDataSource _local;
   final RemoteConcertDataSource _remote;
   final String _userId;
@@ -46,17 +46,17 @@ class ConcertSyncAdapter implements SyncAdapter<SyncableConcert> {
   }
 
   @override
-  bool isLocallyDeleted(SyncableConcert item) {
+  bool isLocallyDeleted(covariant SyncableConcert item) {
     return item.model.deleted;
   }
 
   @override
-  Future<void> createOnRemote(SyncableConcert item) async {
+  Future<void> createOnRemote(covariant SyncableConcert item) async {
     await _remote.createConcert(item.model);
   }
 
   @override
-  Future<void> updateOnRemote(SyncableConcert item) async {
+  Future<void> updateOnRemote(covariant SyncableConcert item) async {
     await _remote.updateConcert(item.model);
   }
 
@@ -71,7 +71,7 @@ class ConcertSyncAdapter implements SyncAdapter<SyncableConcert> {
   }
 
   @override
-  Future<void> upsertLocal(SyncableConcert item) async {
+  Future<void> upsertLocal(covariant SyncableConcert item) async {
     await _local.upsertConcert(item.model, markForSync: false);
   }
 

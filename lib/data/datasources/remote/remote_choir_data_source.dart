@@ -102,6 +102,7 @@ class RemoteChoirDataSource {
         choirId: choir.id,
         userId: creatorUserId,
         joinedAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
       );
 
       await _supabase.from('choir_members').insert(member.toJson());
@@ -158,6 +159,7 @@ class RemoteChoirDataSource {
         choirId: choirId,
         userId: userId,
         joinedAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
       );
 
       await _supabase.from('choir_members').insert(member.toJson());

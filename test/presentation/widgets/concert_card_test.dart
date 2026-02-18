@@ -15,7 +15,6 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2025, 4, 15),
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -44,7 +43,6 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2025, 4, 15),
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -77,7 +75,6 @@ void main() {
         name: 'Future Concert',
         concertDate: futureDate,
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act
@@ -103,7 +100,6 @@ void main() {
         name: 'Past Concert',
         concertDate: pastDate,
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act

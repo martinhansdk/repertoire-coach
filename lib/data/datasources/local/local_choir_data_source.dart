@@ -94,6 +94,7 @@ class LocalChoirDataSource {
         choirId: choir.id,
         userId: creatorUserId,
         joinedAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
       );
       await _database.into(_database.choirMembers).insert(
             member.toDriftCompanion(markForSync: markForSync),
@@ -179,6 +180,7 @@ class LocalChoirDataSource {
       choirId: choirId,
       userId: userId,
       joinedAt: DateTime.now().toUtc(),
+      updatedAt: DateTime.now().toUtc(),
     );
 
     await _database.into(_database.choirMembers).insert(

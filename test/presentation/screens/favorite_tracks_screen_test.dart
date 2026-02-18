@@ -56,7 +56,6 @@ void main() {
         name: 'Spring Concert',
         concertDate: DateTime(2024, 3, 15),
         createdAt: DateTime(2024, 1, 1),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       testConcert2 = Concert(
@@ -66,7 +65,6 @@ void main() {
         name: 'Winter Concert',
         concertDate: DateTime(2024, 12, 15),
         createdAt: DateTime(2024, 1, 1),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Create songs
@@ -90,6 +88,7 @@ void main() {
       testFavorites = [
         FavoriteTrack(
           addedAt: DateTime(2024, 1, 15),
+          updatedAt: DateTime(2024, 1, 15),
           track: Track(
             id: 'track-1',
             songId: 'song-1',
@@ -99,11 +98,12 @@ void main() {
             durationMs: 180000,
             filePath: null,
             createdAt: DateTime(2024, 1, 1),
-        updatedAt: DateTime(2024, 1, 1),
+            updatedAt: DateTime(2024, 1, 1),
           ),
         ),
         FavoriteTrack(
           addedAt: DateTime(2024, 1, 14),
+          updatedAt: DateTime(2024, 1, 14),
           track: Track(
             id: 'track-2',
             songId: 'song-2',
@@ -113,7 +113,7 @@ void main() {
             durationMs: 240000,
             filePath: null,
             createdAt: DateTime(2024, 1, 1),
-        updatedAt: DateTime(2024, 1, 1),
+            updatedAt: DateTime(2024, 1, 1),
           ),
         ),
       ];

@@ -153,30 +153,6 @@ class Tracks extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// Table definition for user playback states
-class UserPlaybackStates extends Table {
-  /// Composite ID: userId_trackId
-  TextColumn get id => text()();
-
-  /// ID of the user
-  TextColumn get userId => text()();
-
-  /// ID of the song this playback state belongs to
-  TextColumn get songId => text()();
-
-  /// ID of the track
-  TextColumn get trackId => text()();
-
-  /// Last playback position in milliseconds
-  IntColumn get position => integer()();
-
-  /// When this playback state was last updated
-  DateTimeColumn get updatedAt => dateTime()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
 /// Table definition for marker sets (collections of markers for tracks)
 class MarkerSets extends Table {
   /// Unique identifier (UUID)
@@ -364,15 +340,6 @@ class AppDatabase extends _$AppDatabase {
             // Recreate index
             await customStatement(
               'CREATE INDEX idx_tracks_song ON tracks(song_id)',
-            );
-          }
-          if (from == 5 && to == 6) {
-            // Add UserPlaybackStates table
-            await m.createTable(userPlaybackStates);
-
-            // Create indexes for performance
-            await customStatement(
-              'CREATE INDEX idx_playback_states_user_track ON user_playback_states(user_id, track_id)',
             );
           }
           if (from == 6 && to == 7) {
@@ -738,46 +705,6 @@ class AppDatabase extends _$AppDatabase {
         synced: const Value(false), // Mark for sync
       ),
     );
-  }
-
-  /// Get playback state by composite ID (userId_trackId)
-  Future<UserPlaybackState?> getPlaybackStateById(String id) {
-    return (select(userPlaybackStates)..where((s) => s.id.equals(id)))
-        .getSingleOrNull();
-  }
-
-  /// Get playback state by user and track IDs
-  Future<UserPlaybackState?> getPlaybackStateByUserAndTrack(
-    String userId,
-    String trackId,
-  ) {
-    final compositeId = '${userId}_$trackId';
-    return getPlaybackStateById(compositeId);
-  }
-
-  /// Upsert (insert or update) a playback state
-  Future<void> upsertPlaybackState(UserPlaybackState state) {
-    return into(userPlaybackStates).insertOnConflictUpdate(
-      UserPlaybackStatesCompanion(
-        id: Value(state.id),
-        userId: Value(state.userId),
-        songId: Value(state.songId),
-        trackId: Value(state.trackId),
-        position: Value(state.position),
-        updatedAt: Value(state.updatedAt),
-      ),
-    );
-  }
-
-  /// Delete playback state by ID
-  Future<void> deletePlaybackState(String id) {
-    return (delete(userPlaybackStates)..where((s) => s.id.equals(id))).go();
-  }
-
-  /// Delete all playback states for a specific track
-  Future<void> deletePlaybackStatesForTrack(String trackId) {
-    return (delete(userPlaybackStates)..where((s) => s.trackId.equals(trackId)))
-        .go();
   }
 
   /// Get favorite tracks for a user, joined with track data.

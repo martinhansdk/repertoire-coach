@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/sync_service.dart';
 import '../../data/datasources/remote/remote_marker_data_source.dart';
 import 'auth_provider.dart';
-import 'audio_player_provider.dart';
 import 'choir_provider.dart';
 import 'concert_provider.dart';
 import 'favorite_track_provider.dart';

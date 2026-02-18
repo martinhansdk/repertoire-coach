@@ -69,7 +69,7 @@ class FakeItem with Syncable {
 }
 
 /// Local storage record with sync metadata.
-typedef _LocalRecord = ({FakeItem item, bool synced});
+typedef LocalRecord = ({FakeItem item, bool synced});
 
 /// In-memory fake adapter for testing sync algorithm.
 ///
@@ -77,7 +77,7 @@ typedef _LocalRecord = ({FakeItem item, bool synced});
 /// Supports injecting push failures for specific IDs.
 class FakeSyncAdapter implements SyncAdapter<FakeItem> {
   /// Local storage: ID -> (item, synced flag)
-  final Map<String, _LocalRecord> local = {};
+  final Map<String, LocalRecord> local = {};
 
   /// Remote storage: ID -> item
   final Map<String, FakeItem> remote = {};

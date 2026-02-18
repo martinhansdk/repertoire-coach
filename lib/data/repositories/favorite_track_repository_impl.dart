@@ -114,6 +114,7 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
 
     final favorite = FavoriteTrackModel(
       addedAt: DateTime.now().toUtc(),
+      updatedAt: DateTime.now().toUtc(),
       track: trackModel.toEntity(),
     );
 

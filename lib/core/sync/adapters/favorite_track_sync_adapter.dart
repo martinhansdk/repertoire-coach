@@ -21,7 +21,7 @@ class SyncableFavoriteTrack with Syncable {
 ///
 /// Bridges between the generic sync algorithm and favorite track-specific data sources.
 /// Uses trackId as syncId (userId is implicit in the adapter context).
-class FavoriteTrackSyncAdapter implements SyncAdapter<SyncableFavoriteTrack> {
+class FavoriteTrackSyncAdapter implements SyncAdapter<Syncable> {
   final LocalFavoriteTrackDataSource _local;
   final RemoteFavoriteTrackDataSource _remote;
   final String _userId;
@@ -48,19 +48,27 @@ class FavoriteTrackSyncAdapter implements SyncAdapter<SyncableFavoriteTrack> {
   }
 
   @override
-  bool isLocallyDeleted(SyncableFavoriteTrack item) {
+  bool isLocallyDeleted(covariant SyncableFavoriteTrack item) {
     return item.model.deleted;
   }
 
   @override
-  Future<void> createOnRemote(SyncableFavoriteTrack item) async {
-    await _remote.addFavorite(_userId, item.model.track.id);
+  Future<void> createOnRemote(covariant SyncableFavoriteTrack item) async {
+    await _remote.addFavorite(
+      _userId,
+      item.model.track.id,
+      item.model.track.songId,
+    );
   }
 
   @override
-  Future<void> updateOnRemote(SyncableFavoriteTrack item) async {
+  Future<void> updateOnRemote(covariant SyncableFavoriteTrack item) async {
     // Favorites are add/remove only - update means re-adding (upsert)
-    await _remote.addFavorite(_userId, item.model.track.id);
+    await _remote.addFavorite(
+      _userId,
+      item.model.track.id,
+      item.model.track.songId,
+    );
   }
 
   @override
@@ -74,7 +82,7 @@ class FavoriteTrackSyncAdapter implements SyncAdapter<SyncableFavoriteTrack> {
   }
 
   @override
-  Future<void> upsertLocal(SyncableFavoriteTrack item) async {
+  Future<void> upsertLocal(covariant SyncableFavoriteTrack item) async {
     await _local.addFavorite(_userId, item.model, markForSync: false);
   }
 

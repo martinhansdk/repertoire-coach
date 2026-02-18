@@ -14,7 +14,6 @@ void main() {
         name: 'Spring Concert',
         concertDate: concertDate,
         createdAt: now,
-        updatedAt: now,
       );
 
       // Assert
@@ -36,7 +35,6 @@ void main() {
         name: 'Future Concert',
         concertDate: futureDate,
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Assert
@@ -54,7 +52,6 @@ void main() {
         name: 'Past Concert',
         concertDate: pastDate,
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Assert
@@ -74,7 +71,6 @@ void main() {
         name: 'Concert',
         concertDate: concertDate,
         createdAt: now,
-        updatedAt: now,
       );
       final concert2 = Concert(
         id: '1',
@@ -83,7 +79,6 @@ void main() {
         name: 'Concert',
         concertDate: concertDate,
         createdAt: now,
-        updatedAt: now,
       );
       final concert3 = Concert(
         id: '2',
@@ -92,7 +87,6 @@ void main() {
         name: 'Concert',
         concertDate: concertDate,
         createdAt: now,
-        updatedAt: now,
       );
 
       // Assert
@@ -110,7 +104,6 @@ void main() {
         name: 'Spring Concert',
         concertDate: concertDate,
         createdAt: DateTime.now(),
-        updatedAt: DateTime(2024, 1, 1),
       );
 
       // Act

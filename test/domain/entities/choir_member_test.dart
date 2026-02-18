@@ -10,6 +10,7 @@ void main() {
         choirId: 'choir1',
         userId: 'user1',
         joinedAt: now,
+        updatedAt: now,
       );
 
       // Assert
@@ -25,16 +26,19 @@ void main() {
         choirId: 'choir1',
         userId: 'user1',
         joinedAt: now,
+        updatedAt: now,
       );
       final member2 = ChoirMember(
         choirId: 'choir1',
         userId: 'user1',
         joinedAt: now,
+        updatedAt: now,
       );
       final member3 = ChoirMember(
         choirId: 'choir1',
         userId: 'user2',
         joinedAt: now,
+        updatedAt: now,
       );
 
       // Assert
@@ -49,6 +53,7 @@ void main() {
         choirId: 'choir1',
         userId: 'user1',
         joinedAt: now,
+        updatedAt: now,
       );
 
       // Act
