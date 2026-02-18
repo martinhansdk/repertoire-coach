@@ -23,6 +23,7 @@ class RemoteFavoriteTrackDataSource {
             track_id,
             song_id,
             added_at,
+            updated_at,
             tracks!inner(
               name,
               audio_url,

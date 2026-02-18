@@ -115,6 +115,26 @@ void main() {
         expect(model.track.storagePath, isNull);
         expect(model.track.durationMs, isNull);
       });
+
+      test('falls back to added_at when updated_at is missing', () {
+        final json = {
+          'track_id': 'track-1',
+          'song_id': 'song-1',
+          'added_at': dateTime.toIso8601String(),
+          'updated_at': null,
+          'tracks': {
+            'name': 'Soprano',
+            'audio_url': 'https://example.com/audio.mp3',
+            'storage_path': 'choirs/choir-1/tracks/track-1.mp3',
+            'duration_ms': 180000,
+            'created_at': '2024-01-01T00:00:00.000',
+          },
+        };
+
+        final model = FavoriteTrackModel.fromJson(json);
+
+        expect(model.updatedAt, dateTime);
+      });
     });
 
     group('toJson', () {

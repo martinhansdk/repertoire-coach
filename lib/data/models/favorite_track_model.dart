@@ -74,9 +74,15 @@ class FavoriteTrackModel extends FavoriteTrack {
   /// Expects JSON from query with join to tracks table.
   /// The 'tracks' field should contain the full track data.
   factory FavoriteTrackModel.fromJson(Map<String, dynamic> json) {
+    final addedAtString = json['added_at'] as String;
+    final addedAt = DateTime.parse(addedAtString);
+    final updatedAtString = json['updated_at'] as String? ?? addedAtString;
+    final updatedAt = DateTime.parse(updatedAtString);
+
     // Extract track data and create Track object
     final trackData = json['tracks'] as Map<String, dynamic>;
-    final createdAt = DateTime.parse(trackData['created_at'] as String);
+    final createdAtString = trackData['created_at'] as String? ?? addedAtString;
+    final createdAt = DateTime.parse(createdAtString);
 
     final track = Track(
       id: json['track_id'] as String,
@@ -91,8 +97,8 @@ class FavoriteTrackModel extends FavoriteTrack {
     );
 
     return FavoriteTrackModel(
-      addedAt: DateTime.parse(json['added_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      addedAt: addedAt,
+      updatedAt: updatedAt,
       track: track,
     );
   }

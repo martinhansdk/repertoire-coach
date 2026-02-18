@@ -160,8 +160,7 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
     if (kIsWeb) {
       if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
         try {
-          final favorites = await _remoteDataSource.getFavorites(userId);
-          return favorites.length;
+          return await _remoteDataSource.getFavoriteCount(userId);
         } catch (e) {
           debugPrint('Failed to get favorite count from remote on web: $e');
           return 0;
