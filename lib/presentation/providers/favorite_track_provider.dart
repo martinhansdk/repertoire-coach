@@ -33,14 +33,10 @@ final favoriteTrackRepositoryProvider =
     Provider<FavoriteTrackRepository>((ref) {
   final localDataSource = ref.watch(localFavoriteTrackDataSourceProvider);
   final localTrackDataSource = ref.watch(localTrackDataSourceProvider);
-  final remoteDataSource = ref.watch(remoteFavoriteTrackDataSourceProvider);
-  final supabaseService = ref.watch(supabaseServiceProvider);
 
   return FavoriteTrackRepositoryImpl(
     localDataSource,
     localTrackDataSource,
-    remoteDataSource,
-    supabaseService,
   );
 });
 

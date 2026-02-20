@@ -1,93 +1,32 @@
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint;
 
-import '../../core/services/supabase_service.dart';
 import '../../domain/entities/favorite_track.dart';
 import '../../domain/repositories/favorite_track_repository.dart';
 import '../datasources/local/local_favorite_track_data_source.dart';
 import '../datasources/local/local_track_data_source.dart';
-import '../datasources/remote/remote_favorite_track_data_source.dart';
 import '../models/favorite_track_model.dart';
 
 /// Favorite track repository implementation with offline-first sync
 ///
-/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
-/// - Reads always from local DB (fast, works offline)
-/// - Writes to both local AND remote when authenticated
-/// - Background sync ensures data consistency
+/// Uses local (Drift/SQLite) data only. Remote propagation is handled by the
+/// sync service.
 class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
   final LocalFavoriteTrackDataSource _localDataSource;
   final LocalTrackDataSource _localTrackDataSource;
-  final RemoteFavoriteTrackDataSource? _remoteDataSource;
-  final SupabaseService _supabaseService;
 
   FavoriteTrackRepositoryImpl(
     this._localDataSource,
     this._localTrackDataSource,
-    this._remoteDataSource,
-    this._supabaseService,
   );
 
   @override
   Future<List<FavoriteTrack>> getFavorites(String userId) async {
-    // On web, skip local database entirely and fetch from remote
-    // This avoids JOIN failures when tracks/songs/concerts tables don't exist in IndexedDB
-    if (kIsWeb) {
-      if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-        try {
-          final remoteFavorites = await _remoteDataSource.getFavorites(userId);
-          return remoteFavorites.map((model) => model.toEntity()).toList();
-        } catch (e) {
-          debugPrint('Failed to fetch favorites from remote on web: $e');
-          return [];
-        }
-      }
-      return [];
-    }
-
-    // Mobile/Desktop: Try to get from local database first
     final localFavorites = await _localDataSource.getFavorites(userId);
-
-    // If local database is empty and user is authenticated, fetch from remote
-    if (localFavorites.isEmpty &&
-        _supabaseService.isAuthenticated &&
-        _remoteDataSource != null) {
-      try {
-        final remoteFavorites = await _remoteDataSource.getFavorites(userId);
-
-        // Sync remote favorites to local database
-        for (final favorite in remoteFavorites) {
-          await _localDataSource.addFavorite(userId, favorite, markForSync: false);
-        }
-
-        // Return the remote favorites
-        return remoteFavorites.map((model) => model.toEntity()).toList();
-      } catch (e) {
-        debugPrint('Failed to fetch favorites from remote: $e');
-        // Fall through to return empty local list
-      }
-    }
-
-    // Convert local favorites to domain entities
     return localFavorites.map((model) => model.toEntity()).toList();
   }
 
   @override
   Future<bool> isFavorite(String userId, String trackId) async {
-    // On web, check remote directly
-    if (kIsWeb) {
-      if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-        try {
-          final favorites = await _remoteDataSource.getFavorites(userId);
-          return favorites.any((f) => f.track.id == trackId);
-        } catch (e) {
-          debugPrint('Failed to check favorite status from remote on web: $e');
-          return false;
-        }
-      }
-      return false;
-    }
-
-    // Mobile/Desktop: Check local database
     return await _localDataSource.isFavorite(userId, trackId);
   }
 
@@ -97,15 +36,7 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
     String trackId,
     String songId,
   ) async {
-    // On web, write to remote only (skip local database)
-    if (kIsWeb) {
-      if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-        await _remoteDataSource.addFavorite(userId, trackId, songId);
-      }
-      return;
-    }
-
-    // Mobile/Desktop: Fetch the track, save to local database, sync to remote
+    // Fetch the track and save favorite locally; sync service handles remote.
     final trackModel = await _localTrackDataSource.getTrackById(trackId);
     if (trackModel == null) {
       debugPrint('Cannot add favorite: track $trackId not found locally');
@@ -119,57 +50,16 @@ class FavoriteTrackRepositoryImpl implements FavoriteTrackRepository {
     );
 
     await _localDataSource.addFavorite(userId, favorite, markForSync: true);
-
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.addFavorite(userId, trackId, songId);
-      } catch (e) {
-        debugPrint('Failed to sync favorite addition to remote: $e');
-      }
-    }
   }
 
   @override
   Future<void> removeFavorite(String userId, String trackId) async {
-    // On web, delete from remote only (skip local database)
-    if (kIsWeb) {
-      if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-        await _remoteDataSource.removeFavorite(userId, trackId);
-      }
-      return;
-    }
-
-    // Mobile/Desktop: Delete from local database and sync to remote
+    // Delete locally; sync service handles remote.
     await _localDataSource.removeFavorite(userId, trackId);
-
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.removeFavorite(userId, trackId);
-      } catch (e) {
-        // Log error but don't fail the operation - will sync later
-        debugPrint('Failed to sync favorite removal to remote: $e');
-      }
-    }
   }
 
   @override
   Future<int> getFavoriteCount(String userId) async {
-    // On web, count from remote directly
-    if (kIsWeb) {
-      if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-        try {
-          return await _remoteDataSource.getFavoriteCount(userId);
-        } catch (e) {
-          debugPrint('Failed to get favorite count from remote on web: $e');
-          return 0;
-        }
-      }
-      return 0;
-    }
-
-    // Mobile/Desktop: Count from local database
     return await _localDataSource.getFavoriteCount(userId);
   }
 }
