@@ -54,6 +54,19 @@ void main() {
       // assert
       expect(result, tChoirMemberModel);
     });
+
+    test('falls back to joined_at when updated_at is null', () async {
+      final Map<String, dynamic> jsonMap = {
+        'choir_id': 'c1',
+        'user_id': 'u1',
+        'joined_at': now.toIso8601String(),
+        'updated_at': null,
+      };
+
+      final result = ChoirMemberModel.fromJson(jsonMap);
+
+      expect(result.updatedAt, result.joinedAt);
+    });
   });
 
   group('toJson', () {

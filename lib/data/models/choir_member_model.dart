@@ -64,11 +64,14 @@ class ChoirMemberModel extends ChoirMember {
   }
 
   factory ChoirMemberModel.fromJson(Map<String, dynamic> json) {
+    final joinedAtString = json['joined_at'] as String;
+    final updatedAtString = json['updated_at'] as String? ?? joinedAtString;
+
     return ChoirMemberModel(
       choirId: json['choir_id'],
       userId: json['user_id'],
-      joinedAt: DateTime.parse(json['joined_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      joinedAt: DateTime.parse(joinedAtString),
+      updatedAt: DateTime.parse(updatedAtString),
     );
   }
 

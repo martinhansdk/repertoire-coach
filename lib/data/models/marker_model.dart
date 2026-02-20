@@ -80,14 +80,17 @@ class MarkerModel extends Marker {
 
   /// Create a MarkerModel from Supabase JSON
   factory MarkerModel.fromJson(Map<String, dynamic> json) {
+    final createdAtString = json['created_at'] as String;
+    final updatedAtString = json['updated_at'] as String? ?? createdAtString;
+
     return MarkerModel(
       id: json['id'],
       markerSetId: json['marker_set_id'],
       label: json['label'],
       positionMs: json['position_ms'],
       order: json['display_order'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      createdAt: DateTime.parse(createdAtString),
+      updatedAt: DateTime.parse(updatedAtString),
     );
   }
 

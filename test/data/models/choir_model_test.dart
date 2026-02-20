@@ -57,6 +57,20 @@ void main() {
       // assert
       expect(result, tChoirModel);
     });
+
+    test('falls back to created_at when updated_at is null', () async {
+      final Map<String, dynamic> jsonMap = {
+        'id': 'c1',
+        'name': 'Test Choir',
+        'owner_id': 'u1',
+        'created_at': now.toIso8601String(),
+        'updated_at': null,
+      };
+
+      final result = ChoirModel.fromJson(jsonMap);
+
+      expect(result.updatedAt, result.createdAt);
+    });
   });
 
   group('toJson', () {

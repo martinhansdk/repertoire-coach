@@ -138,7 +138,8 @@ class RemoteMarkerDataSource {
             label,
             position_ms,
             display_order,
-            created_at
+            created_at,
+            updated_at
           ''')
           .eq('marker_set_id', markerSetId)
           .order('display_order', ascending: true) as List;
@@ -164,7 +165,8 @@ class RemoteMarkerDataSource {
             label,
             position_ms,
             display_order,
-            created_at
+            created_at,
+            updated_at
           ''')
           .eq('id', id)
           .maybeSingle();
@@ -355,7 +357,8 @@ class RemoteMarkerDataSource {
             label,
             position_ms,
             display_order,
-            created_at
+            created_at,
+            updated_at
           ''')
           .inFilter('marker_set_id', markerSetIds)
           .order('display_order', ascending: true) as List;

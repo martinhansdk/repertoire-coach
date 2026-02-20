@@ -182,5 +182,21 @@ void main() {
       // Assert
       expect(convertedMarker, equals(originalMarker));
     });
+
+    test('fromJson falls back to created_at when updated_at is null', () {
+      final json = {
+        'id': '1',
+        'marker_set_id': 'set1',
+        'label': 'Verse 1',
+        'position_ms': 30000,
+        'display_order': 1,
+        'created_at': '2024-01-01T00:00:00.000Z',
+        'updated_at': null,
+      };
+
+      final marker = MarkerModel.fromJson(json);
+
+      expect(marker.updatedAt, marker.createdAt);
+    });
   });
 }

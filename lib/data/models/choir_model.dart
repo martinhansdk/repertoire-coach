@@ -70,12 +70,15 @@ class ChoirModel extends Choir {
   }
 
   factory ChoirModel.fromJson(Map<String, dynamic> json) {
+    final createdAtString = json['created_at'] as String;
+    final updatedAtString = json['updated_at'] as String? ?? createdAtString;
+
     return ChoirModel(
       id: json['id'],
       name: json['name'],
       ownerId: json['owner_id'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      createdAt: DateTime.parse(createdAtString),
+      updatedAt: DateTime.parse(updatedAtString),
     );
   }
 

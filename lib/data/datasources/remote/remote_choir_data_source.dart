@@ -43,7 +43,8 @@ class RemoteChoirDataSource {
             id,
             name,
             owner_id,
-            created_at
+            created_at,
+            updated_at
           ''')
           .inFilter('id', choirIds) as List;
 
@@ -71,7 +72,8 @@ class RemoteChoirDataSource {
             id,
             name,
             owner_id,
-            created_at
+            created_at,
+            updated_at
           ''')
           .eq('id', id)
           .maybeSingle();
@@ -297,7 +299,8 @@ class RemoteChoirDataSource {
           .select('''
             choir_id,
             user_id,
-            joined_at
+            joined_at,
+            updated_at
           ''')
           .inFilter('choir_id', choirIds) as List;
 
