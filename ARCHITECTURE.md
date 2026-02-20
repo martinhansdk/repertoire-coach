@@ -90,6 +90,76 @@ lib/
     └── android_auto/  # Android Auto integration
 ```
 
+### Visual Composition
+
+#### Runtime Component Map
+```mermaid
+flowchart LR
+  UI[Flutter UI<br/>Screens + Widgets]
+  Providers[Riverpod Providers]
+  Repos[Repositories]
+  LocalDS[Local Data Sources]
+  RemoteDS[Remote Data Sources]
+  DB[(Drift DB<br/>SQLite/sql.js)]
+  Supabase[(Supabase<br/>Postgres + Auth + Storage)]
+  Audio[Audio Engine<br/>just_audio + audio_service]
+
+  UI --> Providers
+  Providers --> Repos
+  Repos --> LocalDS
+  Repos --> RemoteDS
+  LocalDS --> DB
+  RemoteDS --> Supabase
+  Providers --> Audio
+  Audio --> UI
+```
+
+#### Clean Architecture Boundaries
+```mermaid
+flowchart TD
+  subgraph Presentation
+    P1[Screens]
+    P2[Widgets]
+    P3[Providers]
+  end
+
+  subgraph Domain
+    D1[Entities]
+    D2[Repository Interfaces]
+    D3[Use Cases]
+  end
+
+  subgraph Data
+    R[Repository Implementations]
+    L[Local Data Sources]
+    M[Remote Data Sources]
+    Models[Models]
+  end
+
+  Infra[(Drift + Supabase + Storage)]
+
+  Presentation --> Domain
+  Data --> Domain
+  Data --> Infra
+```
+
+#### Sync Subsystem Placement
+```mermaid
+flowchart LR
+  SP[Sync Provider + Controller]
+  SS[SyncService]
+  SA[Entity Sync Adapters]
+  ALG[SyncAlgorithm]
+  LDS[Local Data Sources]
+  RDS[Remote Data Sources]
+
+  SP --> SS --> SA --> ALG
+  ALG --> LDS
+  ALG --> RDS
+```
+
+For sync internals (entity order, push/pull algorithm, state machine, and data flow), see `docs/SYNC_ARCHITECTURE.md`.
+
 ## Data Models
 
 ### Core Entities
