@@ -494,10 +494,13 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   // Android Auto: play from browse / queue
   // ---------------------------------------------------------------------------
 
-  @override
-  Future<void> playMediaItem(MediaItem item) async {
+  Future<void> _playTrackById(
+    String trackId, {
+    MediaItem? preferredItem,
+    bool autoPlay = true,
+  }) async {
     // Look up the Track from the local Drift database
-    final trackRow = await _database.getTrackById(item.id);
+    final trackRow = await _database.getTrackById(trackId);
     if (trackRow == null) return;
 
     // Generate signed URL for cloud-stored audio
@@ -521,12 +524,35 @@ class _AudioPlayerHandler extends BaseAudioHandler {
       return; // No audio source available
     }
 
+    final item = preferredItem ?? MediaItem(id: trackRow.id, title: trackRow.name);
+
     // Update the notification metadata
     mediaItem.add(item);
 
     await _player.seek(Duration.zero);
-    await _player.play();
+    if (autoPlay) {
+      await _player.play();
+    }
     _broadcastState();
+  }
+
+  @override
+  Future<void> playMediaItem(MediaItem item) async {
+    await _playTrackById(item.id, preferredItem: item);
+  }
+
+  @override
+  Future<void> playFromMediaId(String mediaId, [
+    Map<String, dynamic>? extras,
+  ]) async {
+    await _playTrackById(mediaId);
+  }
+
+  @override
+  Future<void> prepareFromMediaId(String mediaId, [
+    Map<String, dynamic>? extras,
+  ]) async {
+    await _playTrackById(mediaId, autoPlay: false);
   }
 
   // ---------------------------------------------------------------------------
