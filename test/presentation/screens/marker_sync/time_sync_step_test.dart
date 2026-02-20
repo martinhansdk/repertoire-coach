@@ -463,6 +463,56 @@ void main() {
 
         expect(fakeAudioRepository.lastSeekPosition, const Duration(seconds: 5));
       });
+
+      testWidgets('long press menu shows add and delete options', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        await tester.longPress(find.byKey(const ValueKey('markerSyncMarker_0')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('add marker'), findsOneWidget);
+        expect(find.text('delete marker'), findsOneWidget);
+      });
+
+      testWidgets('add marker inserts behind selected marker', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        await tester.longPress(find.byKey(const ValueKey('markerSyncMarker_0')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('add marker'));
+        await tester.pumpAndSettle();
+
+        // Edit dialog opens for the inserted marker.
+        expect(find.text('Edit marker'), findsOneWidget);
+        expect(find.text('New marker'), findsAtLeastNWidgets(1));
+        final dialogSaveButton = find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Save'),
+        );
+        await tester.tap(dialogSaveButton);
+        await tester.pumpAndSettle();
+
+        expect(find.text('verse'), findsOneWidget);
+        expect(find.text('New marker'), findsOneWidget);
+        expect(find.text('chorus'), findsOneWidget);
+        expect(find.byKey(const ValueKey('markerSyncMarker_2')), findsOneWidget);
+      });
+
+      testWidgets('delete marker removes selected marker', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus', 'bridge']));
+        await tester.pumpAndSettle();
+
+        await tester.longPress(find.byKey(const ValueKey('markerSyncMarker_1')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('delete marker'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('chorus'), findsNothing);
+        expect(find.text('bridge'), findsOneWidget);
+        expect(find.byKey(const ValueKey('markerSyncMarker_1')), findsOneWidget);
+      });
     });
 
     group('Sync Button State', () {

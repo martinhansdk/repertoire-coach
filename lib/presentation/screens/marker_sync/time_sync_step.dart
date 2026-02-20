@@ -135,6 +135,91 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
     }
   }
 
+  Future<void> _editMarkerLabel(int markerIndex) async {
+    final state = ref.read(markerSyncNotifierProvider(widget.params));
+    if (markerIndex < 0 || markerIndex >= state.labels.length) return;
+
+    final controller = TextEditingController(text: state.labels[markerIndex]);
+    final newLabel = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit marker'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Label',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (newLabel == null || !mounted) return;
+    ref.read(markerSyncNotifierProvider(widget.params).notifier).updateLabel(markerIndex, newLabel);
+  }
+
+  void _showMarkerEditMenu(int markerIndex, bool isSynced) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit label'),
+              onTap: () {
+                Navigator.pop(context);
+                _editMarkerLabel(markerIndex);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('add marker'),
+              onTap: () {
+                Navigator.pop(context);
+                final notifier = ref.read(markerSyncNotifierProvider(widget.params).notifier);
+                notifier.addMarkerAfter(markerIndex, label: 'New marker');
+                _editMarkerLabel(markerIndex + 1);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.link_off),
+              title: const Text('Clear synced time'),
+              enabled: isSynced,
+              onTap: isSynced
+                  ? () {
+                      Navigator.pop(context);
+                      ref
+                          .read(markerSyncNotifierProvider(widget.params).notifier)
+                          .clearSyncedPosition(markerIndex);
+                    }
+                  : null,
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('delete marker'),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(markerSyncNotifierProvider(widget.params).notifier).deleteMarker(markerIndex);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _discard() {
     ref.read(markerSyncNotifierProvider(widget.params).notifier).discard();
     // Invalidate marker caches so parent screen reloads from database
@@ -456,6 +541,8 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
           ),
           title: Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: isSelected
                 ? theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)
                 : null,
@@ -476,6 +563,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                   .seek(Duration(milliseconds: positionMs));
             }
           },
+          onLongPress: () => _showMarkerEditMenu(markerIndex, isSynced),
         );
       },
     );

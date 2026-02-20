@@ -48,12 +48,12 @@ void main() {
     }
 
     group('UI Rendering', () {
-      testWidgets('displays helper text and instructions', (tester) async {
+      testWidgets('does not display helper text above the editor', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        expect(find.text('Enter one marker per line'), findsOneWidget);
-        expect(find.text('Examples: verse, chorus, intro, bridge, or lyrics'), findsOneWidget);
-        expect(find.text('Empty lines are preserved for visual spacing'), findsOneWidget);
+        expect(find.text('Enter one marker per line'), findsNothing);
+        expect(find.text('Examples: verse, chorus, intro, bridge, or lyrics'), findsNothing);
+        expect(find.text('Empty lines are preserved for visual spacing'), findsNothing);
       });
 
       testWidgets('displays text input field with hint text', (tester) async {
@@ -66,11 +66,11 @@ void main() {
         expect(textField.decoration?.hintText, contains('chorus'));
       });
 
-      testWidgets('displays next button', (tester) async {
+      testWidgets('displays save and time sync buttons', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
 
-        expect(find.byKey(const ValueKey('markerSyncNextButton')),
-            findsOneWidget);
+        expect(find.byKey(const ValueKey('markerSyncSaveTextButton')), findsOneWidget);
+        expect(find.byKey(const ValueKey('markerSyncNextButton')), findsOneWidget);
       });
 
       testWidgets('displays line counter', (tester) async {

@@ -13,6 +13,7 @@ class _AnimatedMarkerItem extends StatefulWidget {
   final VoidCallback? onLongPress;
   final bool showPositions;
   final bool isPlaying;
+  final double playbackSpeed;
 
   const _AnimatedMarkerItem({
     required this.index,
@@ -25,6 +26,7 @@ class _AnimatedMarkerItem extends StatefulWidget {
     this.onLongPress,
     required this.showPositions,
     required this.isPlaying,
+    required this.playbackSpeed,
   });
 
   @override
@@ -35,6 +37,23 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+
+  Duration _durationForRemainingProgress(double progress) {
+    final speed = widget.playbackSpeed > 0 ? widget.playbackSpeed : 1.0;
+    final remainingMs =
+        ((1.0 - progress).clamp(0.0, 1.0) * widget.segmentDuration.inMilliseconds) / speed;
+    return Duration(milliseconds: remainingMs.round().clamp(1, 1 << 31));
+  }
+
+  void _animateToEnd(double progress) {
+    _controller.stop();
+    if (progress >= 1.0 || !widget.isPlaying) return;
+    _controller.animateTo(
+      1.0,
+      duration: _durationForRemainingProgress(progress),
+      curve: Curves.linear,
+    );
+  }
 
   @override
   void initState() {
@@ -60,6 +79,10 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
     else if (widget.isPlaying != oldWidget.isPlaying) {
       _updateAnimation();
     }
+    // Update if playback speed changed
+    else if (widget.playbackSpeed != oldWidget.playbackSpeed) {
+      _updateAnimation();
+    }
     // Update if segment duration changed
     else if (widget.segmentDuration != oldWidget.segmentDuration) {
       _controller.duration = widget.segmentDuration;
@@ -75,7 +98,7 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
         if ((targetProgress - _controller.value).abs() > 0.1) {
           _controller.value = targetProgress;
           if (targetProgress < 1.0 && widget.isPlaying) {
-            _controller.forward(from: targetProgress);
+            _animateToEnd(targetProgress);
           }
         }
       }
@@ -95,7 +118,7 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
 
         // Start animation from current position only if playing
         if (progress < 1.0 && widget.isPlaying) {
-          _controller.forward(from: progress);
+          _animateToEnd(progress);
         } else if (!widget.isPlaying) {
           // Pause at current position
           _controller.stop();
@@ -187,6 +210,7 @@ class MarkerList extends StatefulWidget {
   final bool showPositions;
   final Duration? trackDuration;
   final bool isPlaying;
+  final double playbackSpeed;
 
   const MarkerList({
     super.key,
@@ -197,6 +221,7 @@ class MarkerList extends StatefulWidget {
     this.showPositions = true,
     this.trackDuration,
     this.isPlaying = false,
+    this.playbackSpeed = 1.0,
   });
 
   @override
@@ -222,11 +247,17 @@ class _MarkerListState extends State<MarkerList> {
         continue;
       }
       final markerPosition = Duration(milliseconds: markerMs);
-      final nextPosition = i == markers.length - 1
-          ? (widget.trackDuration ?? markerPosition)
-          : Duration(milliseconds: markers[i + 1].positionMs ?? markerMs);
+      Duration? nextPosition;
+      for (int j = i + 1; j < markers.length; j++) {
+        final nextMs = markers[j].positionMs;
+        if (nextMs != null) {
+          nextPosition = Duration(milliseconds: nextMs);
+          break;
+        }
+      }
+      nextPosition ??= widget.trackDuration;
       if (widget.currentPosition >= markerPosition &&
-          (i == markers.length - 1 || widget.currentPosition < nextPosition)) {
+          (nextPosition == null || widget.currentPosition < nextPosition)) {
         return i;
       }
     }
@@ -279,10 +310,8 @@ class _MarkerListState extends State<MarkerList> {
       );
     }
 
-    // Sort markers by display order and keep synced markers only.
+    // Sort markers by display order and keep empty/non-synced entries visible.
     final sortedMarkers = List<Marker>.from(widget.markers)
-          .where((marker) => marker.positionMs != null)
-          .toList(growable: false)
       ..sort((a, b) => a.order.compareTo(b.order));
 
     if (sortedMarkers.isEmpty) {
@@ -321,11 +350,20 @@ class _MarkerListState extends State<MarkerList> {
       itemCount: sortedMarkers.length,
       itemBuilder: (context, index) {
         final marker = sortedMarkers[index];
-        final markerPosition = Duration(milliseconds: marker.positionMs!);
+        final markerMs = marker.positionMs;
+        final markerPosition = markerMs != null
+            ? Duration(milliseconds: markerMs)
+            : Duration.zero;
         final isActive = index == activeIndex;
-        final nextPosition = index == sortedMarkers.length - 1
-            ? (widget.trackDuration ?? markerPosition)
-            : Duration(milliseconds: sortedMarkers[index + 1].positionMs!);
+        Duration? nextPosition;
+        for (int j = index + 1; j < sortedMarkers.length; j++) {
+          final nextMs = sortedMarkers[j].positionMs;
+          if (nextMs != null) {
+            nextPosition = Duration(milliseconds: nextMs);
+            break;
+          }
+        }
+        nextPosition ??= widget.trackDuration ?? markerPosition;
         final segmentDuration = nextPosition > markerPosition
             ? nextPosition - markerPosition
             : const Duration(milliseconds: 1);
@@ -337,10 +375,13 @@ class _MarkerListState extends State<MarkerList> {
           segmentDuration: segmentDuration,
           currentPosition: widget.currentPosition,
           markerPosition: markerPosition,
-          onTap: widget.onMarkerTap != null ? () => widget.onMarkerTap!(markerPosition) : null,
+          onTap: widget.onMarkerTap != null && markerMs != null
+              ? () => widget.onMarkerTap!(markerPosition)
+              : null,
           onLongPress: widget.onMarkerLongPress != null ? () => widget.onMarkerLongPress!(marker) : null,
           showPositions: widget.showPositions,
           isPlaying: widget.isPlaying,
+          playbackSpeed: widget.playbackSpeed,
         );
       },
     );

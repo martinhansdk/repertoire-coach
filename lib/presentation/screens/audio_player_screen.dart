@@ -326,7 +326,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
           data: (markers) {
             final loopRange = playbackInfo.loopRange;
             final progressMarkers =
-                markers.where((marker) => marker.label.trim().isNotEmpty).toList();
+                markers.where((marker) => marker.positionMs != null).toList();
             return MarkerProgressBar(
               position: playbackInfo.position,
               duration: playbackInfo.duration,
@@ -365,15 +365,13 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
         return markersAsync.when(
           data: (markers) {
-            final visibleMarkers =
-                markers.where((marker) => marker.label.trim().isNotEmpty).toList();
-
             return MarkerList(
-              markers: visibleMarkers,
+              markers: markers,
               currentPosition: playbackInfo.position,
               trackDuration: playbackInfo.duration,
               showPositions: markerSet.isTimeSynced,
               isPlaying: playbackInfo.isPlaying,
+              playbackSpeed: playbackInfo.speed,
               onMarkerTap: markerSet.isTimeSynced
                   ? (position) {
                       ref.read(audioPlayerControlsProvider).seek(position);

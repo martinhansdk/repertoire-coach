@@ -171,6 +171,66 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
     }
   }
 
+  /// Persist text edits without entering time sync.
+  ///
+  /// Preserves existing positions by index where possible and updates the
+  /// marker set synced flag based on whether all non-empty markers have times.
+  Future<bool> saveTextOnly(String text) async {
+    final lines = text.split('\n').map((line) => line.trim()).toList();
+    if (lines.every((line) => line.isEmpty)) {
+      return false;
+    }
+
+    final existingMarkers =
+        await _markerRepository.getMarkersByMarkerSet(state.markerSetId);
+    final now = DateTime.now().toUtc();
+
+    bool allNonEmptySynced = true;
+    final updatedMarkers = <Marker>[];
+    for (int i = 0; i < lines.length; i++) {
+      final existing = i < existingMarkers.length ? existingMarkers[i] : null;
+      final label = lines[i];
+      final positionMs = existing?.positionMs;
+      if (label.isNotEmpty && positionMs == null) {
+        allNonEmptySynced = false;
+      }
+      updatedMarkers.add(
+        Marker(
+          id: existing?.id ?? const Uuid().v4(),
+          markerSetId: state.markerSetId,
+          label: label,
+          positionMs: positionMs,
+          order: i,
+          createdAt: existing?.createdAt ?? now,
+          updatedAt: now,
+        ),
+      );
+    }
+
+    await _markerRepository.replaceMarkersByMarkerSet(
+      state.markerSetId,
+      updatedMarkers,
+    );
+
+    final markerSet = await _markerRepository.getMarkerSetById(state.markerSetId);
+    if (markerSet != null) {
+      await _markerRepository.updateMarkerSet(
+        MarkerSet(
+          id: markerSet.id,
+          trackId: markerSet.trackId,
+          name: markerSet.name,
+          isShared: markerSet.isShared,
+          isTimeSynced: allNonEmptySynced,
+          createdByUserId: markerSet.createdByUserId,
+          createdAt: markerSet.createdAt,
+          updatedAt: now,
+        ),
+      );
+    }
+
+    return true;
+  }
+
   /// Sync the next non-empty marker to the given position
   void syncNextMarker(int positionMs) {
     debugPrint('[MarkerSync] syncNextMarker called: position=$positionMs, currentIndex=${state.currentIndex}');
@@ -256,6 +316,101 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
 
     state = state.copyWith(
       currentIndex: index,
+    );
+  }
+
+  /// Update a marker label in-memory during time sync.
+  void updateLabel(int index, String label) {
+    if (index < 0 || index >= state.labels.length) return;
+    final updatedLabels = List<String>.from(state.labels);
+    updatedLabels[index] = label.trim();
+    state = state.copyWith(
+      labels: updatedLabels,
+      isDirty: true,
+    );
+  }
+
+  /// Clear a synced position for a marker index.
+  void clearSyncedPosition(int index) {
+    if (index < 0) return;
+    final updatedPositions = Map<int, int>.from(state.syncedPositions);
+    updatedPositions.remove(index);
+    state = state.copyWith(
+      syncedPositions: updatedPositions,
+      isDirty: true,
+    );
+  }
+
+  /// Insert a marker after [index] and shift later marker indices.
+  void addMarkerAfter(int index, {String label = 'New marker'}) {
+    if (index < -1 || index >= state.labels.length) return;
+
+    final insertIndex = index + 1;
+    final updatedLabels = List<String>.from(state.labels)
+      ..insert(insertIndex, label.trim());
+
+    final updatedPositions = <int, int>{};
+    for (final entry in state.syncedPositions.entries) {
+      if (entry.key == -1) {
+        updatedPositions[entry.key] = entry.value;
+        continue;
+      }
+      if (entry.key >= insertIndex) {
+        updatedPositions[entry.key + 1] = entry.value;
+      } else {
+        updatedPositions[entry.key] = entry.value;
+      }
+    }
+
+    state = state.copyWith(
+      labels: updatedLabels,
+      syncedPositions: updatedPositions,
+      currentIndex: insertIndex,
+      isDirty: true,
+    );
+  }
+
+  /// Delete marker at [index] and shift later marker indices.
+  void deleteMarker(int index) {
+    if (index < 0 || index >= state.labels.length) return;
+
+    final updatedLabels = List<String>.from(state.labels)..removeAt(index);
+
+    final updatedPositions = <int, int>{};
+    for (final entry in state.syncedPositions.entries) {
+      if (entry.key == -1) {
+        updatedPositions[entry.key] = entry.value;
+        continue;
+      }
+      if (entry.key == index) {
+        continue;
+      }
+      if (entry.key > index) {
+        updatedPositions[entry.key - 1] = entry.value;
+      } else {
+        updatedPositions[entry.key] = entry.value;
+      }
+    }
+
+    var nextCurrentIndex = state.currentIndex;
+    if (nextCurrentIndex == index) {
+      nextCurrentIndex = index - 1;
+    } else if (nextCurrentIndex > index) {
+      nextCurrentIndex -= 1;
+    }
+    final maxIndex = updatedLabels.length - 1;
+    if (nextCurrentIndex > maxIndex) {
+      nextCurrentIndex = maxIndex;
+    }
+    if (nextCurrentIndex < -1) {
+      nextCurrentIndex = -1;
+    }
+
+    state = state.copyWith(
+      labels: updatedLabels,
+      syncedPositions: updatedPositions,
+      currentIndex: nextCurrentIndex,
+      isDirty: true,
     );
   }
 

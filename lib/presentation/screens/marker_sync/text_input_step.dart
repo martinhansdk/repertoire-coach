@@ -31,6 +31,24 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
         .startSyncFromText(text);
   }
 
+  Future<void> _onSavePressed() async {
+    final text = _textController.text;
+    final saved = await ref
+        .read(markerSyncNotifierProvider(widget.params).notifier)
+        .saveTextOnly(text);
+    if (!mounted) return;
+    if (!saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter at least one non-empty line')),
+      );
+      return;
+    }
+    ref.invalidate(markersByMarkerSetProvider);
+    ref.invalidate(markerSetByIdProvider);
+    ref.invalidate(markerSetsByTrackProvider);
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -68,28 +86,6 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Helper text
-          Text(
-            'Enter one marker per line',
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Examples: verse, chorus, intro, bridge, or lyrics',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Empty lines are preserved for visual spacing',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 16),
-
           // Text input field
           Expanded(
             child: TextField(
@@ -130,18 +126,27 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
 
           const SizedBox(height: 16),
 
-          // Next button
-          FilledButton(
-            key: const ValueKey('markerSyncNextButton'),
-            onPressed: hasNonEmptyLines ? _onNextPressed : null,
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.arrow_forward),
-                SizedBox(width: 8),
-                Text('Next: Sync to Audio'),
-              ],
-            ),
+          // Save / time sync actions
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const ValueKey('markerSyncSaveTextButton'),
+                  onPressed: hasNonEmptyLines ? _onSavePressed : null,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Save'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  key: const ValueKey('markerSyncNextButton'),
+                  onPressed: hasNonEmptyLines ? _onNextPressed : null,
+                  icon: const Icon(Icons.schedule),
+                  label: const Text('Time Sync'),
+                ),
+              ),
+            ],
           ),
 
           // Warning if no non-empty lines
