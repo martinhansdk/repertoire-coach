@@ -443,11 +443,6 @@ void main() {
           callOrder.add('marker_sets');
           return [];
         });
-        when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-            .thenAnswer((_) async {
-          callOrder.add('markers');
-          return [];
-        });
         await syncService.syncFromRemote(testUserId);
 
         expect(callOrder.indexOf('choirs'),
@@ -458,8 +453,6 @@ void main() {
             callOrder.indexOf('songs'), lessThan(callOrder.indexOf('tracks')));
         expect(callOrder.indexOf('tracks'),
             lessThan(callOrder.indexOf('marker_sets')));
-        expect(callOrder.indexOf('marker_sets'),
-            lessThan(callOrder.indexOf('markers')));
       });
     });
 

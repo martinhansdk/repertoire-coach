@@ -15,7 +15,6 @@ import '../sync/adapters/choir_sync_adapter.dart';
 import '../sync/adapters/concert_sync_adapter.dart';
 import '../sync/adapters/favorite_track_sync_adapter.dart';
 import '../sync/adapters/marker_set_sync_adapter.dart';
-import '../sync/adapters/marker_sync_adapter.dart';
 import '../sync/adapters/song_sync_adapter.dart';
 import '../sync/adapters/track_sync_adapter.dart';
 import '../sync/sync_algorithm.dart';
@@ -104,8 +103,7 @@ class SyncState {
 /// 4. songs (bidirectional)
 /// 5. tracks (bidirectional)
 /// 6. marker_sets (bidirectional)
-/// 7. markers (bidirectional)
-/// 8. favorites (bidirectional)
+/// 7. favorites (bidirectional)
 class SyncService {
   final LocalChoirDataSource _localChoirDataSource;
   final LocalConcertDataSource _localConcertDataSource;
@@ -165,7 +163,6 @@ class SyncService {
       ('songs', SongSyncAdapter(_localSongDataSource, _remoteSongDataSource, userId)),
       ('tracks', TrackSyncAdapter(_localTrackDataSource, _remoteTrackDataSource, userId)),
       ('marker_sets', MarkerSetSyncAdapter(_localMarkerDataSource, _remoteMarkerDataSource, userId)),
-      ('markers', MarkerSyncAdapter(_localMarkerDataSource, _remoteMarkerDataSource, userId)),
       ('favorites', FavoriteTrackSyncAdapter(_localFavoriteTrackDataSource, _remoteFavoriteTrackDataSource, userId)),
     ];
 

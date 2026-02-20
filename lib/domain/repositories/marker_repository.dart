@@ -64,4 +64,17 @@ abstract class MarkerRepository {
 
   /// Delete all markers in a marker set (soft delete)
   Future<void> deleteMarkersByMarkerSet(String markerSetId);
+
+  /// Replace all markers in a marker set with one ordered payload.
+  ///
+  /// The list order defines marker order.
+  Future<void> replaceMarkersByMarkerSet(
+    String markerSetId,
+    List<Marker> markers,
+  ) async {
+    await deleteMarkersByMarkerSet(markerSetId);
+    for (final marker in markers) {
+      await createMarker(marker);
+    }
+  }
 }

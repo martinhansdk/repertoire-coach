@@ -3,20 +3,16 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i4;
+import 'dart:async' as _i3;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:repertoire_coach/core/services/supabase_service.dart' as _i10;
-import 'package:repertoire_coach/data/datasources/local/database.dart' as _i6;
+import 'package:repertoire_coach/data/datasources/local/database.dart' as _i5;
 import 'package:repertoire_coach/data/datasources/local/local_favorite_track_data_source.dart'
-    as _i3;
+    as _i2;
 import 'package:repertoire_coach/data/datasources/local/local_track_data_source.dart'
-    as _i7;
-import 'package:repertoire_coach/data/datasources/remote/remote_favorite_track_data_source.dart'
-    as _i9;
-import 'package:repertoire_coach/data/models/favorite_track_model.dart' as _i5;
-import 'package:repertoire_coach/data/models/track_model.dart' as _i8;
-import 'package:supabase_flutter/supabase_flutter.dart' as _i2;
+    as _i6;
+import 'package:repertoire_coach/data/models/favorite_track_model.dart' as _i4;
+import 'package:repertoire_coach/data/models/track_model.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -33,49 +29,38 @@ import 'package:supabase_flutter/supabase_flutter.dart' as _i2;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
-class _FakeSupabaseClient_0 extends _i1.SmartFake
-    implements _i2.SupabaseClient {
-  _FakeSupabaseClient_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
-}
-
 /// A class which mocks [LocalFavoriteTrackDataSource].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockLocalFavoriteTrackDataSource extends _i1.Mock
-    implements _i3.LocalFavoriteTrackDataSource {
+    implements _i2.LocalFavoriteTrackDataSource {
   MockLocalFavoriteTrackDataSource() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i4.Stream<List<_i5.FavoriteTrackModel>> watchFavorites(String? userId) =>
+  _i3.Stream<List<_i4.FavoriteTrackModel>> watchFavorites(String? userId) =>
       (super.noSuchMethod(
         Invocation.method(
           #watchFavorites,
           [userId],
         ),
-        returnValue: _i4.Stream<List<_i5.FavoriteTrackModel>>.empty(),
-      ) as _i4.Stream<List<_i5.FavoriteTrackModel>>);
+        returnValue: _i3.Stream<List<_i4.FavoriteTrackModel>>.empty(),
+      ) as _i3.Stream<List<_i4.FavoriteTrackModel>>);
 
   @override
-  _i4.Future<List<_i5.FavoriteTrackModel>> getFavorites(String? userId) =>
+  _i3.Future<List<_i4.FavoriteTrackModel>> getFavorites(String? userId) =>
       (super.noSuchMethod(
         Invocation.method(
           #getFavorites,
           [userId],
         ),
-        returnValue: _i4.Future<List<_i5.FavoriteTrackModel>>.value(
-            <_i5.FavoriteTrackModel>[]),
-      ) as _i4.Future<List<_i5.FavoriteTrackModel>>);
+        returnValue: _i3.Future<List<_i4.FavoriteTrackModel>>.value(
+            <_i4.FavoriteTrackModel>[]),
+      ) as _i3.Future<List<_i4.FavoriteTrackModel>>);
 
   @override
-  _i4.Future<bool> isFavorite(
+  _i3.Future<bool> isFavorite(
     String? userId,
     String? trackId,
   ) =>
@@ -87,13 +72,13 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
             trackId,
           ],
         ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
 
   @override
-  _i4.Future<void> addFavorite(
+  _i3.Future<void> addFavorite(
     String? userId,
-    _i5.FavoriteTrackModel? favorite, {
+    _i4.FavoriteTrackModel? favorite, {
     bool? markForSync = true,
   }) =>
       (super.noSuchMethod(
@@ -105,12 +90,12 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
           ],
           {#markForSync: markForSync},
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<void> removeFavorite(
+  _i3.Future<void> removeFavorite(
     String? userId,
     String? trackId,
   ) =>
@@ -122,43 +107,43 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
             trackId,
           ],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<int> getFavoriteCount(String? userId) => (super.noSuchMethod(
+  _i3.Future<int> getFavoriteCount(String? userId) => (super.noSuchMethod(
         Invocation.method(
           #getFavoriteCount,
           [userId],
         ),
-        returnValue: _i4.Future<int>.value(0),
-      ) as _i4.Future<int>);
+        returnValue: _i3.Future<int>.value(0),
+      ) as _i3.Future<int>);
 
   @override
-  _i4.Future<void> clearAllForUser(String? userId) => (super.noSuchMethod(
+  _i3.Future<void> clearAllForUser(String? userId) => (super.noSuchMethod(
         Invocation.method(
           #clearAllForUser,
           [userId],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<List<_i5.FavoriteTrackModel>> getUnsyncedFavorites(
+  _i3.Future<List<_i4.FavoriteTrackModel>> getUnsyncedFavorites(
           String? userId) =>
       (super.noSuchMethod(
         Invocation.method(
           #getUnsyncedFavorites,
           [userId],
         ),
-        returnValue: _i4.Future<List<_i5.FavoriteTrackModel>>.value(
-            <_i5.FavoriteTrackModel>[]),
-      ) as _i4.Future<List<_i5.FavoriteTrackModel>>);
+        returnValue: _i3.Future<List<_i4.FavoriteTrackModel>>.value(
+            <_i4.FavoriteTrackModel>[]),
+      ) as _i3.Future<List<_i4.FavoriteTrackModel>>);
 
   @override
-  _i4.Future<List<_i6.FavoriteTrack>> getUnsyncedFavoriteRecords(
+  _i3.Future<List<_i5.FavoriteTrack>> getUnsyncedFavoriteRecords(
           String? userId) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -166,11 +151,11 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
           [userId],
         ),
         returnValue:
-            _i4.Future<List<_i6.FavoriteTrack>>.value(<_i6.FavoriteTrack>[]),
-      ) as _i4.Future<List<_i6.FavoriteTrack>>);
+            _i3.Future<List<_i5.FavoriteTrack>>.value(<_i5.FavoriteTrack>[]),
+      ) as _i3.Future<List<_i5.FavoriteTrack>>);
 
   @override
-  _i4.Future<void> markAsSynced(
+  _i3.Future<void> markAsSynced(
     List<String>? trackIds,
     String? userId,
   ) =>
@@ -182,12 +167,12 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
             userId,
           ],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<void> upsertFavoriteRecord({
+  _i3.Future<void> upsertFavoriteRecord({
     required String? userId,
     required String? trackId,
     required String? songId,
@@ -206,23 +191,23 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
             #markForSync: markForSync,
           },
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<void> hardDeleteSyncedDeleted(String? userId) =>
+  _i3.Future<void> hardDeleteSyncedDeleted(String? userId) =>
       (super.noSuchMethod(
         Invocation.method(
           #hardDeleteSyncedDeleted,
           [userId],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<void> hardDeleteSyncedNotIn(
+  _i3.Future<void> hardDeleteSyncedNotIn(
     String? userId,
     Set<String>? keepTrackIds,
   ) =>
@@ -234,52 +219,64 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
             keepTrackIds,
           ],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<Map<String, _i4.FavoriteTrackModel>> getSyncedFavorites(
+          String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getSyncedFavorites,
+          [userId],
+        ),
+        returnValue: _i3.Future<Map<String, _i4.FavoriteTrackModel>>.value(
+            <String, _i4.FavoriteTrackModel>{}),
+      ) as _i3.Future<Map<String, _i4.FavoriteTrackModel>>);
 }
 
 /// A class which mocks [LocalTrackDataSource].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockLocalTrackDataSource extends _i1.Mock
-    implements _i7.LocalTrackDataSource {
+    implements _i6.LocalTrackDataSource {
   MockLocalTrackDataSource() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i4.Stream<List<_i8.TrackModel>> watchTracksBySong(String? songId) =>
+  _i3.Stream<List<_i7.TrackModel>> watchTracksBySong(String? songId) =>
       (super.noSuchMethod(
         Invocation.method(
           #watchTracksBySong,
           [songId],
         ),
-        returnValue: _i4.Stream<List<_i8.TrackModel>>.empty(),
-      ) as _i4.Stream<List<_i8.TrackModel>>);
+        returnValue: _i3.Stream<List<_i7.TrackModel>>.empty(),
+      ) as _i3.Stream<List<_i7.TrackModel>>);
 
   @override
-  _i4.Future<List<_i8.TrackModel>> getTracksBySong(String? songId) =>
+  _i3.Future<List<_i7.TrackModel>> getTracksBySong(String? songId) =>
       (super.noSuchMethod(
         Invocation.method(
           #getTracksBySong,
           [songId],
         ),
-        returnValue: _i4.Future<List<_i8.TrackModel>>.value(<_i8.TrackModel>[]),
-      ) as _i4.Future<List<_i8.TrackModel>>);
+        returnValue: _i3.Future<List<_i7.TrackModel>>.value(<_i7.TrackModel>[]),
+      ) as _i3.Future<List<_i7.TrackModel>>);
 
   @override
-  _i4.Future<_i8.TrackModel?> getTrackById(String? id) => (super.noSuchMethod(
+  _i3.Future<_i7.TrackModel?> getTrackById(String? id) => (super.noSuchMethod(
         Invocation.method(
           #getTrackById,
           [id],
         ),
-        returnValue: _i4.Future<_i8.TrackModel?>.value(),
-      ) as _i4.Future<_i8.TrackModel?>);
+        returnValue: _i3.Future<_i7.TrackModel?>.value(),
+      ) as _i3.Future<_i7.TrackModel?>);
 
   @override
-  _i4.Future<void> upsertTrack(
-    _i8.TrackModel? track, {
+  _i3.Future<void> upsertTrack(
+    _i7.TrackModel? track, {
     bool? markForSync = true,
   }) =>
       (super.noSuchMethod(
@@ -288,13 +285,13 @@ class MockLocalTrackDataSource extends _i1.Mock
           [track],
           {#markForSync: markForSync},
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<void> insertTrack(
-    _i8.TrackModel? track, {
+  _i3.Future<void> insertTrack(
+    _i7.TrackModel? track, {
     bool? markForSync = true,
   }) =>
       (super.noSuchMethod(
@@ -303,13 +300,13 @@ class MockLocalTrackDataSource extends _i1.Mock
           [track],
           {#markForSync: markForSync},
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<bool> updateTrack(
-    _i8.TrackModel? track, {
+  _i3.Future<bool> updateTrack(
+    _i7.TrackModel? track, {
     bool? markForSync = true,
   }) =>
       (super.noSuchMethod(
@@ -318,186 +315,77 @@ class MockLocalTrackDataSource extends _i1.Mock
           [track],
           {#markForSync: markForSync},
         ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
 
   @override
-  _i4.Future<void> deleteTrack(String? id) => (super.noSuchMethod(
+  _i3.Future<void> deleteTrack(String? id) => (super.noSuchMethod(
         Invocation.method(
           #deleteTrack,
           [id],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<void> hardDeleteTracksNotIn(Set<String>? keepIds) =>
+  _i3.Future<void> hardDeleteTracksNotIn(Set<String>? keepIds) =>
       (super.noSuchMethod(
         Invocation.method(
           #hardDeleteTracksNotIn,
           [keepIds],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<List<_i8.TrackModel>> getUnsyncedTracks() => (super.noSuchMethod(
+  _i3.Future<List<_i7.TrackModel>> getUnsyncedTracks() => (super.noSuchMethod(
         Invocation.method(
           #getUnsyncedTracks,
           [],
         ),
-        returnValue: _i4.Future<List<_i8.TrackModel>>.value(<_i8.TrackModel>[]),
-      ) as _i4.Future<List<_i8.TrackModel>>);
+        returnValue: _i3.Future<List<_i7.TrackModel>>.value(<_i7.TrackModel>[]),
+      ) as _i3.Future<List<_i7.TrackModel>>);
 
   @override
-  _i4.Future<void> markAsSynced(String? id) => (super.noSuchMethod(
+  _i3.Future<void> markAsSynced(String? id) => (super.noSuchMethod(
         Invocation.method(
           #markAsSynced,
           [id],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
-  _i4.Future<void> clearAll() => (super.noSuchMethod(
+  _i3.Future<void> hardDeleteSyncedDeleted() => (super.noSuchMethod(
+        Invocation.method(
+          #hardDeleteSyncedDeleted,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<Map<String, _i7.TrackModel>> getSyncedTracks() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getSyncedTracks,
+          [],
+        ),
+        returnValue: _i3.Future<Map<String, _i7.TrackModel>>.value(
+            <String, _i7.TrackModel>{}),
+      ) as _i3.Future<Map<String, _i7.TrackModel>>);
+
+  @override
+  _i3.Future<void> clearAll() => (super.noSuchMethod(
         Invocation.method(
           #clearAll,
           [],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-}
-
-/// A class which mocks [RemoteFavoriteTrackDataSource].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockRemoteFavoriteTrackDataSource extends _i1.Mock
-    implements _i9.RemoteFavoriteTrackDataSource {
-  MockRemoteFavoriteTrackDataSource() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  _i4.Future<List<_i5.FavoriteTrackModel>> getFavorites(String? userId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getFavorites,
-          [userId],
-        ),
-        returnValue: _i4.Future<List<_i5.FavoriteTrackModel>>.value(
-            <_i5.FavoriteTrackModel>[]),
-      ) as _i4.Future<List<_i5.FavoriteTrackModel>>);
-
-  @override
-  _i4.Future<bool> isFavorite(
-    String? userId,
-    String? trackId,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #isFavorite,
-          [
-            userId,
-            trackId,
-          ],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
-
-  @override
-  _i4.Future<void> addFavorite(
-    String? userId,
-    String? trackId,
-    String? songId,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #addFavorite,
-          [
-            userId,
-            trackId,
-            songId,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> removeFavorite(
-    String? userId,
-    String? trackId,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #removeFavorite,
-          [
-            userId,
-            trackId,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<List<({DateTime addedAt, String songId, String trackId})>>
-      getFavoritesForSync(String? userId) => (super.noSuchMethod(
-            Invocation.method(
-              #getFavoritesForSync,
-              [userId],
-            ),
-            returnValue: _i4.Future<
-                    List<
-                        ({
-                          DateTime addedAt,
-                          String songId,
-                          String trackId
-                        })>>.value(
-                <({DateTime addedAt, String songId, String trackId})>[]),
-          ) as _i4.Future<
-              List<({DateTime addedAt, String songId, String trackId})>>);
-
-  @override
-  _i4.Future<int> getFavoriteCount(String? userId) => (super.noSuchMethod(
-        Invocation.method(
-          #getFavoriteCount,
-          [userId],
-        ),
-        returnValue: _i4.Future<int>.value(0),
-      ) as _i4.Future<int>);
-}
-
-/// A class which mocks [SupabaseService].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockSupabaseService extends _i1.Mock implements _i10.SupabaseService {
-  MockSupabaseService() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  _i2.SupabaseClient get client => (super.noSuchMethod(
-        Invocation.getter(#client),
-        returnValue: _FakeSupabaseClient_0(
-          this,
-          Invocation.getter(#client),
-        ),
-      ) as _i2.SupabaseClient);
-
-  @override
-  bool get isAuthenticated => (super.noSuchMethod(
-        Invocation.getter(#isAuthenticated),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  _i4.Stream<_i2.AuthState> get authStateChanges => (super.noSuchMethod(
-        Invocation.getter(#authStateChanges),
-        returnValue: _i4.Stream<_i2.AuthState>.empty(),
-      ) as _i4.Stream<_i2.AuthState>);
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 }

@@ -6,7 +6,7 @@ class Marker extends Equatable {
   final String id;
   final String markerSetId;
   final String label;
-  final int positionMs; // Position in track in milliseconds
+  final int? positionMs; // Position in track in milliseconds (null = unsynced)
   final int order; // Order within the marker set for display
   final DateTime createdAt;
   final DateTime updatedAt;

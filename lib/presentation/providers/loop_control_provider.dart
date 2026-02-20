@@ -19,8 +19,11 @@ class LoopControls {
   ///
   /// Throws [ArgumentError] if endMarker position is not after startMarker position
   Future<void> setLoopFromMarkers(Marker startMarker, Marker endMarker) async {
-    final startPosition = Duration(milliseconds: startMarker.positionMs);
-    final endPosition = Duration(milliseconds: endMarker.positionMs);
+    if (startMarker.positionMs == null || endMarker.positionMs == null) {
+      throw ArgumentError('Both markers must have synced positions');
+    }
+    final startPosition = Duration(milliseconds: startMarker.positionMs!);
+    final endPosition = Duration(milliseconds: endMarker.positionMs!);
 
     if (endPosition <= startPosition) {
       throw ArgumentError(
@@ -52,7 +55,10 @@ class LoopControls {
     required Duration customPosition,
     required bool markerIsStart,
   }) async {
-    final markerPosition = Duration(milliseconds: marker.positionMs);
+    if (marker.positionMs == null) {
+      throw ArgumentError('Marker must have a synced position');
+    }
+    final markerPosition = Duration(milliseconds: marker.positionMs!);
 
     final Duration startPosition;
     final Duration endPosition;

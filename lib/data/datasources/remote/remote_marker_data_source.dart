@@ -34,7 +34,8 @@ class RemoteMarkerDataSource {
             is_time_synced,
             created_by_user_id,
             created_at,
-            updated_at
+            updated_at,
+            markers_json
           ''')
           .eq('track_id', trackId)
           .or('is_shared.eq.true,created_by_user_id.eq.$userId')
@@ -65,7 +66,8 @@ class RemoteMarkerDataSource {
             is_time_synced,
             created_by_user_id,
             created_at,
-            updated_at
+            updated_at,
+            markers_json
           ''')
           .eq('id', id)
           .maybeSingle();
@@ -102,6 +104,7 @@ class RemoteMarkerDataSource {
             'name': markerSet.name,
             'is_shared': markerSet.isShared,
             'is_time_synced': markerSet.isTimeSynced,
+            'markers_json': markerSet.markersJson,
             'updated_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', markerSet.id);
@@ -316,7 +319,8 @@ class RemoteMarkerDataSource {
             is_time_synced,
             created_by_user_id,
             created_at,
-            updated_at
+            updated_at,
+            markers_json
           ''')
           .inFilter('track_id', trackIds)
           .or('is_shared.eq.true,created_by_user_id.eq.$userId') as List;
@@ -338,39 +342,6 @@ class RemoteMarkerDataSource {
   /// (shared marker sets and private ones created by the user).
   /// Used for sync operations to pull all accessible markers at once.
   Future<List<MarkerModel>> getMarkersForUser(String userId) async {
-    try {
-      // Get all accessible marker sets first
-      final markerSets = await getMarkerSetsForUser(userId);
-
-      if (markerSets.isEmpty) {
-        return [];
-      }
-
-      final markerSetIds = markerSets.map((ms) => ms.id).toList();
-
-      // Get markers for those marker sets
-      final markerResponse = await _supabase
-          .from('markers')
-          .select('''
-            id,
-            marker_set_id,
-            label,
-            position_ms,
-            display_order,
-            created_at,
-            updated_at
-          ''')
-          .inFilter('marker_set_id', markerSetIds)
-          .order('display_order', ascending: true) as List;
-
-      return markerResponse
-          .map((json) => MarkerModel.fromJson(json))
-          .toList();
-    } on PostgrestException catch (e) {
-      throw Exception(
-          'Failed to fetch markers for user from Supabase: ${e.message}');
-    } catch (e) {
-      throw Exception('Unexpected error fetching markers for user: $e');
-    }
+    return const [];
   }
 }

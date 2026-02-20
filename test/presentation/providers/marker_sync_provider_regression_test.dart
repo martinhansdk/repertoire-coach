@@ -40,6 +40,17 @@ class _LocalOnlyMarkerRepository implements MarkerRepository {
   }
 
   @override
+  Future<void> replaceMarkersByMarkerSet(
+    String markerSetId,
+    List<Marker> markers,
+  ) async {
+    await _localDataSource.replaceMarkersByMarkerSet(
+      markerSetId,
+      markers.map(MarkerModel.fromEntity).toList(growable: false),
+    );
+  }
+
+  @override
   Future<Marker?> getMarkerById(String markerId) async {
     final model = await _localDataSource.getMarkerById(markerId);
     return model?.toEntity();

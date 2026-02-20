@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'database_connection.dart';
 
@@ -179,6 +181,10 @@ class MarkerSets extends Table {
   /// When this record was last updated (for sync)
   DateTimeColumn get updatedAt => dateTime()();
 
+  /// JSON payload of markers in canonical display order.
+  /// Each entry is {"label": String, "position_ms": int|null}.
+  TextColumn get markersJson => text().withDefault(const Constant('[]'))();
+
   /// Soft delete flag (true = deleted, false = active)
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
@@ -267,7 +273,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   /// Migration strategy for database upgrades
   @override
@@ -402,6 +408,34 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
               'DROP TABLE IF EXISTS user_playback_states',
             );
+          }
+          if (from < 12 && to >= 12) {
+            await customStatement(
+              "ALTER TABLE marker_sets ADD COLUMN markers_json TEXT NOT NULL DEFAULT '[]'",
+            );
+
+            // Backfill payload from legacy marker rows ordered by display_order.
+            final allMarkerSets = await (select(markerSets)).get();
+            for (final markerSet in allMarkerSets) {
+              final rows = await (select(markers)
+                    ..where((m) => m.markerSetId.equals(markerSet.id))
+                    ..where((m) => m.deleted.equals(false))
+                    ..orderBy([(m) => OrderingTerm.asc(m.displayOrder)]))
+                  .get();
+              final payload = rows
+                  .map(
+                    (marker) => <String, dynamic>{
+                      'label': marker.label,
+                      'position_ms': marker.positionMs,
+                    },
+                  )
+                  .toList(growable: false);
+              final json = jsonEncode(payload);
+              await (update(markerSets)..where((ms) => ms.id.equals(markerSet.id)))
+                  .write(
+                MarkerSetsCompanion(markersJson: Value(json)),
+              );
+            }
           }
           if (from == 8 && to == 9) {
             // Add FavoriteTracks table

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../../domain/entities/marker_set.dart';
@@ -11,6 +13,7 @@ import '../datasources/local/database.dart' as db;
 class MarkerSetModel extends MarkerSet {
   /// Whether this marker set has been soft-deleted (for sync tracking)
   final bool deleted;
+  final String markersJson;
 
   const MarkerSetModel({
     required super.id,
@@ -22,6 +25,7 @@ class MarkerSetModel extends MarkerSet {
     required super.createdAt,
     required super.updatedAt,
     this.deleted = false,
+    this.markersJson = '[]',
   });
 
   /// Create a MarkerSetModel from a domain MarkerSet entity
@@ -35,6 +39,7 @@ class MarkerSetModel extends MarkerSet {
       createdByUserId: markerSet.createdByUserId,
       createdAt: markerSet.createdAt,
       updatedAt: markerSet.updatedAt,
+      markersJson: '[]',
     );
   }
 
@@ -64,6 +69,7 @@ class MarkerSetModel extends MarkerSet {
       createdAt: driftMarkerSet.createdAt,
       updatedAt: driftMarkerSet.updatedAt,
       deleted: driftMarkerSet.deleted,
+      markersJson: driftMarkerSet.markersJson,
     );
   }
 
@@ -79,12 +85,20 @@ class MarkerSetModel extends MarkerSet {
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deleted: Value(deleted),
+      markersJson: Value(markersJson),
       synced: Value(!markForSync), // If markForSync=true, synced=false
     );
   }
 
   /// Create a MarkerSetModel from Supabase JSON
   factory MarkerSetModel.fromJson(Map<String, dynamic> json) {
+    final rawMarkersJson = json['markers_json'];
+    final markersJson = switch (rawMarkersJson) {
+      String value => value,
+      null => '[]',
+      _ => jsonEncode(rawMarkersJson),
+    };
+
     return MarkerSetModel(
       id: json['id'],
       trackId: json['track_id'],
@@ -94,11 +108,13 @@ class MarkerSetModel extends MarkerSet {
       createdByUserId: json['created_by_user_id'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      markersJson: markersJson,
     );
   }
 
   /// Convert to Supabase JSON
   Map<String, dynamic> toJson() {
+    final parsedMarkersJson = jsonDecode(markersJson);
     return {
       'id': id,
       'track_id': trackId,
@@ -108,6 +124,7 @@ class MarkerSetModel extends MarkerSet {
       'created_by_user_id': createdByUserId,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'markers_json': parsedMarkersJson,
     };
   }
 }

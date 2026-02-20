@@ -69,7 +69,7 @@ class MarkerModel extends Marker {
       id: Value(id),
       markerSetId: Value(markerSetId),
       label: Value(label),
-      positionMs: Value(positionMs),
+      positionMs: Value(positionMs ?? 0),
       displayOrder: Value(order), // Map order to displayOrder
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),

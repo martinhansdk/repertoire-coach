@@ -101,38 +101,27 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
     if (textChanged) {
       debugPrint('[MarkerSync] Text changed - updating database');
 
-      // Update existing markers, create new ones, delete extras
+      final now = DateTime.now().toUtc();
+      final updatedMarkers = <Marker>[];
       for (int i = 0; i < lines.length; i++) {
         final label = lines[i];
-        if (i < existingMarkers.length) {
-          final existing = existingMarkers[i];
-          final updated = Marker(
-            id: existing.id,
-            markerSetId: existing.markerSetId,
-            label: label,
-            positionMs: existing.positionMs,
-            order: i,
-            createdAt: existing.createdAt,
-            updatedAt: DateTime.now().toUtc(),
-          );
-          await _markerRepository.updateMarker(updated);
-        } else {
-          final marker = Marker(
-            id: const Uuid().v4(),
+        final existing = i < existingMarkers.length ? existingMarkers[i] : null;
+        updatedMarkers.add(
+          Marker(
+            id: existing?.id ?? const Uuid().v4(),
             markerSetId: state.markerSetId,
             label: label,
-            positionMs: 0,
+            positionMs: existing?.positionMs,
             order: i,
-            createdAt: DateTime.now().toUtc(),
-            updatedAt: DateTime.now().toUtc(),
-          );
-          await _markerRepository.createMarker(marker);
-        }
+            createdAt: existing?.createdAt ?? now,
+            updatedAt: now,
+          ),
+        );
       }
-
-      for (int i = lines.length; i < existingMarkers.length; i++) {
-        await _markerRepository.deleteMarker(existingMarkers[i].id);
-      }
+      await _markerRepository.replaceMarkersByMarkerSet(
+        state.markerSetId,
+        updatedMarkers,
+      );
 
       final markerSet = await _markerRepository.getMarkerSetById(state.markerSetId);
       if (markerSet != null) {
@@ -157,7 +146,10 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       // Text unchanged - load existing timestamps into state
       final syncedPositions = <int, int>{-1: 0}; // Start with "..." marker
       for (int i = 0; i < existingMarkers.length; i++) {
-        syncedPositions[i] = existingMarkers[i].positionMs;
+        final position = existingMarkers[i].positionMs;
+        if (position != null) {
+          syncedPositions[i] = position;
+        }
       }
 
       // Find the last synced marker
@@ -287,9 +279,9 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
     int skippedUnsynced = 0;
     bool allNonEmptySynced = true;
 
-    await _markerRepository.deleteMarkersByMarkerSet(state.markerSetId);
+    final now = DateTime.now().toUtc();
+    final markersToSave = <Marker>[];
 
-    // Create all synced non-empty markers in repository
     for (int i = 0; i < state.labels.length; i++) {
       final label = state.labels[i];
 
@@ -307,22 +299,24 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
         }
       }
 
-      final resolvedPosition = positionMs ?? 0;
-      debugPrint('[MarkerSync] Creating marker: "$label" at $resolvedPosition ms');
+      debugPrint('[MarkerSync] Creating marker: "$label" at ${positionMs ?? 'null'} ms');
 
-      final marker = Marker(
+      markersToSave.add(Marker(
         id: const Uuid().v4(),
         markerSetId: state.markerSetId,
         label: label,
-        positionMs: resolvedPosition,
+        positionMs: positionMs,
         order: i, // Preserve input order
-        createdAt: DateTime.now().toUtc(),
-        updatedAt: DateTime.now().toUtc(),
-      );
-
-      await _markerRepository.createMarker(marker);
+        createdAt: now,
+        updatedAt: now,
+      ));
       savedCount++;
     }
+
+    await _markerRepository.replaceMarkersByMarkerSet(
+      state.markerSetId,
+      markersToSave,
+    );
 
     debugPrint('[MarkerSync] Save complete: $savedCount saved, $skippedUnsynced unsynced, $skippedEmpty empty lines');
 

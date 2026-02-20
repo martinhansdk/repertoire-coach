@@ -180,7 +180,11 @@ class _MarkerProgressPainter extends CustomPainter {
         ..style = PaintingStyle.stroke;
 
       for (final marker in markers) {
-        final markerFraction = marker.positionMs / duration.inMilliseconds;
+        final markerPosition = marker.positionMs;
+        if (markerPosition == null) {
+          continue;
+        }
+        final markerFraction = markerPosition / duration.inMilliseconds;
         final markerX = size.width * markerFraction;
 
         // Draw vertical line for marker

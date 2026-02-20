@@ -89,20 +89,21 @@ void main() {
 
     group('startSyncFromText', () {
       test('should persist unsynced markers and advance to timeSync', () async {
-        when(mockRepository.deleteMarkersByMarkerSet(any)).thenAnswer((_) async => {});
-        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
+        when(mockRepository.replaceMarkersByMarkerSet(any, any))
+            .thenAnswer((_) async {});
         when(mockRepository.getMarkersByMarkerSet(any)).thenAnswer((_) async => []);
         when(mockRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
         when(mockRepository.updateMarkerSet(any)).thenAnswer((_) async => true);
 
         await notifier.startSyncFromText('intro\n\nverse');
 
-        final captured = verify(mockRepository.createMarker(captureAny)).captured;
-        expect(captured.length, 3);
-
-        final markers = captured.cast<Marker>();
+        final captured = verify(
+          mockRepository.replaceMarkersByMarkerSet(any, captureAny),
+        ).captured;
+        final markers = (captured.last as List).cast<Marker>();
+        expect(markers.length, 3);
         expect(markers[0].label, 'intro');
-        expect(markers[0].positionMs, 0);
+        expect(markers[0].positionMs, isNull);
         expect(markers[1].label, '');
         expect(markers[2].label, 'verse');
 
@@ -180,8 +181,8 @@ void main() {
         ];
 
         when(mockRepository.getMarkersByMarkerSet(any)).thenAnswer((_) async => existingMarkers);
-        when(mockRepository.updateMarker(any)).thenAnswer((_) async => true);
-        when(mockRepository.createMarker(any)).thenAnswer((_) async {});
+        when(mockRepository.replaceMarkersByMarkerSet(any, any))
+            .thenAnswer((_) async {});
         when(mockRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
         when(mockRepository.updateMarkerSet(any)).thenAnswer((_) async => true);
 
@@ -189,8 +190,7 @@ void main() {
         await notifier.startSyncFromText('intro\nverse');
 
         // Should update database when text changed
-        verify(mockRepository.updateMarker(any)).called(1); // Update existing
-        verify(mockRepository.createMarker(any)).called(1); // Create new
+        verify(mockRepository.replaceMarkersByMarkerSet(any, any)).called(1);
         verify(mockRepository.updateMarkerSet(any)).called(1); // Set isTimeSynced=false
       });
     });
@@ -358,7 +358,8 @@ void main() {
         notifier.setLabels('intro\n\nverse\nchorus\noutro');
         when(mockRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
         when(mockRepository.updateMarkerSet(any)).thenAnswer((_) async => true);
-        when(mockRepository.deleteMarkersByMarkerSet(any)).thenAnswer((_) async => {});
+        when(mockRepository.replaceMarkersByMarkerSet(any, any))
+            .thenAnswer((_) async {});
       });
 
       test('should save markers (including empty and unsynced)', () async {
@@ -366,15 +367,13 @@ void main() {
         notifier.syncNextMarker(3000);
         notifier.syncNextMarker(5000);
 
-        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
-
         await notifier.save();
 
-        // Should create 5 markers (including empty and unsynced)
-        final captured = verify(mockRepository.createMarker(captureAny)).captured;
-        expect(captured.length, 5);
-
-        final markers = captured.cast<Marker>();
+        final captured = verify(
+          mockRepository.replaceMarkersByMarkerSet(any, captureAny),
+        ).captured;
+        final markers = (captured.last as List).cast<Marker>();
+        expect(markers.length, 5);
         expect(markers[0].label, 'intro');
         expect(markers[0].positionMs, 1000);
         expect(markers[1].label, '');
@@ -384,7 +383,7 @@ void main() {
         expect(markers[3].label, 'chorus');
         expect(markers[3].positionMs, 5000);
         expect(markers[4].label, 'outro');
-        expect(markers[4].positionMs, 0);
+        expect(markers[4].positionMs, isNull);
 
         verify(mockRepository.updateMarkerSet(argThat(
           isA<MarkerSet>().having((ms) => ms.isTimeSynced, 'isTimeSynced', false),
@@ -395,12 +394,12 @@ void main() {
         notifier.syncNextMarker(1000);
         notifier.syncNextMarker(2000);
 
-        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
-
         await notifier.save();
 
-        final captured = verify(mockRepository.createMarker(captureAny)).captured;
-        final markers = captured.cast<Marker>();
+        final captured = verify(
+          mockRepository.replaceMarkersByMarkerSet(any, captureAny),
+        ).captured;
+        final markers = (captured.last as List).cast<Marker>();
 
         expect(markers[0].order, 0);
         expect(markers[2].order, 2);
@@ -408,7 +407,6 @@ void main() {
 
       test('should mark state as not dirty after save', () async {
         notifier.syncNextMarker(1000);
-        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
 
         expect(notifier.state.isDirty, true);
 
@@ -422,8 +420,6 @@ void main() {
         notifier.syncNextMarker(2000);
         notifier.syncNextMarker(3000);
         notifier.syncNextMarker(4000);
-
-        when(mockRepository.createMarker(any)).thenAnswer((_) async => {});
 
         await notifier.save();
 
@@ -469,8 +465,8 @@ void main() {
 
         when(mockRepository.getMarkersByMarkerSet(any))
             .thenAnswer((_) async => existingMarkers);
-        when(mockRepository.updateMarker(any)).thenAnswer((_) async => true);
-        when(mockRepository.createMarker(any)).thenAnswer((_) async {});
+        when(mockRepository.replaceMarkersByMarkerSet(any, any))
+            .thenAnswer((_) async {});
         when(mockRepository.getMarkerSetById(any))
             .thenAnswer((_) async => markerSet);
         when(mockRepository.updateMarkerSet(any))
@@ -480,9 +476,11 @@ void main() {
         await notifier.startSyncFromText('new intro\nverse');
 
         // Verify the database was updated with new text
-        verify(mockRepository.updateMarker(argThat(
-          isA<Marker>().having((m) => m.label, 'label', 'new intro'),
-        ))).called(1);
+        final captured = verify(
+          mockRepository.replaceMarkersByMarkerSet(any, captureAny),
+        ).captured;
+        final markers = (captured.last as List).cast<Marker>();
+        expect(markers.firstWhere((m) => m.order == 0).label, 'new intro');
 
         // Now discard
         notifier.discard();

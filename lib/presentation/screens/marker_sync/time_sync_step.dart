@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/marker_invariant_exception.dart';
 import '../../../domain/entities/audio_player_state.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../providers/marker_provider.dart';
@@ -22,6 +23,7 @@ class TimeSyncStep extends ConsumerStatefulWidget {
 class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   final _scrollController = ScrollController();
   bool _didResetPlayback = false;
+  bool _isSaving = false;
   static const double _markerItemExtent = 64.0;
 
   @override
@@ -97,13 +99,39 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   }
 
   Future<void> _save() async {
-    await ref.read(markerSyncNotifierProvider(widget.params).notifier).save();
-    // Invalidate marker caches to refresh parent screen
-    ref.invalidate(markersByMarkerSetProvider);
-    ref.invalidate(markerSetByIdProvider);
-    ref.invalidate(markerSetsByTrackProvider);
-    if (mounted) {
-      Navigator.pop(context);
+    if (_isSaving) return;
+    setState(() {
+      _isSaving = true;
+    });
+    try {
+      await ref.read(markerSyncNotifierProvider(widget.params).notifier).save();
+      // Invalidate marker caches to refresh parent screen
+      ref.invalidate(markersByMarkerSetProvider);
+      ref.invalidate(markerSetByIdProvider);
+      ref.invalidate(markerSetsByTrackProvider);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } on MarkerInvariantException catch (e) {
+      debugPrint('[MarkerSync] Invariant violation while saving: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(MarkerInvariantException.userMessage)),
+        );
+      }
+    } catch (e) {
+      debugPrint('[MarkerSync] Unexpected save error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save markers. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 
@@ -492,7 +520,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
               Expanded(
                 child: OutlinedButton(
                   key: const ValueKey('markerSyncDiscardButton'),
-                  onPressed: _discard,
+                  onPressed: _isSaving ? null : _discard,
                   child: const Text('Discard'),
                 ),
               ),
@@ -500,8 +528,14 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
               Expanded(
                 child: FilledButton(
                   key: const ValueKey('markerSyncSaveButton'),
-                  onPressed: _save,
-                  child: const Text('Save'),
+                  onPressed: _isSaving ? null : _save,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save'),
                 ),
               ),
             ],

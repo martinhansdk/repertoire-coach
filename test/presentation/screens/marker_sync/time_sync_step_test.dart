@@ -911,8 +911,8 @@ void main() {
         updatedAt: DateTime(2024, 1, 1),
         );
 
-        when(mockMarkerRepository.createMarker(any)).thenAnswer((_) async {});
-        when(mockMarkerRepository.deleteMarkersByMarkerSet(any)).thenAnswer((_) async {});
+        when(mockMarkerRepository.replaceMarkersByMarkerSet(any, any))
+            .thenAnswer((_) async {});
         when(mockMarkerRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
         when(mockMarkerRepository.updateMarkerSet(any)).thenAnswer((_) async => true);
 
@@ -930,7 +930,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Should call repository
-        verify(mockMarkerRepository.createMarker(any)).called(1);
+        verify(mockMarkerRepository.replaceMarkersByMarkerSet(any, any)).called(1);
       });
 
       testWidgets('save updates marker set synced state in providers', (tester) async {
@@ -945,8 +945,8 @@ void main() {
         updatedAt: DateTime(2024, 1, 1),
         );
 
-        when(mockMarkerRepository.createMarker(any)).thenAnswer((_) async {});
-        when(mockMarkerRepository.deleteMarkersByMarkerSet(any)).thenAnswer((_) async {});
+        when(mockMarkerRepository.replaceMarkersByMarkerSet(any, any))
+            .thenAnswer((_) async {});
         when(mockMarkerRepository.getMarkerSetById(any)).thenAnswer((_) async => markerSet);
         when(mockMarkerRepository.updateMarkerSet(any)).thenAnswer((invocation) async {
           markerSet = invocation.positionalArguments.first as MarkerSet;

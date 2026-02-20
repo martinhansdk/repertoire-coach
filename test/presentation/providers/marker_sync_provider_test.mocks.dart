@@ -148,4 +148,21 @@ class MockMarkerRepository extends _i1.Mock implements _i2.MarkerRepository {
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
       ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> replaceMarkersByMarkerSet(
+    String? markerSetId,
+    List<_i5.Marker>? markers,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #replaceMarkersByMarkerSet,
+          [
+            markerSetId,
+            markers,
+          ],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 }

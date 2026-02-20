@@ -121,10 +121,12 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
   }
 
   Future<void> _showMarkerLoopDialog() async {
-    if (widget.markers.isEmpty) {
+    final positionedMarkers =
+        widget.markers.where((marker) => marker.positionMs != null).toList();
+    if (positionedMarkers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Need at least 1 marker to create a loop'),
+          content: Text('Need at least 1 synced marker to create a loop'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -132,8 +134,8 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
     }
 
     // Sort markers by position
-    final sortedMarkers = List<Marker>.from(widget.markers)
-      ..sort((a, b) => a.positionMs.compareTo(b.positionMs));
+    final sortedMarkers = List<Marker>.from(positionedMarkers)
+      ..sort((a, b) => a.positionMs!.compareTo(b.positionMs!));
 
     // Get current position for "Current Position" option
     final repository = ref.read(audioPlayerRepositoryProvider);
@@ -259,7 +261,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                           startLabel = _formatDuration(currentPosition);
                         } else {
                           final marker = sortedMarkers.firstWhere((m) => m.id == startSelection);
-                          startPos = Duration(milliseconds: marker.positionMs);
+                          startPos = Duration(milliseconds: marker.positionMs!);
                           startLabel = marker.label;
                         }
 
@@ -270,7 +272,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                           endLabel = _formatDuration(currentPosition);
                         } else {
                           final marker = sortedMarkers.firstWhere((m) => m.id == endSelection);
-                          endPos = Duration(milliseconds: marker.positionMs);
+                          endPos = Duration(milliseconds: marker.positionMs!);
                           endLabel = marker.label;
                         }
 

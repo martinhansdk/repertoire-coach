@@ -2273,6 +2273,14 @@ class $MarkerSetsTable extends MarkerSets
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
       'updated_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _markersJsonMeta =
+      const VerificationMeta('markersJson');
+  @override
+  late final GeneratedColumn<String> markersJson = GeneratedColumn<String>(
+      'markers_json', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('[]'));
   static const VerificationMeta _deletedMeta =
       const VerificationMeta('deleted');
   @override
@@ -2302,6 +2310,7 @@ class $MarkerSetsTable extends MarkerSets
         createdByUserId,
         createdAt,
         updatedAt,
+        markersJson,
         deleted,
         synced
       ];
@@ -2362,6 +2371,12 @@ class $MarkerSetsTable extends MarkerSets
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('markers_json')) {
+      context.handle(
+          _markersJsonMeta,
+          markersJson.isAcceptableOrUnknown(
+              data['markers_json']!, _markersJsonMeta));
+    }
     if (data.containsKey('deleted')) {
       context.handle(_deletedMeta,
           deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta));
@@ -2395,6 +2410,8 @@ class $MarkerSetsTable extends MarkerSets
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      markersJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}markers_json'])!,
       deleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}deleted'])!,
       synced: attachedDatabase.typeMapping
@@ -2433,6 +2450,10 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
   /// When this record was last updated (for sync)
   final DateTime updatedAt;
 
+  /// JSON payload of markers in canonical display order.
+  /// Each entry is {"label": String, "position_ms": int|null}.
+  final String markersJson;
+
   /// Soft delete flag (true = deleted, false = active)
   final bool deleted;
 
@@ -2447,6 +2468,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       required this.createdByUserId,
       required this.createdAt,
       required this.updatedAt,
+      required this.markersJson,
       required this.deleted,
       required this.synced});
   @override
@@ -2460,6 +2482,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
     map['created_by_user_id'] = Variable<String>(createdByUserId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['markers_json'] = Variable<String>(markersJson);
     map['deleted'] = Variable<bool>(deleted);
     map['synced'] = Variable<bool>(synced);
     return map;
@@ -2475,6 +2498,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       createdByUserId: Value(createdByUserId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      markersJson: Value(markersJson),
       deleted: Value(deleted),
       synced: Value(synced),
     );
@@ -2492,6 +2516,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       createdByUserId: serializer.fromJson<String>(json['createdByUserId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      markersJson: serializer.fromJson<String>(json['markersJson']),
       deleted: serializer.fromJson<bool>(json['deleted']),
       synced: serializer.fromJson<bool>(json['synced']),
     );
@@ -2508,6 +2533,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
       'createdByUserId': serializer.toJson<String>(createdByUserId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'markersJson': serializer.toJson<String>(markersJson),
       'deleted': serializer.toJson<bool>(deleted),
       'synced': serializer.toJson<bool>(synced),
     };
@@ -2522,6 +2548,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
           String? createdByUserId,
           DateTime? createdAt,
           DateTime? updatedAt,
+          String? markersJson,
           bool? deleted,
           bool? synced}) =>
       MarkerSet(
@@ -2533,6 +2560,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
         createdByUserId: createdByUserId ?? this.createdByUserId,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
+        markersJson: markersJson ?? this.markersJson,
         deleted: deleted ?? this.deleted,
         synced: synced ?? this.synced,
       );
@@ -2550,6 +2578,8 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
           : this.createdByUserId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      markersJson:
+          data.markersJson.present ? data.markersJson.value : this.markersJson,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
       synced: data.synced.present ? data.synced.value : this.synced,
     );
@@ -2566,6 +2596,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
           ..write('createdByUserId: $createdByUserId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('markersJson: $markersJson, ')
           ..write('deleted: $deleted, ')
           ..write('synced: $synced')
           ..write(')'))
@@ -2574,7 +2605,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
 
   @override
   int get hashCode => Object.hash(id, trackId, name, isShared, isTimeSynced,
-      createdByUserId, createdAt, updatedAt, deleted, synced);
+      createdByUserId, createdAt, updatedAt, markersJson, deleted, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2587,6 +2618,7 @@ class MarkerSet extends DataClass implements Insertable<MarkerSet> {
           other.createdByUserId == this.createdByUserId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.markersJson == this.markersJson &&
           other.deleted == this.deleted &&
           other.synced == this.synced);
 }
@@ -2600,6 +2632,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
   final Value<String> createdByUserId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<String> markersJson;
   final Value<bool> deleted;
   final Value<bool> synced;
   final Value<int> rowid;
@@ -2612,6 +2645,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
     this.createdByUserId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.markersJson = const Value.absent(),
     this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2625,6 +2659,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
     required String createdByUserId,
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.markersJson = const Value.absent(),
     this.deleted = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2643,6 +2678,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
     Expression<String>? createdByUserId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? markersJson,
     Expression<bool>? deleted,
     Expression<bool>? synced,
     Expression<int>? rowid,
@@ -2656,6 +2692,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
       if (createdByUserId != null) 'created_by_user_id': createdByUserId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (markersJson != null) 'markers_json': markersJson,
       if (deleted != null) 'deleted': deleted,
       if (synced != null) 'synced': synced,
       if (rowid != null) 'rowid': rowid,
@@ -2671,6 +2708,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
       Value<String>? createdByUserId,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
+      Value<String>? markersJson,
       Value<bool>? deleted,
       Value<bool>? synced,
       Value<int>? rowid}) {
@@ -2683,6 +2721,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
       createdByUserId: createdByUserId ?? this.createdByUserId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      markersJson: markersJson ?? this.markersJson,
       deleted: deleted ?? this.deleted,
       synced: synced ?? this.synced,
       rowid: rowid ?? this.rowid,
@@ -2716,6 +2755,9 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (markersJson.present) {
+      map['markers_json'] = Variable<String>(markersJson.value);
+    }
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
@@ -2739,6 +2781,7 @@ class MarkerSetsCompanion extends UpdateCompanion<MarkerSet> {
           ..write('createdByUserId: $createdByUserId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('markersJson: $markersJson, ')
           ..write('deleted: $deleted, ')
           ..write('synced: $synced, ')
           ..write('rowid: $rowid')
@@ -4731,6 +4774,7 @@ typedef $$MarkerSetsTableCreateCompanionBuilder = MarkerSetsCompanion Function({
   required String createdByUserId,
   required DateTime createdAt,
   required DateTime updatedAt,
+  Value<String> markersJson,
   Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
@@ -4744,6 +4788,7 @@ typedef $$MarkerSetsTableUpdateCompanionBuilder = MarkerSetsCompanion Function({
   Value<String> createdByUserId,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<String> markersJson,
   Value<bool> deleted,
   Value<bool> synced,
   Value<int> rowid,
@@ -4782,6 +4827,9 @@ class $$MarkerSetsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get markersJson => $composableBuilder(
+      column: $table.markersJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get deleted => $composableBuilder(
       column: $table.deleted, builder: (column) => ColumnFilters(column));
@@ -4825,6 +4873,9 @@ class $$MarkerSetsTableOrderingComposer
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get markersJson => $composableBuilder(
+      column: $table.markersJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get deleted => $composableBuilder(
       column: $table.deleted, builder: (column) => ColumnOrderings(column));
 
@@ -4865,6 +4916,9 @@ class $$MarkerSetsTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get markersJson => $composableBuilder(
+      column: $table.markersJson, builder: (column) => column);
+
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
 
@@ -4903,6 +4957,7 @@ class $$MarkerSetsTableTableManager extends RootTableManager<
             Value<String> createdByUserId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
+            Value<String> markersJson = const Value.absent(),
             Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -4916,6 +4971,7 @@ class $$MarkerSetsTableTableManager extends RootTableManager<
             createdByUserId: createdByUserId,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            markersJson: markersJson,
             deleted: deleted,
             synced: synced,
             rowid: rowid,
@@ -4929,6 +4985,7 @@ class $$MarkerSetsTableTableManager extends RootTableManager<
             required String createdByUserId,
             required DateTime createdAt,
             required DateTime updatedAt,
+            Value<String> markersJson = const Value.absent(),
             Value<bool> deleted = const Value.absent(),
             Value<bool> synced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -4942,6 +4999,7 @@ class $$MarkerSetsTableTableManager extends RootTableManager<
             createdByUserId: createdByUserId,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            markersJson: markersJson,
             deleted: deleted,
             synced: synced,
             rowid: rowid,

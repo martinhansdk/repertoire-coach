@@ -1094,6 +1094,25 @@ class MockLocalMarkerDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
+  _i3.Future<void> replaceMarkersByMarkerSet(
+    String? markerSetId,
+    List<_i14.MarkerModel>? markers, {
+    bool? markForSync = true,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #replaceMarkersByMarkerSet,
+          [
+            markerSetId,
+            markers,
+          ],
+          {#markForSync: markForSync},
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
   _i3.Future<List<_i14.MarkerModel>> getUnsyncedMarkers() =>
       (super.noSuchMethod(
         Invocation.method(

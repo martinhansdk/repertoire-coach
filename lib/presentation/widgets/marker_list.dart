@@ -217,10 +217,14 @@ class _MarkerListState extends State<MarkerList> {
   int _findActiveIndex(List<Marker> markers) {
     if (!widget.showPositions || markers.isEmpty) return -1;
     for (int i = 0; i < markers.length; i++) {
-      final markerPosition = Duration(milliseconds: markers[i].positionMs);
+      final markerMs = markers[i].positionMs;
+      if (markerMs == null) {
+        continue;
+      }
+      final markerPosition = Duration(milliseconds: markerMs);
       final nextPosition = i == markers.length - 1
           ? (widget.trackDuration ?? markerPosition)
-          : Duration(milliseconds: markers[i + 1].positionMs);
+          : Duration(milliseconds: markers[i + 1].positionMs ?? markerMs);
       if (widget.currentPosition >= markerPosition &&
           (i == markers.length - 1 || widget.currentPosition < nextPosition)) {
         return i;
@@ -275,8 +279,10 @@ class _MarkerListState extends State<MarkerList> {
       );
     }
 
-    // Sort markers by display order (empty labels preserved)
+    // Sort markers by display order and keep synced markers only.
     final sortedMarkers = List<Marker>.from(widget.markers)
+          .where((marker) => marker.positionMs != null)
+          .toList(growable: false)
       ..sort((a, b) => a.order.compareTo(b.order));
 
     if (sortedMarkers.isEmpty) {
@@ -315,11 +321,11 @@ class _MarkerListState extends State<MarkerList> {
       itemCount: sortedMarkers.length,
       itemBuilder: (context, index) {
         final marker = sortedMarkers[index];
-        final markerPosition = Duration(milliseconds: marker.positionMs);
+        final markerPosition = Duration(milliseconds: marker.positionMs!);
         final isActive = index == activeIndex;
         final nextPosition = index == sortedMarkers.length - 1
             ? (widget.trackDuration ?? markerPosition)
-            : Duration(milliseconds: sortedMarkers[index + 1].positionMs);
+            : Duration(milliseconds: sortedMarkers[index + 1].positionMs!);
         final segmentDuration = nextPosition > markerPosition
             ? nextPosition - markerPosition
             : const Duration(milliseconds: 1);
