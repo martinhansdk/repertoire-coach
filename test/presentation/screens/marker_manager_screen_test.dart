@@ -138,6 +138,8 @@ void main() {
         expect(find.text('Create a marker set to organize section markers for this track.'), findsOneWidget);
         expect(find.byIcon(Icons.bookmarks_outlined), findsOneWidget);
         expect(find.text('Create Marker Set'), findsOneWidget);
+        expect(find.byKey(const ValueKey('copyMarkerSetButton')), findsOneWidget);
+        expect(find.text('Copy From Track'), findsOneWidget);
       });
 
       testWidgets('should show create dialog when tapping create button in empty state', (tester) async {
@@ -236,6 +238,16 @@ void main() {
 
         expect(find.text('Structure'), findsOneWidget);
         expect(find.text('Rehearsal Marks'), findsOneWidget);
+      });
+
+      testWidgets('should show copy from track button when marker sets are listed', (tester) async {
+        await repository.createMarkerSet(testMarkerSet1);
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('copyMarkerSetButton')), findsOneWidget);
+        expect(find.text('Copy From Track'), findsOneWidget);
       });
 
       testWidgets('uses authenticated user id for marker sets', (tester) async {

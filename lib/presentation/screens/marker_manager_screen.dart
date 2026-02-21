@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/constants.dart';
+import '../../domain/entities/marker.dart';
 import '../../domain/entities/marker_set.dart';
+import '../../domain/entities/track.dart';
 import '../providers/auth_provider.dart';
+import '../providers/concert_provider.dart';
 import '../providers/marker_provider.dart';
+import '../providers/song_provider.dart';
 import '../providers/sync_provider.dart';
+import '../providers/track_provider.dart';
 import 'marker_sync/marker_sync_screen.dart';
 import '../widgets/marker_label_markup.dart';
 import '../widgets/marker_set_dialog.dart';
@@ -49,6 +55,290 @@ class MarkerManagerScreen extends ConsumerWidget {
       // Refresh marker sets after returning
       ref.invalidate(markerSetsByTrackProvider);
     }
+  }
+
+  Future<void> _copyMarkerSetFromTrack(BuildContext context, WidgetRef ref) async {
+    final userId = ref.read(supabaseServiceProvider).currentUserId;
+    if (userId == null) return;
+
+    final source = await _showCopyMarkerSetDialog(context, ref, userId);
+    if (source == null || !context.mounted) return;
+
+    final now = DateTime.now().toUtc();
+    final repository = ref.read(markerRepositoryProvider);
+    final newMarkerSetId = const Uuid().v4();
+
+    final copiedSet = MarkerSet(
+      id: newMarkerSetId,
+      trackId: trackId,
+      name: source.newName,
+      isShared: source.markerSet.isShared,
+      isTimeSynced: source.markerSet.isTimeSynced,
+      createdByUserId: userId,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    try {
+      await repository.createMarkerSet(copiedSet);
+
+      final sourceMarkers = await repository.getMarkersByMarkerSet(source.markerSet.id);
+      final sortedSourceMarkers = List<Marker>.from(sourceMarkers)
+        ..sort((a, b) => a.order.compareTo(b.order));
+
+      for (int i = 0; i < sortedSourceMarkers.length; i++) {
+        final marker = sortedSourceMarkers[i];
+        await repository.createMarker(
+          Marker(
+            id: const Uuid().v4(),
+            markerSetId: newMarkerSetId,
+            label: marker.label,
+            positionMs: marker.positionMs,
+            order: i,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+      }
+
+      if (context.mounted) {
+        ref.invalidate(markerSetsByTrackProvider((trackId, userId)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Copied "${source.markerSet.name}" to "$trackName"'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error copying marker set: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<List<_TrackWithContext>> _loadSameChoirTracks(
+    WidgetRef ref,
+  ) async {
+    final trackRepository = ref.read(trackRepositoryProvider);
+    final songRepository = ref.read(songRepositoryProvider);
+    final concertRepository = ref.read(concertRepositoryProvider);
+
+    final currentTrack = await trackRepository.getTrackById(trackId);
+    if (currentTrack == null) return [];
+
+    final currentSong = await songRepository.getSongById(currentTrack.songId);
+    if (currentSong == null) return [];
+
+    final currentConcert = await concertRepository.getConcertById(currentSong.concertId);
+    if (currentConcert == null) return [];
+
+    final choirConcerts = await concertRepository.getConcertsByChoir(currentConcert.choirId);
+    final tracksWithContext = <_TrackWithContext>[];
+
+    for (final concert in choirConcerts) {
+      final songs = await songRepository.getSongsByConcert(concert.id);
+      for (final song in songs) {
+        final tracks = await trackRepository.getTracksBySong(song.id);
+        for (final track in tracks) {
+          if (track.id == trackId) continue;
+          tracksWithContext.add(
+            _TrackWithContext(
+              track: track,
+              songTitle: song.title,
+              concertName: concert.name,
+            ),
+          );
+        }
+      }
+    }
+
+    tracksWithContext.sort((a, b) {
+      final concertCompare = a.concertName.toLowerCase().compareTo(b.concertName.toLowerCase());
+      if (concertCompare != 0) return concertCompare;
+      final songCompare = a.songTitle.toLowerCase().compareTo(b.songTitle.toLowerCase());
+      if (songCompare != 0) return songCompare;
+      return a.track.name.toLowerCase().compareTo(b.track.name.toLowerCase());
+    });
+
+    return tracksWithContext;
+  }
+
+  Future<_MarkerSetCopySelection?> _showCopyMarkerSetDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String userId,
+  ) async {
+    final trackOptions = await _loadSameChoirTracks(ref);
+    if (!context.mounted) return null;
+
+    if (trackOptions.isEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('No Source Tracks'),
+          content: const Text(
+            'No other tracks were found in this choir. '
+            'Create or sync markers on another track first.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return null;
+    }
+
+    final markerRepository = ref.read(markerRepositoryProvider);
+    _TrackWithContext? selectedTrack;
+    MarkerSet? selectedMarkerSet;
+    List<MarkerSet> sourceMarkerSets = [];
+    bool isLoadingSets = false;
+    final nameController = TextEditingController();
+
+    return showDialog<_MarkerSetCopySelection>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          Future<void> loadMarkerSets(_TrackWithContext track) async {
+            setState(() {
+              isLoadingSets = true;
+              sourceMarkerSets = [];
+              selectedMarkerSet = null;
+              nameController.clear();
+            });
+
+            final sets = await markerRepository.getMarkerSetsByTrack(
+              track.track.id,
+              userId: userId,
+            );
+            if (!context.mounted) return;
+            setState(() {
+              sourceMarkerSets = sets;
+              isLoadingSets = false;
+            });
+          }
+
+          final canCopy = selectedTrack != null &&
+              selectedMarkerSet != null &&
+              nameController.text.trim().isNotEmpty;
+
+          return AlertDialog(
+            title: const Text('Copy Marker Set From Track'),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButtonFormField<_TrackWithContext>(
+                    key: const ValueKey('copyMarkerSetTrackDropdown'),
+                    value: selectedTrack,
+                    decoration: const InputDecoration(
+                      labelText: 'Source Track',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: trackOptions
+                        .map(
+                          (option) => DropdownMenuItem<_TrackWithContext>(
+                            value: option,
+                            child: Text(
+                              '${option.concertName} / ${option.songTitle} / ${option.track.name}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (_TrackWithContext? value) {
+                      if (value == null) return;
+                      setState(() {
+                        selectedTrack = value;
+                      });
+                      loadMarkerSets(value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<MarkerSet>(
+                    key: const ValueKey('copyMarkerSetSourceSetDropdown'),
+                    value: selectedMarkerSet,
+                    decoration: const InputDecoration(
+                      labelText: 'Source Marker Set',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: sourceMarkerSets
+                        .map(
+                          (set) => DropdownMenuItem<MarkerSet>(
+                            value: set,
+                            child: Text(set.name, overflow: TextOverflow.ellipsis),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: isLoadingSets
+                        ? null
+                        : (MarkerSet? value) {
+                            setState(() {
+                              selectedMarkerSet = value;
+                              nameController.text = value?.name ?? '';
+                            });
+                          },
+                  ),
+                  if (isLoadingSets) ...[
+                    const SizedBox(height: 8),
+                    const LinearProgressIndicator(),
+                  ],
+                  if (!isLoadingSets && selectedTrack != null && sourceMarkerSets.isEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'No marker sets found on selected track.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const ValueKey('copyMarkerSetNameField'),
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'New Marker Set Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                key: const ValueKey('copyMarkerSetConfirmButton'),
+                onPressed: canCopy
+                    ? () => Navigator.pop(
+                        context,
+                        _MarkerSetCopySelection(
+                          markerSet: selectedMarkerSet!,
+                          newName: nameController.text.trim(),
+                        ),
+                      )
+                    : null,
+                child: const Text('Copy'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _deleteMarkerSet(
@@ -150,45 +440,69 @@ class MarkerManagerScreen extends ConsumerWidget {
           if (markerSets.isEmpty) {
             return _EmptyState(
               onCreateMarkerSet: () => _navigateToMarkerSync(context, ref),
+              onCopyFromTrack: () => _copyMarkerSetFromTrack(context, ref),
             );
           }
 
           return SafeArea(
             top: false,
-            child: RefreshIndicator(
-              onRefresh: () async {
-                try {
-                  await ref.read(syncControllerProvider.notifier).syncFromRemote();
-                } catch (_) {
-                  // Keep pull-to-refresh functional in offline/test environments.
-                } finally {
-                  ref.invalidate(markerSetsByTrackProvider((trackId, userId)));
-                }
-              },
-              child: ListView.builder(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  0,
-                  AppConstants.paddingSmall,
-                  0,
-                  AppConstants.paddingSmall + bottomInset + 80,
-                ),
-                itemCount: markerSets.length,
-                itemBuilder: (context, index) {
-                  final markerSet = markerSets[index];
-                  return _MarkerSetCard(
-                    trackId: trackId,
-                    markerSet: markerSet,
-                    onDelete: () => _deleteMarkerSet(
-                      context,
-                      ref,
-                      markerSet.id,
-                      markerSet.name,
-                      userId,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppConstants.paddingMedium,
+                    AppConstants.paddingSmall,
+                    AppConstants.paddingMedium,
+                    0,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('copyMarkerSetButton'),
+                      onPressed: () => _copyMarkerSetFromTrack(context, ref),
+                      icon: const Icon(Icons.copy_all),
+                      label: const Text('Copy From Track'),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      try {
+                        await ref.read(syncControllerProvider.notifier).syncFromRemote();
+                      } catch (_) {
+                        // Keep pull-to-refresh functional in offline/test environments.
+                      } finally {
+                        ref.invalidate(markerSetsByTrackProvider((trackId, userId)));
+                      }
+                    },
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(
+                        0,
+                        AppConstants.paddingSmall,
+                        0,
+                        AppConstants.paddingSmall + bottomInset + 80,
+                      ),
+                      itemCount: markerSets.length,
+                      itemBuilder: (context, index) {
+                        final markerSet = markerSets[index];
+                        return _MarkerSetCard(
+                          trackId: trackId,
+                          markerSet: markerSet,
+                          onDelete: () => _deleteMarkerSet(
+                            context,
+                            ref,
+                            markerSet.id,
+                            markerSet.name,
+                            userId,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -209,6 +523,36 @@ class MarkerManagerScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _TrackWithContext {
+  final Track track;
+  final String songTitle;
+  final String concertName;
+
+  const _TrackWithContext({
+    required this.track,
+    required this.songTitle,
+    required this.concertName,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || (other is _TrackWithContext && other.track.id == track.id);
+  }
+
+  @override
+  int get hashCode => track.id.hashCode;
+}
+
+class _MarkerSetCopySelection {
+  final MarkerSet markerSet;
+  final String newName;
+
+  const _MarkerSetCopySelection({
+    required this.markerSet,
+    required this.newName,
+  });
 }
 
 /// Card displaying a marker set and its markers
@@ -533,9 +877,11 @@ class _MarkerSetCard extends ConsumerWidget {
 /// Empty state when no marker sets exist
 class _EmptyState extends StatelessWidget {
   final VoidCallback onCreateMarkerSet;
+  final VoidCallback onCopyFromTrack;
 
   const _EmptyState({
     required this.onCreateMarkerSet,
+    required this.onCopyFromTrack,
   });
 
   @override
@@ -573,6 +919,13 @@ class _EmptyState extends StatelessWidget {
               onPressed: onCreateMarkerSet,
               icon: const Icon(Icons.add),
               label: const Text('Create Marker Set'),
+            ),
+            const SizedBox(height: AppConstants.paddingSmall),
+            OutlinedButton.icon(
+              key: const ValueKey('copyMarkerSetButton'),
+              onPressed: onCopyFromTrack,
+              icon: const Icon(Icons.copy_all),
+              label: const Text('Copy From Track'),
             ),
           ],
         ),
