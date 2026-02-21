@@ -20,11 +20,13 @@
 - **Supabase** (open-source Firebase alternative):
   - **PostgreSQL Database**: Relational database for all app data
   - **Supabase Auth**: User authentication and identity management
-  - **Supabase Storage**: S3-compatible object storage for audio files
   - **Real-time Subscriptions**: PostgreSQL changes streamed to clients
   - **Row Level Security (RLS)**: Database-level access control for choir-based permissions
   - **Auto-generated APIs**: REST and GraphQL APIs from database schema
-  - **Edge Functions**: Optional Deno-based serverless functions
+  - **Edge Functions**: Deno-based serverless functions (used for R2 audio signing)
+- **Cloudflare R2**: Private object storage for audio files (S3-compatible). Access is
+  gated by the `audio-signer` Edge Function which verifies Supabase JWT and choir
+  membership before issuing short-lived presigned URLs.
 
 **Why Supabase:**
 - Open source (can self-host if needed, no vendor lock-in)
@@ -206,7 +208,8 @@ class Track {
   String id;
   String songId;
   String name;  // "Soprano", "Tenor", "Full Choir", "Instrumental", "Monday Runthrough", etc.
-  String audioUrl;  // Cloud storage URL
+  String? audioUrl;  // Legacy Supabase public URL (null for R2 tracks, to be removed post-backfill)
+  String? storagePath;  // R2 object key (canonical audio reference)
   String? localPath;  // Local cached file path
   int duration;  // Duration in milliseconds
   DateTime createdAt;
@@ -878,15 +881,16 @@ MaterialApp(
   - Only choir members can upload/download audio files for their choir's songs
   - Files organized by choir ID for access control
 
-### Sync Strategy
+### Audio Upload Flow (R2)
 1. Choir member imports audio file for a track
-2. File saved to local storage temporarily
-3. Upload to Supabase Storage in background (choir-scoped path)
-4. Save track metadata (including storage URL) to PostgreSQL
-5. Delete local temp file, keep cached version
-6. Other choir members: download on-demand or pre-cache
-7. Per-user data (sections, playback positions) syncs via PostgreSQL real-time
-8. Real-time subscriptions notify clients of data changes
+2. App requests a presigned PUT URL from the `audio-signer` Edge Function (JWT + choir membership verified server-side)
+3. App uploads bytes directly to R2 via HTTP PUT using the presigned URL
+4. Save track metadata (`storage_path` = R2 object key) to PostgreSQL; `audio_url` is not written for new tracks
+5. Other choir members: on play, app requests a presigned GET URL from `audio-signer`; URL is valid for 24 hours
+
+### Sync Strategy
+1. Per-user data (sections, playback positions) syncs via PostgreSQL real-time
+2. Real-time subscriptions notify clients of data changes
 
 ## Error Handling
 

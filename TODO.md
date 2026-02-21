@@ -557,6 +557,10 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 
 ### Remaining Test Gaps
 
+**Priority 0: R2 Storage Layer (new, untested)**
+- [ ] Test `R2SignerClient` — mock `http.Client`; cover play/upload/delete happy paths, 401/403/404 error responses, missing session
+- [ ] Test `AudioStorageService` — mock `R2SignerClient` and `http.Client`; cover upload from bytes, upload from file, unsupported extension, R2 PUT failure, delete delegation
+
 **Priority 1: Data Source Layer**
 - [ ] Test `local_song_data_source.dart` (CRUD, soft delete, sync state)
 - [ ] Test `local_concert_data_source.dart` (CRUD, soft delete)

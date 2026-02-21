@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'r2_signer_client.dart';
@@ -98,8 +98,6 @@ class AudioStorageService {
     required String extension,
     required String contentType,
   }) async {
-    debugPrint('DEBUG - R2 upload: choirId=$choirId, trackId=$trackId, ext=$extension');
-
     // 1. Get presigned PUT URL from the signer
     final target = await _signerClient.getUploadUrl(
       choirId: choirId,
@@ -120,8 +118,6 @@ class AudioStorageService {
         'R2 upload failed: HTTP ${uploadResponse.statusCode}',
       );
     }
-
-    debugPrint('DEBUG - R2 upload complete: key=${target.objectKey}');
 
     return AudioUploadResult(
       storagePath: target.objectKey,
