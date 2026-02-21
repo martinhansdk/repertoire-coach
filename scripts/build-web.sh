@@ -46,7 +46,6 @@ docker run --rm \
 
     flutter pub get > /dev/null 2>&1
     flutter build web --release \
-      --web-renderer html \
       --dart-define=SUPABASE_URL=$SUPABASE_URL \
       --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 

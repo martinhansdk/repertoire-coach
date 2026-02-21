@@ -38,7 +38,6 @@ flutter pub get
 # Build web app with Supabase credentials baked in
 echo "Building web app..."
 flutter build web --debug \
-  --web-renderer html \
   --dart-define=SUPABASE_URL="$SUPABASE_URL" \
   --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
 

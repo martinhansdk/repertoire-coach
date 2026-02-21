@@ -43,7 +43,7 @@ case $PLATFORM in
     BUILD_CMD="flutter build apk $BUILD_MODE"
     ;;
   web)
-    BUILD_CMD="flutter build web $BUILD_MODE --web-renderer html"
+    BUILD_CMD="flutter build web $BUILD_MODE"
     ;;
   ios)
     BUILD_CMD="flutter build ios $BUILD_MODE --no-codesign"
