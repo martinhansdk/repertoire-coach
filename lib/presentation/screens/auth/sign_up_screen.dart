@@ -205,150 +205,156 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           ),
                         ],
                       )
-                    : AutofillGroup(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Display name field (optional)
-                            TextFormField(
-                              controller: _displayNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Display Name (Optional)',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.person),
-                              ),
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [AutofillHints.name],
-                              enabled: !isLoading,
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Keep profile-only field outside credential autofill group.
+                          TextFormField(
+                            controller: _displayNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Display Name (Optional)',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.person),
                             ),
-                            const SizedBox(height: 16),
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.name],
+                            enabled: !isLoading,
+                          ),
+                          const SizedBox(height: 16),
+                          AutofillGroup(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Email field
+                                TextFormField(
+                                  controller: _emailController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Email',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.email),
+                                  ),
+                                  keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                  autofillHints: const [
+                                    AutofillHints.newUsername,
+                                    AutofillHints.username,
+                                    AutofillHints.email,
+                                  ],
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your email';
+                                    }
+                                    if (!value.contains('@')) {
+                                      return 'Please enter a valid email';
+                                    }
+                                    return null;
+                                  },
+                                  enabled: !isLoading,
+                                ),
+                                const SizedBox(height: 16),
 
-                            // Email field
-                            TextFormField(
-                              controller: _emailController,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.email),
-                              ),
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [
-                                AutofillHints.newUsername,
-                                AutofillHints.username,
-                                AutofillHints.email,
+                                // Password field
+                                TextFormField(
+                                  controller: _passwordController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Password',
+                                    border: const OutlineInputBorder(),
+                                    prefixIcon: const Icon(Icons.lock),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword
+                                            ? Icons.visibility
+                                            : Icons.visibility_off,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscurePassword = !_obscurePassword;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  obscureText: _obscurePassword,
+                                  textInputAction: TextInputAction.next,
+                                  autofillHints: const [AutofillHints.newPassword],
+                                  keyboardType: TextInputType.visiblePassword,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter a password';
+                                    }
+                                    if (value.length < 6) {
+                                      return 'Password must be at least 6 characters';
+                                    }
+                                    return null;
+                                  },
+                                  enabled: !isLoading,
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Confirm password should not advertise newPassword
+                                // to avoid confusing password managers.
+                                TextFormField(
+                                  controller: _confirmPasswordController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Confirm Password',
+                                    border: const OutlineInputBorder(),
+                                    prefixIcon: const Icon(Icons.lock),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscureConfirmPassword
+                                            ? Icons.visibility
+                                            : Icons.visibility_off,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscureConfirmPassword =
+                                              !_obscureConfirmPassword;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  obscureText: _obscureConfirmPassword,
+                                  textInputAction: TextInputAction.done,
+                                  keyboardType: TextInputType.visiblePassword,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  onFieldSubmitted: (_) => _signUp(),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please confirm your password';
+                                    }
+                                    if (value != _passwordController.text) {
+                                      return 'Passwords do not match';
+                                    }
+                                    return null;
+                                  },
+                                  enabled: !isLoading,
+                                ),
+                                const SizedBox(height: 24),
+
+                                // Submit inside autofill group so the platform
+                                // can treat this as form completion.
+                                ElevatedButton(
+                                  onPressed: isLoading ? null : _signUp,
+                                  style: ElevatedButton.styleFrom(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 16),
+                                  ),
+                                  child: isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('Sign Up'),
+                                ),
                               ],
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!value.contains('@')) {
-                                  return 'Please enter a valid email';
-                                }
-                                return null;
-                              },
-                              enabled: !isLoading,
                             ),
-                            const SizedBox(height: 16),
-
-                            // Password field
-                            TextFormField(
-                              controller: _passwordController,
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.lock),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    });
-                                  },
-                                ),
-                              ),
-                              obscureText: _obscurePassword,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [AutofillHints.newPassword],
-                              keyboardType: TextInputType.visiblePassword,
-                              autocorrect: false,
-                              enableSuggestions: false,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter a password';
-                                }
-                                if (value.length < 6) {
-                                  return 'Password must be at least 6 characters';
-                                }
-                                return null;
-                              },
-                              enabled: !isLoading,
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Confirm password field
-                            TextFormField(
-                              controller: _confirmPasswordController,
-                              decoration: InputDecoration(
-                                labelText: 'Confirm Password',
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.lock),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirmPassword
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscureConfirmPassword =
-                                          !_obscureConfirmPassword;
-                                    });
-                                  },
-                                ),
-                              ),
-                              obscureText: _obscureConfirmPassword,
-                              textInputAction: TextInputAction.done,
-                              autofillHints: const [AutofillHints.newPassword],
-                              keyboardType: TextInputType.visiblePassword,
-                              autocorrect: false,
-                              enableSuggestions: false,
-                              onFieldSubmitted: (_) => _signUp(),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please confirm your password';
-                                }
-                                if (value != _passwordController.text) {
-                                  return 'Passwords do not match';
-                                }
-                                return null;
-                              },
-                              enabled: !isLoading,
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Sign up button — inside AutofillGroup so the
-                            // platform password manager detects form submission
-                            // and offers to save the new password.
-                            ElevatedButton(
-                              onPressed: isLoading ? null : _signUp,
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                              ),
-                              child: isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : const Text('Sign Up'),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                 const SizedBox(height: 16),
 
