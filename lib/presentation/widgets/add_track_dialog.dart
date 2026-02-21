@@ -137,7 +137,6 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
         id: trackId,
         songId: widget.songId,
         name: _nameController.text.trim(),
-        audioUrl: uploadResult.audioUrl,
         storagePath: uploadResult.storagePath,
         durationMs: uploadResult.durationMs,
         createdAt: now,

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:repertoire_coach/core/services/r2_signer_client.dart';
 import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/data/repositories/auth_repository_impl.dart';
 import 'package:repertoire_coach/domain/repositories/auth_repository.dart';
@@ -19,6 +20,12 @@ class MemberProfile {
   /// Preferred display label: displayName if available, otherwise email.
   String get displayLabel => displayName ?? email;
 }
+
+/// Provider for the R2SignerClient.
+final r2SignerClientProvider = Provider<R2SignerClient>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return R2SignerClient(supabaseService);
+});
 
 /// Provider for the SupabaseService singleton.
 final supabaseServiceProvider = Provider<SupabaseService>((ref) {

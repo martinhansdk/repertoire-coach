@@ -30,10 +30,10 @@ final remoteTrackDataSourceProvider = Provider<RemoteTrackDataSource?>((ref) {
 
 /// Provider for the audio storage service
 ///
-/// Handles uploading and managing audio files in Supabase Storage.
+/// Handles uploading and managing audio files in R2 storage.
 final audioStorageServiceProvider = Provider<AudioStorageService>((ref) {
-  final supabaseService = ref.watch(supabaseServiceProvider);
-  return AudioStorageService(supabaseService);
+  final signerClient = ref.watch(r2SignerClientProvider);
+  return AudioStorageService(signerClient);
 });
 
 /// Provider for the track repository

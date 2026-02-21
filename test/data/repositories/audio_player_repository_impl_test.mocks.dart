@@ -3,10 +3,12 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i4;
+import 'dart:async' as _i5;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:repertoire_coach/core/services/supabase_service.dart' as _i3;
+import 'package:mockito/src/dummies.dart' as _i6;
+import 'package:repertoire_coach/core/services/r2_signer_client.dart' as _i3;
+import 'package:repertoire_coach/core/services/supabase_service.dart' as _i4;
 import 'package:supabase_flutter/supabase_flutter.dart' as _i2;
 
 // ignore_for_file: type=lint
@@ -35,10 +37,21 @@ class _FakeSupabaseClient_0 extends _i1.SmartFake
         );
 }
 
+class _FakeR2UploadTarget_1 extends _i1.SmartFake
+    implements _i3.R2UploadTarget {
+  _FakeR2UploadTarget_1(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
 /// A class which mocks [SupabaseService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSupabaseService extends _i1.Mock implements _i3.SupabaseService {
+class MockSupabaseService extends _i1.Mock implements _i4.SupabaseService {
   MockSupabaseService() {
     _i1.throwOnMissingStub(this);
   }
@@ -59,8 +72,82 @@ class MockSupabaseService extends _i1.Mock implements _i3.SupabaseService {
       ) as bool);
 
   @override
-  _i4.Stream<_i2.AuthState> get authStateChanges => (super.noSuchMethod(
+  _i5.Stream<_i2.AuthState> get authStateChanges => (super.noSuchMethod(
         Invocation.getter(#authStateChanges),
-        returnValue: _i4.Stream<_i2.AuthState>.empty(),
-      ) as _i4.Stream<_i2.AuthState>);
+        returnValue: _i5.Stream<_i2.AuthState>.empty(),
+      ) as _i5.Stream<_i2.AuthState>);
+}
+
+/// A class which mocks [R2SignerClient].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockR2SignerClient extends _i1.Mock implements _i3.R2SignerClient {
+  MockR2SignerClient() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i5.Future<String> getPlayUrl(String? trackId) => (super.noSuchMethod(
+        Invocation.method(
+          #getPlayUrl,
+          [trackId],
+        ),
+        returnValue: _i5.Future<String>.value(_i6.dummyValue<String>(
+          this,
+          Invocation.method(
+            #getPlayUrl,
+            [trackId],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<_i3.R2UploadTarget> getUploadUrl({
+    required String? choirId,
+    required String? trackId,
+    required String? extension,
+    required String? contentType,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUploadUrl,
+          [],
+          {
+            #choirId: choirId,
+            #trackId: trackId,
+            #extension: extension,
+            #contentType: contentType,
+          },
+        ),
+        returnValue: _i5.Future<_i3.R2UploadTarget>.value(_FakeR2UploadTarget_1(
+          this,
+          Invocation.method(
+            #getUploadUrl,
+            [],
+            {
+              #choirId: choirId,
+              #trackId: trackId,
+              #extension: extension,
+              #contentType: contentType,
+            },
+          ),
+        )),
+      ) as _i5.Future<_i3.R2UploadTarget>);
+
+  @override
+  _i5.Future<void> deleteObject(
+    String? storagePath,
+    String? trackId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #deleteObject,
+          [
+            storagePath,
+            trackId,
+          ],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 }

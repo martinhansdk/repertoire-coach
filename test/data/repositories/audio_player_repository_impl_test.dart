@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:repertoire_coach/core/services/r2_signer_client.dart';
 import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/repositories/audio_player_repository_impl.dart';
@@ -27,19 +28,21 @@ class _MockPathProviderPlatform extends PathProviderPlatform {
   Future<String?> getDownloadsPath() async => '/tmp/downloads';
 }
 
-@GenerateMocks([SupabaseService])
+@GenerateMocks([SupabaseService, R2SignerClient])
 void main() {
   group('AudioPlayerRepositoryImpl', () {
     late AudioPlayerRepositoryImpl repository;
     late db.AppDatabase database;
     late MockSupabaseService mockSupabaseService;
+    late MockR2SignerClient mockSignerClient;
 
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
       PathProviderPlatform.instance = _MockPathProviderPlatform();
       database = db.AppDatabase.forTesting(NativeDatabase.memory());
       mockSupabaseService = MockSupabaseService();
-      repository = AudioPlayerRepositoryImpl(database, mockSupabaseService);
+      mockSignerClient = MockR2SignerClient();
+      repository = AudioPlayerRepositoryImpl(database, mockSupabaseService, mockSignerClient);
     });
 
     tearDown(() async {
@@ -284,13 +287,15 @@ void main() {
     late AudioPlayerRepositoryImpl repository;
     late db.AppDatabase database;
     late MockSupabaseService mockSupabaseService;
+    late MockR2SignerClient mockSignerClient;
 
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
       PathProviderPlatform.instance = _MockPathProviderPlatform();
       database = db.AppDatabase.forTesting(NativeDatabase.memory());
       mockSupabaseService = MockSupabaseService();
-      repository = AudioPlayerRepositoryImpl(database, mockSupabaseService);
+      mockSignerClient = MockR2SignerClient();
+      repository = AudioPlayerRepositoryImpl(database, mockSupabaseService, mockSignerClient);
     });
 
     tearDown(() async {

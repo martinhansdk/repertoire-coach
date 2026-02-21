@@ -1,52 +1,42 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
-import 'supabase_service.dart';
+import 'r2_signer_client.dart';
 
 /// Result of an audio file upload
 class AudioUploadResult {
-  /// Public URL to access the audio file
-  final String audioUrl;
-
-  /// Path in Supabase Storage bucket
+  /// Canonical object key in the R2 bucket (use as [storagePath]).
   final String storagePath;
 
   /// Duration of the audio file in milliseconds (if available)
   final int? durationMs;
 
   const AudioUploadResult({
-    required this.audioUrl,
     required this.storagePath,
     this.durationMs,
   });
 }
 
-/// Service for uploading and managing audio files in Supabase Storage
+/// Service for uploading and managing audio files in R2 storage.
+///
+/// Upload flow:
+///   1. Requests a presigned PUT URL from the audio-signer Edge Function.
+///   2. Uploads bytes directly to R2 via HTTP PUT.
+///   3. Returns the canonical object key as [storagePath].
 ///
 /// Handles both mobile (file path) and web (bytes) uploads.
-/// Audio files are stored in the 'audio_files' bucket and organized by choir:
-/// `{choirId}/{trackId}.{extension}`
 class AudioStorageService {
-  static const String _bucketName = 'audio_files';
+  final R2SignerClient _signerClient;
+  final http.Client _http;
 
-  final SupabaseService _supabaseService;
+  AudioStorageService(this._signerClient, {http.Client? httpClient})
+      : _http = httpClient ?? http.Client();
 
-  AudioStorageService(this._supabaseService);
-
-  /// Upload an audio file to Supabase Storage from a file path (mobile/desktop)
+  /// Upload an audio file from a local file path (mobile/desktop).
   ///
-  /// [filePath]: Local file path to the audio file
-  /// [choirId]: ID of the choir this track belongs to
-  /// [trackId]: ID of the track
-  ///
-  /// Returns [AudioUploadResult] with the public URL and storage path
-  ///
-  /// Throws:
-  /// - [ArgumentError] if called on web platform (use [uploadAudioFromBytes] instead)
-  /// - [FileSystemException] if file doesn't exist or can't be read
-  /// - [Exception] if upload fails
+  /// Throws [ArgumentError] on web — use [uploadAudioFromBytes] instead.
   Future<AudioUploadResult> uploadAudioFromFile({
     required String filePath,
     required String choirId,
@@ -58,36 +48,26 @@ class AudioStorageService {
       );
     }
 
-    // Read file
     final file = File(filePath);
     if (!await file.exists()) {
       throw FileSystemException('File not found', filePath);
     }
 
     final bytes = await file.readAsBytes();
-    final fileName = path.basename(filePath);
-    final extension = path.extension(fileName).toLowerCase();
+    final extension = path.extension(path.basename(filePath)).toLowerCase();
 
     return _uploadAudio(
       bytes: bytes,
       choirId: choirId,
       trackId: trackId,
       extension: extension,
+      contentType: _contentTypeForExtension(extension),
     );
   }
 
-  /// Upload an audio file to Supabase Storage from bytes (web/mobile)
+  /// Upload an audio file from bytes (web/mobile).
   ///
-  /// [bytes]: Audio file data
-  /// [fileName]: Original file name (used to determine extension)
-  /// [choirId]: ID of the choir this track belongs to
-  /// [trackId]: ID of the track
-  ///
-  /// Returns [AudioUploadResult] with the public URL and storage path
-  ///
-  /// Throws:
-  /// - [ArgumentError] if fileName has no extension
-  /// - [Exception] if upload fails
+  /// Throws [ArgumentError] if [fileName] has no extension.
   Future<AudioUploadResult> uploadAudioFromBytes({
     required Uint8List bytes,
     required String fileName,
@@ -107,80 +87,75 @@ class AudioStorageService {
       choirId: choirId,
       trackId: trackId,
       extension: extension,
+      contentType: _contentTypeForExtension(extension),
     );
   }
 
-  /// Internal method to upload audio bytes to Supabase Storage
   Future<AudioUploadResult> _uploadAudio({
     required Uint8List bytes,
     required String choirId,
     required String trackId,
     required String extension,
+    required String contentType,
   }) async {
-    // Build storage path: {choirId}/{trackId}.{extension}
-    // Note: Bucket name is specified separately in .from(_bucketName)
-    final storagePath = '$choirId/$trackId$extension';
+    debugPrint('DEBUG - R2 upload: choirId=$choirId, trackId=$trackId, ext=$extension');
 
-    debugPrint('DEBUG - Storage upload: bucket=$_bucketName, path=$storagePath');
+    // 1. Get presigned PUT URL from the signer
+    final target = await _signerClient.getUploadUrl(
+      choirId: choirId,
+      trackId: trackId,
+      extension: extension,
+      contentType: contentType,
+    );
 
-    try {
-      // Upload to Supabase Storage
-      await _supabaseService.client.storage
-          .from(_bucketName)
-          .uploadBinary(
-            storagePath,
-            bytes,
-            fileOptions: const FileOptions(
-              upsert: true, // Allow overwriting if track is edited
-            ),
-          );
+    // 2. PUT bytes directly to R2
+    final uploadResponse = await _http.put(
+      Uri.parse(target.uploadUrl),
+      headers: {'Content-Type': contentType},
+      body: bytes,
+    );
 
-      // Get public URL
-      final audioUrl = _supabaseService.client.storage
-          .from(_bucketName)
-          .getPublicUrl(storagePath);
-
-      return AudioUploadResult(
-        audioUrl: audioUrl,
-        storagePath: storagePath,
-        // TODO: Extract audio duration (requires audio processing package)
-        durationMs: null,
+    if (uploadResponse.statusCode != 200) {
+      throw Exception(
+        'R2 upload failed: HTTP ${uploadResponse.statusCode}',
       );
-    } catch (e) {
-      throw Exception('Failed to upload audio file: $e');
     }
+
+    debugPrint('DEBUG - R2 upload complete: key=${target.objectKey}');
+
+    return AudioUploadResult(
+      storagePath: target.objectKey,
+      // TODO: Extract audio duration (requires audio processing package)
+      durationMs: null,
+    );
   }
 
-  /// Delete an audio file from Supabase Storage
+  /// Delete an audio file from R2.
   ///
-  /// [storagePath]: The storage path returned from upload (e.g., "choir-id/track-id.mp3")
-  ///
-  /// Throws [Exception] if deletion fails
-  Future<void> deleteAudio(String storagePath) async {
-    try {
-      await _supabaseService.client.storage
-          .from(_bucketName)
-          .remove([storagePath]);
-    } catch (e) {
-      throw Exception('Failed to delete audio file: $e');
-    }
+  /// [storagePath]: The object key returned from upload.
+  /// [trackId]: The track ID (used for authorization).
+  Future<void> deleteAudio(String storagePath, String trackId) async {
+    await _signerClient.deleteObject(storagePath, trackId);
   }
 
-  /// Check if an audio file exists in Supabase Storage
-  ///
-  /// [storagePath]: The storage path to check
-  ///
-  /// Returns true if the file exists, false otherwise
-  Future<bool> audioExists(String storagePath) async {
-    try {
-      final files = await _supabaseService.client.storage
-          .from(_bucketName)
-          .list(path: path.dirname(storagePath));
-
-      final fileName = path.basename(storagePath);
-      return files.any((file) => file.name == fileName);
-    } catch (e) {
-      return false;
+  static String _contentTypeForExtension(String extension) {
+    switch (extension) {
+      case '.mp3':
+        return 'audio/mpeg';
+      case '.m4a':
+        return 'audio/x-m4a';
+      case '.mp4':
+        return 'audio/mp4';
+      case '.wav':
+        return 'audio/wav';
+      case '.ogg':
+        return 'audio/ogg';
+      case '.aac':
+        return 'audio/aac';
+      case '.flac':
+        return 'audio/flac';
+      default:
+        return 'audio/mpeg';
     }
   }
 }

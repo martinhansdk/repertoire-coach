@@ -7,10 +7,10 @@ class Track extends Equatable {
   final String songId;
   final String name;
 
-  /// Public URL to access the audio file (from Supabase Storage)
+  /// Permanent public URL (legacy Supabase Storage; null for R2 tracks).
   final String? audioUrl;
 
-  /// Path in Supabase Storage bucket (e.g., "choirs/{choir_id}/tracks/{track_id}.mp3")
+  /// Object key in R2 (or Supabase Storage path for legacy tracks).
   final String? storagePath;
 
   /// Duration of the audio file in milliseconds
@@ -35,11 +35,12 @@ class Track extends Equatable {
   });
 
   /// Returns true if this track has an audio source available
-  /// (either a cloud URL or local file path)
-  bool get hasAudio => audioUrl != null || filePath != null;
+  /// (R2/cloud storage path, a legacy public URL, or a local file path).
+  bool get hasAudio => storagePath != null || audioUrl != null || filePath != null;
 
-  /// Returns the best available audio source URL
-  /// Prefers audioUrl (cloud), falls back to filePath (local)
+  /// Returns the best available local/legacy audio source.
+  /// Prefers audioUrl (legacy Supabase public URL), falls back to filePath.
+  /// For R2 tracks, the signed URL is fetched at playback time via R2SignerClient.
   String? get audioSource => audioUrl ?? filePath;
 
   @override

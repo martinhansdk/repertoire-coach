@@ -10,6 +10,7 @@ import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
 import '../../core/services/error_reporter.dart';
+import '../../core/services/r2_signer_client.dart';
 import '../../core/services/supabase_service.dart';
 import '../datasources/local/database.dart' as db;
 
@@ -42,7 +43,9 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
     return _initFuture!;
   }
 
-  AudioPlayerRepositoryImpl(this._database, this._supabaseService)
+  final R2SignerClient _signerClient;
+
+  AudioPlayerRepositoryImpl(this._database, this._supabaseService, this._signerClient)
       : _player = ja.AudioPlayer(
           // Explicitly disable audio offload.  just_audio 0.10.5 defaults to
           // disabled, but be explicit: offload hands the DSP off to a
@@ -101,7 +104,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   Future<void> _initializeAudioService() async {
     try {
       _audioHandler = await AudioService.init(
-        builder: () => _AudioPlayerHandler(_player, _database, _supabaseService),
+        builder: () => _AudioPlayerHandler(_player, _database, _supabaseService, _signerClient),
         config: AudioServiceConfig(
           androidNotificationChannelId: 'com.example.repertoire_coach.audio',
           androidNotificationChannelName: 'Repertoire Coach Audio',
@@ -405,13 +408,14 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   final ja.AudioPlayer _player;
   final db.AppDatabase _database;
   final SupabaseService _supabaseService;
+  final R2SignerClient _signerClient;
   StreamSubscription<ja.PlayerState>? _playerStateSubscription;
   StreamSubscription<Duration>? _positionSubscription;
 
   /// Android Auto browsable root ID used by audio_service
   static const _favoritesId = 'favorites';
 
-  _AudioPlayerHandler(this._player, this._database, this._supabaseService) {
+  _AudioPlayerHandler(this._player, this._database, this._supabaseService, this._signerClient) {
     // Sync player state to audio service whenever just_audio fires a state event.
     _playerStateSubscription = _player.playerStateStream.listen((_) {
       _broadcastState();
@@ -503,19 +507,17 @@ class _AudioPlayerHandler extends BaseAudioHandler {
     final trackRow = await _database.getTrackById(trackId);
     if (trackRow == null) return;
 
-    // Generate signed URL for cloud-stored audio
+    // Fetch a short-lived presigned R2 URL for playback
     String? signedUrl;
     if (trackRow.storagePath != null) {
       try {
-        signedUrl = await _supabaseService.client.storage
-            .from('audio_files')
-            .createSignedUrl(trackRow.storagePath!, 86400);
+        signedUrl = await _signerClient.getPlayUrl(trackRow.id);
       } catch (_) {
-        // Fall back to trackRow.audioUrl or local file
+        // Fall back to local file if available
       }
     }
 
-    final effectiveUrl = signedUrl ?? trackRow.audioUrl;
+    final effectiveUrl = signedUrl;
     if (effectiveUrl != null) {
       await _player.setUrl(effectiveUrl);
     } else if (trackRow.filePath != null) {

@@ -4,20 +4,21 @@ import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/audio_player_repository.dart';
-import 'auth_provider.dart'; // For supabaseServiceProvider
+import 'auth_provider.dart'; // For supabaseServiceProvider, r2SignerClientProvider
 import 'concert_provider.dart'; // For databaseProvider
 
 /// Provider for the audio player repository
 ///
 /// This provides a single instance of the audio player throughout the app.
 /// The repository manages all playback operations using just_audio.
-/// It receives the local database and Supabase service so that the audio
-/// handler can serve content (favorites) to Android Auto and generate
-/// signed URLs for cloud-stored audio files.
+/// It receives the local database, Supabase service, and R2 signer client so
+/// that the audio handler can serve content (favorites) to Android Auto and
+/// generate signed R2 URLs for cloud-stored audio files.
 final audioPlayerRepositoryProvider = Provider<AudioPlayerRepository>((ref) {
   final database = ref.watch(databaseProvider);
   final supabaseService = ref.watch(supabaseServiceProvider);
-  final repository = AudioPlayerRepositoryImpl(database, supabaseService);
+  final signerClient = ref.watch(r2SignerClientProvider);
+  final repository = AudioPlayerRepositoryImpl(database, supabaseService, signerClient);
 
   // Dispose the audio player when the provider is disposed
   ref.onDispose(() {
@@ -57,10 +58,10 @@ class AudioPlayerControls {
   AudioPlayerRepository get _repository =>
       _ref.read(audioPlayerRepositoryProvider);
 
-  /// Play a track from the beginning
+  /// Play a track from the beginning.
   ///
-  /// If the track has a cloud storage path, generates a signed URL for
-  /// authenticated access (valid for 24 hours).
+  /// If the track has a [storagePath], fetches a short-lived presigned R2 URL
+  /// from the audio-signer Edge Function before starting playback.
   Future<void> playTrack(
     Track track, {
     String? songName,
@@ -68,16 +69,12 @@ class AudioPlayerControls {
   }) async {
     String? signedUrl;
 
-    // Generate signed URL for cloud-stored audio files
     if (track.storagePath != null) {
       try {
-        final supabaseService = _ref.read(supabaseServiceProvider);
-        final response = await supabaseService.client.storage
-            .from('audio_files')
-            .createSignedUrl(track.storagePath!, 86400); // 24 hours
-        signedUrl = response;
+        final signerClient = _ref.read(r2SignerClientProvider);
+        signedUrl = await signerClient.getPlayUrl(track.id);
       } catch (e) {
-        // Log error but continue - will fall back to local file if available
+        // Log error but continue — will fall back to local file if available
       }
     }
 

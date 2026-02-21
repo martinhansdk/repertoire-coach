@@ -64,6 +64,9 @@ dependencies:
   supabase_flutter: ^2.5.0
   universal_html: ^2.2.4
 
+  # HTTP client (for R2 presigned PUT uploads and signer calls)
+  http: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
