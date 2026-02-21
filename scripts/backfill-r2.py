@@ -1,5 +1,8 @@
-#!/usr/bin/env python3
-# Requirements: pip install requests boto3
+#!/usr/bin/env -S uv run
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["requests", "boto3"]
+# ///
 """
 Backfill Supabase Storage → Cloudflare R2
 
