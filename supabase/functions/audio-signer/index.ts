@@ -25,13 +25,16 @@ async function presignUrl(
   contentType?: string,
 ): Promise<string> {
   const url = new URL(`${R2_ENDPOINT}/${R2_BUCKET}/${objectKey}`);
+  // X-Amz-Expires must be a query param before signing — aws4fetch has no
+  // expiresIn option, so setting it here is the correct approach.
+  url.searchParams.set("X-Amz-Expires", String(ttlSeconds));
 
   const headers: Record<string, string> = {};
   if (contentType) headers["Content-Type"] = contentType;
 
   const signed = await r2Client().sign(
     new Request(url.toString(), { method, headers }),
-    { aws: { signQuery: true, datetime: new Date().toISOString(), allHeaders: true }, expiresIn: ttlSeconds },
+    { aws: { signQuery: true } },
   );
   return signed.url;
 }
