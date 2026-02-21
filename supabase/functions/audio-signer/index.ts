@@ -6,8 +6,8 @@ const R2_ENDPOINT = `https://${Deno.env.get("R2_ACCOUNT_ID")}.r2.cloudflarestora
 const R2_BUCKET = Deno.env.get("R2_BUCKET_NAME")!;
 
 // TTLs in seconds
-const PLAY_TTL = 60 * 60 * 2;   // 2 hours
-const UPLOAD_TTL = 60 * 10;      // 10 minutes
+const PLAY_TTL = 60 * 60 * 24;  // 24 hours
+const UPLOAD_TTL = 60 * 10;     // 10 minutes
 
 function r2Client(): AwsClient {
   return new AwsClient({

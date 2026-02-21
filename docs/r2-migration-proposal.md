@@ -239,10 +239,8 @@ tools (`rclone`, `aws s3 cp`) cannot be used against Supabase Storage as a sourc
 
 ## Security Controls
 - Presigned URL TTL:
-  - **Playback: 1–4 hours.** Short TTL (5–15 min) causes user-facing failures: a user who
-    pauses a track, locks their phone, and resumes 20 minutes later would get a 403. The app
-    has no URL-refresh mechanism. Fresh signed URLs are generated at playback start (not during
-    playback), so 1–4 hours is a reasonable window without meaningful security regression.
+  - **Playback: 24 hours.** Matches the previous Supabase signed-URL TTL. Avoids any
+    expiry-during-session issues (paused tracks, background playback, Android Auto).
   - **Upload: 5–10 minutes.** Upload begins immediately after the signed URL is issued; short
     TTL is safe here.
 - Validate choir membership on every sign request (not just upload).
@@ -296,5 +294,5 @@ Total: 2–3 weeks calendar time including testing and staged rollout.
 | Backfill approach | REST API download + R2 re-upload script | Free plan — S3-compatible API not available; script downloads via Supabase Storage REST and re-uploads to R2 |
 | Upload path | Direct client-to-R2 via presigned PUT | No server-side proxy; client does raw HTTP PUT |
 | Feature flag mechanism | `storage_provider` DB column + compile-time `dart-define` for upload cutover | No separate flag needed for playback; upload cutover toggled by `dart-define` |
-| URL TTL — playback | 1–4 hours | Short TTL (5–15 min) breaks pause/resume across screen lock |
+| URL TTL — playback | 24 hours | Matches previous Supabase TTL; avoids expiry during long sessions |
 | URL TTL — upload | 5–10 minutes | Upload starts immediately after signing; short TTL is safe |
