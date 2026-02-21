@@ -9,6 +9,12 @@ const R2_BUCKET = Deno.env.get("R2_BUCKET_NAME")!;
 const PLAY_TTL = 60 * 60 * 24;  // 24 hours
 const UPLOAD_TTL = 60 * 10;     // 10 minutes
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+};
+
 function r2Client(): AwsClient {
   return new AwsClient({
     accessKeyId: Deno.env.get("R2_ACCESS_KEY_ID")!,
@@ -16,6 +22,16 @@ function r2Client(): AwsClient {
     service: "s3",
     region: "auto",
   });
+}
+
+// Service-role client for internal auth checks — bypasses RLS so that
+// getTrackChoirId and isChoirMember work regardless of the user's RLS policies.
+// SUPABASE_SERVICE_ROLE_KEY is auto-injected into all Supabase Edge Functions.
+function serviceClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
 }
 
 async function presignUrl(
@@ -48,11 +64,8 @@ async function deleteObject(objectKey: string): Promise<void> {
 }
 
 /** Returns the choir_id for a track, or null if not found. */
-async function getTrackChoirId(
-  supabase: ReturnType<typeof createClient>,
-  trackId: string,
-): Promise<string | null> {
-  const { data, error } = await supabase
+async function getTrackChoirId(trackId: string): Promise<string | null> {
+  const { data, error } = await serviceClient()
     .from("tracks")
     .select("songs!inner(concerts!inner(choir_id))")
     .eq("id", trackId)
@@ -64,12 +77,8 @@ async function getTrackChoirId(
 }
 
 /** Returns true if userId is a member of choirId. */
-async function isChoirMember(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  choirId: string,
-): Promise<boolean> {
-  const { data, error } = await supabase
+async function isChoirMember(userId: string, choirId: string): Promise<boolean> {
+  const { data, error } = await serviceClient()
     .from("choir_members")
     .select("user_id")
     .eq("choir_id", choirId)
@@ -81,14 +90,7 @@ async function isChoirMember(
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type",
-      },
-    });
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
   if (req.method !== "POST") {
@@ -96,19 +98,16 @@ Deno.serve(async (req: Request) => {
   }
 
   // Auth: Supabase verifies the JWT before invoking (verify_jwt: true).
-  // We create a client that inherits the caller's identity for RLS-safe queries.
-  const supabase = createClient(
+  // We only need the user-JWT client to identify the caller via getUser().
+  const userClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
   );
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await userClient.auth.getUser();
   if (authError || !user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonError("Unauthorized", 401);
   }
 
   // Route on the last path segment: /audio-signer/play, /upload, /delete
@@ -123,15 +122,14 @@ Deno.serve(async (req: Request) => {
         return jsonError("trackId required", 400);
       }
 
-      const choirId = await getTrackChoirId(supabase, trackId);
+      const choirId = await getTrackChoirId(trackId);
       if (!choirId) return jsonError("Track not found", 404);
 
-      if (!await isChoirMember(supabase, user.id, choirId)) {
+      if (!await isChoirMember(user.id, choirId)) {
         return jsonError("Forbidden", 403);
       }
 
-      // Look up storagePath
-      const { data: track, error: trackError } = await supabase
+      const { data: track, error: trackError } = await serviceClient()
         .from("tracks")
         .select("storage_path")
         .eq("id", trackId)
@@ -161,7 +159,7 @@ Deno.serve(async (req: Request) => {
         return jsonError(`Unsupported content type: ${contentType}`, 400);
       }
 
-      if (!await isChoirMember(supabase, user.id, choirId)) {
+      if (!await isChoirMember(user.id, choirId)) {
         return jsonError("Forbidden", 403);
       }
 
@@ -175,10 +173,10 @@ Deno.serve(async (req: Request) => {
         return jsonError("storagePath and trackId required", 400);
       }
 
-      const choirId = await getTrackChoirId(supabase, trackId);
+      const choirId = await getTrackChoirId(trackId);
       if (!choirId) return jsonError("Track not found", 404);
 
-      if (!await isChoirMember(supabase, user.id, choirId)) {
+      if (!await isChoirMember(user.id, choirId)) {
         return jsonError("Forbidden", 403);
       }
 
@@ -197,13 +195,13 @@ Deno.serve(async (req: Request) => {
 function jsonOk(data: unknown): Response {
   return new Response(JSON.stringify(data), {
     status: 200,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
   });
 }
 
 function jsonError(message: string, status: number): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
   });
 }
