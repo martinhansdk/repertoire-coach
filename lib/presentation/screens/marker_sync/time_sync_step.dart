@@ -189,7 +189,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
               onTap: () {
                 Navigator.pop(context);
                 final notifier = ref.read(markerSyncNotifierProvider(widget.params).notifier);
-                notifier.addMarkerAfter(markerIndex, label: 'New marker');
+                notifier.addMarkerAfter(markerIndex, label: '');
                 _editMarkerLabel(markerIndex + 1);
               },
             ),
