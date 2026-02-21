@@ -491,6 +491,44 @@ void main() {
         expect(find.text('0:30.000'), findsNothing);
       });
 
+      testWidgets('should hide leading markup syntax in marker preview', (tester) async {
+        await repository.createMarkerSet(testMarkerSet);
+
+        final marker1 = Marker(
+          id: 'marker-1',
+          markerSetId: testMarkerSet.id,
+          label: '#   Intro',
+          positionMs: 0,
+          order: 0,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime(2024, 1, 1),
+        );
+
+        final marker2 = Marker(
+          id: 'marker-2',
+          markerSetId: testMarkerSet.id,
+          label: '/ Verse 1',
+          positionMs: 30000,
+          order: 1,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime(2024, 1, 1),
+        );
+
+        await repository.createMarker(marker1);
+        await repository.createMarker(marker2);
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Structure'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('#   Intro'), findsNothing);
+        expect(find.text('/ Verse 1'), findsNothing);
+        expect(find.textContaining('Intro'), findsOneWidget);
+        expect(find.textContaining('Verse 1'), findsOneWidget);
+      });
+
       // SKIP: Same PopupMenuButton issue as Marker Set Actions tests above
       testWidgets('should show marker popup menu', (tester) async {
         final marker = Marker(

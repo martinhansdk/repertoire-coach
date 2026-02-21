@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/marker.dart';
+import 'marker_label_markup.dart';
 
 /// Animated marker item that smoothly shows playback progress
 class _AnimatedMarkerItem extends StatefulWidget {
@@ -140,6 +141,10 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final parsedLabel = MarkerLabelMarkup.parse(
+      widget.marker.label,
+      stripSyntax: true,
+    );
 
     if (widget.marker.label.isEmpty) {
       return Container(
@@ -175,17 +180,30 @@ class _AnimatedMarkerItemState extends State<_AnimatedMarkerItem>
                 ),
               ),
             ),
+          if (widget.showPositions && widget.isActive && widget.isPlaying)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                key: ValueKey('markerActiveBar_${widget.index}'),
+                width: 3,
+                color: theme.colorScheme.primary,
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                widget.marker.label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: widget.isActive
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface,
-                  fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.normal,
+                parsedLabel.displayText,
+                style: parsedLabel.applyStyle(
+                  theme.textTheme.bodyMedium?.copyWith(
+                    color: widget.isActive
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface,
+                  ),
+                  emphasizeIfPlain: widget.isActive,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

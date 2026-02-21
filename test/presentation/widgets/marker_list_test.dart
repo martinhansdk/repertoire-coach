@@ -165,6 +165,56 @@ void main() {
     expect(progress.widthFactor, closeTo(0.5, 0.05));
   });
 
+  testWidgets('hides leading markup syntax in playback labels', (tester) async {
+    final markers = [
+      Marker(
+        id: 'm1',
+        markerSetId: 'set-1',
+        label: '#   Chorus',
+        positionMs: 0,
+        order: 0,
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ),
+      Marker(
+        id: 'm2',
+        markerSetId: 'set-1',
+        label: '/ Verse',
+        positionMs: 10000,
+        order: 1,
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ),
+    ];
+
+    await tester.pumpWidget(
+      buildWidget(
+        markers: markers,
+        currentPosition: Duration.zero,
+        onMarkerTap: (_) {},
+      ),
+    );
+
+    expect(find.text('#   Chorus'), findsNothing);
+    expect(find.text('/ Verse'), findsNothing);
+    expect(find.text('Chorus'), findsOneWidget);
+    expect(find.text('Verse'), findsOneWidget);
+  });
+
+  testWidgets('shows left active bar for currently playing marker', (tester) async {
+    await tester.pumpWidget(
+      buildWidget(
+        markers: buildMarkers(),
+        currentPosition: const Duration(seconds: 5),
+        onMarkerTap: (_) {},
+        isPlaying: true,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.byKey(const ValueKey('markerActiveBar_0')), findsOneWidget);
+  });
+
   testWidgets('centers active marker when it changes', (tester) async {
     await tester.pumpWidget(
       buildWidget(

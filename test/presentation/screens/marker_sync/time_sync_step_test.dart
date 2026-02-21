@@ -332,6 +332,16 @@ void main() {
         expect(find.text('bridge'), findsOneWidget);
       });
 
+      testWidgets('hides leading markup syntax in time sync marker labels', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['#   chorus', '/ verse']));
+        await tester.pumpAndSettle();
+
+        expect(find.text('#   chorus'), findsNothing);
+        expect(find.text('/ verse'), findsNothing);
+        expect(find.text('chorus'), findsOneWidget);
+        expect(find.text('verse'), findsOneWidget);
+      });
+
       testWidgets('highlights the last synced marker (not next)', (tester) async {
         await tester.pumpWidget(await createWidgetUnderTest(labels: ['A', 'B', 'C']));
         await tester.pumpAndSettle();

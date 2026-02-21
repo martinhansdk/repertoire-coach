@@ -8,6 +8,7 @@ import '../../providers/audio_player_provider.dart';
 import '../../providers/marker_provider.dart';
 import '../../providers/marker_sync_provider.dart';
 import '../../providers/track_provider.dart';
+import '../../widgets/marker_label_markup.dart';
 import 'marker_sync_state.dart';
 
 /// Step 2 of marker sync: User syncs markers to audio positions
@@ -323,7 +324,11 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
                 // Marker list
                 Expanded(
                   child: ClipRect(
-                    child: _buildMarkerList(theme, state),
+                    child: _buildMarkerList(
+                      theme,
+                      state,
+                      isPlaying: playbackInfoAsync.value?.isPlaying ?? false,
+                    ),
                   ),
                 ),
 
@@ -499,7 +504,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
     );
   }
 
-  Widget _buildMarkerList(ThemeData theme, MarkerSyncState state) {
+  Widget _buildMarkerList(ThemeData theme, MarkerSyncState state, {required bool isPlaying}) {
     return ListView.builder(
       controller: _scrollController,
       itemExtent: _markerItemExtent,
@@ -533,40 +538,54 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
         final isSelected = state.currentIndex == markerIndex;
         final positionMs = state.getPositionForIndex(markerIndex);
         final isSynced = positionMs != null;
+        final parsed = MarkerLabelMarkup.parse(label, stripSyntax: true);
+        final lineBarColor = theme.colorScheme.primary;
 
-        return ListTile(
-          key: ValueKey('markerSyncMarker_$markerIndex'),
-          selected: isSelected,
-          selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-          leading: Icon(
-            isSynced ? Icons.check : Icons.pending,
-            color: isSynced ? Colors.green : Colors.grey,
-          ),
-          title: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: isSelected
-                ? theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)
-                : null,
-          ),
-          subtitle: Text(
-            isSynced
-                ? _formatDuration(Duration(milliseconds: positionMs))
-                : 'not synced',
-            style: TextStyle(
-              color: isSynced ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+        return Container(
+          key: ValueKey('markerSyncActiveBar_$markerIndex'),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: isSelected && isPlaying ? lineBarColor : Colors.transparent,
+                width: 3,
+              ),
             ),
           ),
-          onTap: () {
-            ref.read(markerSyncNotifierProvider(widget.params).notifier).jumpToMarker(markerIndex);
-            if (isSynced) {
-              ref
-                  .read(audioPlayerControlsProvider)
-                  .seek(Duration(milliseconds: positionMs));
-            }
-          },
-          onLongPress: () => _showMarkerEditMenu(markerIndex, isSynced),
+          child: ListTile(
+            key: ValueKey('markerSyncMarker_$markerIndex'),
+            selected: isSelected,
+            selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+            leading: Icon(
+              isSynced ? Icons.check : Icons.pending,
+              color: isSynced ? Colors.green : Colors.grey,
+            ),
+            title: Text(
+              parsed.displayText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: parsed.applyStyle(
+                theme.textTheme.bodyLarge,
+                emphasizeIfPlain: isSelected,
+              ),
+            ),
+            subtitle: Text(
+              isSynced
+                  ? _formatDuration(Duration(milliseconds: positionMs))
+                  : 'not synced',
+              style: TextStyle(
+                color: isSynced ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            onTap: () {
+              ref.read(markerSyncNotifierProvider(widget.params).notifier).jumpToMarker(markerIndex);
+              if (isSynced) {
+                ref
+                    .read(audioPlayerControlsProvider)
+                    .seek(Duration(milliseconds: positionMs));
+              }
+            },
+            onLongPress: () => _showMarkerEditMenu(markerIndex, isSynced),
+          ),
         );
       },
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/marker_provider.dart';
 import '../../providers/marker_sync_provider.dart';
+import '../../widgets/marker_label_markup.dart';
 
 /// Step 1 of marker sync: User inputs text (one marker per line)
 class TextInputStep extends ConsumerStatefulWidget {
@@ -15,7 +16,7 @@ class TextInputStep extends ConsumerStatefulWidget {
 }
 
 class _TextInputStepState extends ConsumerState<TextInputStep> {
-  final _textController = TextEditingController();
+  final _textController = MarkerMarkupTextEditingController();
   bool _didPrefill = false;
 
   @override

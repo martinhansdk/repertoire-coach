@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/marker_provider.dart';
 import '../providers/sync_provider.dart';
 import 'marker_sync/marker_sync_screen.dart';
+import '../widgets/marker_label_markup.dart';
 import '../widgets/marker_set_dialog.dart';
 
 /// Marker Manager Screen
@@ -477,7 +478,9 @@ class _MarkerSetCard extends ConsumerWidget {
                 );
               }
 
-              final markerText = markers.map((marker) => marker.label).join('\n');
+              final markerLabels = markers
+                  .map((marker) => MarkerLabelMarkup.parse(marker.label, stripSyntax: true))
+                  .toList();
 
               return Padding(
                 padding: const EdgeInsets.all(AppConstants.paddingMedium),
@@ -488,9 +491,23 @@ class _MarkerSetCard extends ConsumerWidget {
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    markerText,
-                    style: theme.textTheme.bodyMedium,
+                  child: Text.rich(
+                    TextSpan(
+                      style: theme.textTheme.bodyMedium,
+                      children: [
+                        for (int i = 0; i < markerLabels.length; i++) ...[
+                          TextSpan(
+                            text: markerLabels[i].displayText,
+                            style: markerLabels[i].applyStyle(theme.textTheme.bodyMedium),
+                          ),
+                          if (i < markerLabels.length - 1)
+                            TextSpan(
+                              text: '\n',
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               );

@@ -4,6 +4,7 @@ import '../../domain/entities/loop_range.dart';
 import '../../domain/entities/marker.dart';
 import '../providers/audio_player_provider.dart';
 import '../providers/loop_control_provider.dart';
+import 'marker_label_markup.dart';
 
 /// Control buttons for A-B loop functionality
 ///
@@ -24,6 +25,19 @@ class LoopControlButtons extends ConsumerStatefulWidget {
 class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
   Duration? _loopPointA;
   Duration? _loopPointB;
+
+  Widget _buildMarkerLabelText(BuildContext context, Marker marker) {
+    final parsed = MarkerLabelMarkup.parse(marker.label, stripSyntax: true);
+    return Text(
+      parsed.displayText,
+      overflow: TextOverflow.ellipsis,
+      style: parsed.applyStyle(DefaultTextStyle.of(context).style),
+    );
+  }
+
+  String _displayLabel(Marker marker) {
+    return MarkerLabelMarkup.parse(marker.label, stripSyntax: true).displayText;
+  }
 
   void _setLoopPointA() {
     // Read directly from repository to get live position (not cached)
@@ -182,7 +196,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                             children: [
                               const Icon(Icons.bookmark, size: 16),
                               const SizedBox(width: 8),
-                              Text(marker.label),
+                              _buildMarkerLabelText(context, marker),
                             ],
                           ),
                         );
@@ -226,7 +240,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                             children: [
                               const Icon(Icons.bookmark, size: 16),
                               const SizedBox(width: 8),
-                              Text(marker.label),
+                              _buildMarkerLabelText(context, marker),
                             ],
                           ),
                         );
@@ -262,7 +276,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                         } else {
                           final marker = sortedMarkers.firstWhere((m) => m.id == startSelection);
                           startPos = Duration(milliseconds: marker.positionMs!);
-                          startLabel = marker.label;
+                          startLabel = _displayLabel(marker);
                         }
 
                         final Duration endPos;
@@ -273,7 +287,7 @@ class _LoopControlButtonsState extends ConsumerState<LoopControlButtons> {
                         } else {
                           final marker = sortedMarkers.firstWhere((m) => m.id == endSelection);
                           endPos = Duration(milliseconds: marker.positionMs!);
-                          endLabel = marker.label;
+                          endLabel = _displayLabel(marker);
                         }
 
                         // Validate positions
