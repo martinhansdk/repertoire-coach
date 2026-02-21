@@ -65,15 +65,21 @@ async function deleteObject(objectKey: string): Promise<void> {
 
 /** Returns the choir_id for a track, or null if not found. */
 async function getTrackChoirId(trackId: string): Promise<string | null> {
-  const { data, error } = await serviceClient()
-    .from("tracks")
-    .select("songs!inner(concerts!inner(choir_id))")
-    .eq("id", trackId)
-    .single();
+  const db = serviceClient();
 
-  if (error || !data) return null;
-  // deno-lint-ignore no-explicit-any
-  return (data as any).songs?.concerts?.choir_id ?? null;
+  const { data: track, error: e1 } = await db
+    .from("tracks").select("song_id").eq("id", trackId).single();
+  if (e1 || !track?.song_id) return null;
+
+  const { data: song, error: e2 } = await db
+    .from("songs").select("concert_id").eq("id", track.song_id).single();
+  if (e2 || !song?.concert_id) return null;
+
+  const { data: concert, error: e3 } = await db
+    .from("concerts").select("choir_id").eq("id", song.concert_id).single();
+  if (e3 || !concert?.choir_id) return null;
+
+  return concert.choir_id;
 }
 
 /** Returns true if userId is a member of choirId. */
