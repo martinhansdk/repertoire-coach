@@ -54,7 +54,6 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
     final theme = Theme.of(context);
     final markersAsync = ref.watch(markersByMarkerSetProvider(widget.params.markerSetId));
     final text = _textController.text;
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     markersAsync.whenData((markers) {
       if (_didPrefill || _textController.text.isNotEmpty) {
@@ -85,7 +84,7 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

@@ -573,9 +573,8 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   }
 
   Widget _buildActionButtons(ThemeData theme, bool canSync) {
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
           // Sync button (prominent)
