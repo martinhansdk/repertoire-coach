@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:repertoire_coach/core/services/error_reporter.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/screens/auth/forgot_password_screen.dart';
 import 'package:repertoire_coach/presentation/screens/auth/sign_up_screen.dart';
+import 'package:repertoire_coach/presentation/widgets/web_input_field.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Screen for user sign in.
@@ -20,6 +22,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  String _webEmail = '';
+  String _webPassword = '';
 
   @override
   void dispose() {
@@ -31,7 +35,28 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   bool _isLoading = false;
 
   Future<void> _signIn() async {
-    if (!_formKey.currentState!.validate()) {
+    if (!kIsWeb && !_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final email = (kIsWeb ? _webEmail : _emailController.text).trim();
+    final password = kIsWeb ? _webPassword : _passwordController.text;
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your password'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -39,8 +64,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
     try {
       await ref.read(authActionsProvider).signIn(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
+            email: email,
+            password: password,
           );
       TextInput.finishAutofillContext(shouldSave: true);
       // Sign in successful - AuthWrapper will handle navigation
@@ -115,76 +140,96 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 ),
                 const SizedBox(height: 48),
 
-                // Email + password grouped for password-manager autofill
-                AutofillGroup(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Email field
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.email),
-                        ),
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [
-                          AutofillHints.username,
-                          AutofillHints.email,
-                        ],
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                        enabled: !isLoading,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Password field
-                      TextFormField(
-                        controller: _passwordController,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.lock),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
+                kIsWeb
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          WebInputField(
+                            label: 'Email',
+                            inputType: 'email',
+                            autocomplete: 'username',
+                            enabled: !isLoading,
+                            onChanged: (value) => _webEmail = value,
                           ),
+                          const SizedBox(height: 16),
+                          WebInputField(
+                            label: 'Password',
+                            inputType: 'password',
+                            autocomplete: 'current-password',
+                            enabled: !isLoading,
+                            onChanged: (value) => _webPassword = value,
+                          ),
+                        ],
+                      )
+                    : AutofillGroup(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Email field
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: const InputDecoration(
+                                labelText: 'Email',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.email),
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [
+                                AutofillHints.username,
+                                AutofillHints.email,
+                              ],
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your email';
+                                }
+                                if (!value.contains('@')) {
+                                  return 'Please enter a valid email';
+                                }
+                                return null;
+                              },
+                              enabled: !isLoading,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Password field
+                            TextFormField(
+                              controller: _passwordController,
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.lock),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
+                              ),
+                              obscureText: _obscurePassword,
+                              textInputAction: TextInputAction.done,
+                              autofillHints: const [AutofillHints.password],
+                              keyboardType: TextInputType.visiblePassword,
+                              autocorrect: false,
+                              enableSuggestions: false,
+                              onFieldSubmitted: (_) => _signIn(),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your password';
+                                }
+                                return null;
+                              },
+                              enabled: !isLoading,
+                            ),
+                          ],
                         ),
-                        obscureText: _obscurePassword,
-                        textInputAction: TextInputAction.done,
-                        autofillHints: const [AutofillHints.password],
-                        keyboardType: TextInputType.visiblePassword,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        onFieldSubmitted: (_) => _signIn(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          return null;
-                        },
-                        enabled: !isLoading,
                       ),
-                    ],
-                  ),
-                ),
                 const SizedBox(height: 8),
 
                 // Forgot password link
