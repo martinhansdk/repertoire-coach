@@ -486,7 +486,12 @@ void main() {
 
         // Edit dialog opens for the inserted marker.
         expect(find.text('Edit marker'), findsOneWidget);
-        expect(find.text('New marker'), findsAtLeastNWidgets(1));
+        final labelField = find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        );
+        final labelInput = tester.widget<TextField>(labelField);
+        expect(labelInput.controller?.text ?? '', isEmpty);
         final dialogSaveButton = find.descendant(
           of: find.byType(AlertDialog),
           matching: find.widgetWithText(FilledButton, 'Save'),
@@ -495,7 +500,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('verse'), findsOneWidget);
-        expect(find.text('New marker'), findsOneWidget);
+        expect(find.text('New marker'), findsNothing);
         expect(find.text('chorus'), findsOneWidget);
         expect(find.byKey(const ValueKey('markerSyncMarker_2')), findsOneWidget);
       });
