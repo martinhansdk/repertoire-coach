@@ -636,6 +636,17 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 - [ ] Apple App Store listing
 - [ ] Release notes
 
+## R2 Storage Migration Cleanup (Post-Backfill)
+
+Once the backfill script has been run and all tracks verified to play from R2:
+
+- [ ] Remove `audio_url` column from DB: `ALTER TABLE tracks DROP COLUMN audio_url`
+- [ ] Remove `audioUrl` field from `Track` entity (`lib/domain/entities/track.dart`)
+- [ ] Remove `audioSource` getter from `Track` entity (no longer needed)
+- [ ] Remove `audio_url` from all datasource/model mappings
+- [ ] Delete objects from Supabase Storage bucket (frees quota)
+- [ ] Optionally remove the Supabase Storage bucket and its RLS policies (`supabase/migrations/002_create_audio_storage_bucket.sql`, `003_fix_storage_policies.sql`)
+
 ## Future Enhancements (Post-Launch)
 - [ ] Share songs between users
 - [ ] Playlist creation
