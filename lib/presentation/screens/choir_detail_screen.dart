@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../providers/choir_provider.dart';
 import '../providers/concert_provider.dart';
+import '../providers/sync_provider.dart';
 import '../widgets/concert_card.dart';
 import '../widgets/create_concert_dialog.dart';
 import 'choir_members_screen.dart';
@@ -26,6 +27,7 @@ class ChoirDetailScreen extends ConsumerWidget {
     final memberCountAsync = ref.watch(choirMemberCountProvider(choirId));
     final isOwnerAsync = ref.watch(isChoirOwnerProvider(choirId));
     final concertsAsync = ref.watch(concertsByChoirProvider(choirId));
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -60,15 +62,29 @@ class ChoirDetailScreen extends ConsumerWidget {
             return const Center(child: Text('Choir not found'));
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(choirByIdProvider(choirId));
-              ref.invalidate(concertsByChoirProvider(choirId));
-              ref.invalidate(choirMemberCountProvider(choirId));
-            },
-            child: ListView(
-              padding: const EdgeInsets.all(AppConstants.paddingMedium),
-              children: [
+          return SafeArea(
+            top: false,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                try {
+                  await ref.read(syncControllerProvider.notifier).syncFromRemote();
+                } catch (_) {
+                  // Keep pull-to-refresh functional in offline/test environments.
+                } finally {
+                  ref.invalidate(choirByIdProvider(choirId));
+                  ref.invalidate(concertsByChoirProvider(choirId));
+                  ref.invalidate(choirMemberCountProvider(choirId));
+                }
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  AppConstants.paddingMedium,
+                  AppConstants.paddingMedium,
+                  AppConstants.paddingMedium,
+                  AppConstants.paddingMedium + bottomInset + 80,
+                ),
+                children: [
                 // Choir info card
                 Card(
                   child: Padding(
@@ -164,7 +180,8 @@ class ChoirDetailScreen extends ConsumerWidget {
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (_, __) => const Text('Error loading concerts'),
                 ),
-              ],
+                ],
+              ),
             ),
           );
         },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:repertoire_coach/core/services/error_reporter.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
@@ -41,6 +42,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
+      TextInput.finishAutofillContext(shouldSave: true);
       // Sign in successful - AuthWrapper will handle navigation
     } catch (error, stackTrace) {
       ErrorReporter.report(error, stackTrace: stackTrace, screen: 'sign_in');
@@ -128,7 +130,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         ),
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.email],
+                        autofillHints: const [
+                          AutofillHints.username,
+                          AutofillHints.email,
+                        ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your email';
@@ -165,6 +170,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         obscureText: _obscurePassword,
                         textInputAction: TextInputAction.done,
                         autofillHints: const [AutofillHints.password],
+                        keyboardType: TextInputType.visiblePassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         onFieldSubmitted: (_) => _signIn(),
                         validator: (value) {
                           if (value == null || value.isEmpty) {

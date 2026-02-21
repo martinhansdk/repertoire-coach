@@ -471,8 +471,8 @@ void main() {
         await tester.longPress(find.byKey(const ValueKey('markerSyncMarker_0')));
         await tester.pumpAndSettle();
 
-        expect(find.text('add marker'), findsOneWidget);
-        expect(find.text('delete marker'), findsOneWidget);
+        expect(find.text('Add marker'), findsOneWidget);
+        expect(find.text('Delete marker'), findsOneWidget);
       });
 
       testWidgets('add marker inserts behind selected marker', (tester) async {
@@ -481,7 +481,7 @@ void main() {
 
         await tester.longPress(find.byKey(const ValueKey('markerSyncMarker_0')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('add marker'));
+        await tester.tap(find.text('Add marker'));
         await tester.pumpAndSettle();
 
         // Edit dialog opens for the inserted marker.
@@ -506,7 +506,7 @@ void main() {
 
         await tester.longPress(find.byKey(const ValueKey('markerSyncMarker_1')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('delete marker'));
+        await tester.tap(find.text('Delete marker'));
         await tester.pumpAndSettle();
 
         expect(find.text('chorus'), findsNothing);

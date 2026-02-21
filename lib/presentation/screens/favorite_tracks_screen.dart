@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../providers/favorite_track_provider.dart';
 import '../providers/song_provider.dart';
+import '../providers/sync_provider.dart';
 import '../widgets/favorite_track_card.dart';
 import 'audio_player_screen.dart';
 
@@ -18,6 +19,7 @@ class FavoriteTracksScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favoritesAsync = ref.watch(favoritesProvider);
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,58 +31,72 @@ class FavoriteTracksScreen extends ConsumerWidget {
             return const _EmptyState();
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              // Refresh the favorites list
-              ref.invalidate(favoritesProvider);
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppConstants.paddingSmall,
-              ),
-              itemCount: favorites.length,
-              itemBuilder: (context, index) {
-                final favorite = favorites[index];
-                return FavoriteTrackCard(
-                  favorite: favorite,
-                  onTap: () async {
-                    // Look up song to get title
-                    final song = await ref.read(songByIdProvider(favorite.track.songId).future);
-                    final songTitle = song?.title ?? 'Unknown Song';
-
-                    // Navigate to audio player with the Track from favorite
-                    if (context.mounted) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => AudioPlayerScreen(
-                            track: favorite.track,
-                            songTitle: songTitle,
-                            concertName: '', // Not shown in audio player
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  onRemove: () async {
-                    // Remove from favorites
-                    await ref
-                        .read(favoriteTrackActionsProvider)
-                        .removeFavorite(favorite.track.id);
-
-                    // Show snackbar confirmation
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Removed "${favorite.track.name}" from favorites',
-                          ),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  },
-                );
+          return SafeArea(
+            top: false,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                try {
+                  await ref.read(syncControllerProvider.notifier).syncFromRemote();
+                } catch (_) {
+                  // Keep pull-to-refresh functional in offline/test environments.
+                } finally {
+                  ref.invalidate(favoritesProvider);
+                }
               },
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  0,
+                  AppConstants.paddingSmall,
+                  0,
+                  AppConstants.paddingSmall + bottomInset,
+                ),
+                itemCount: favorites.length,
+                itemBuilder: (context, index) {
+                  final favorite = favorites[index];
+                  return FavoriteTrackCard(
+                    favorite: favorite,
+                    onTap: () async {
+                      // Look up song to get title
+                      final song = await ref.read(
+                        songByIdProvider(favorite.track.songId).future,
+                      );
+                      final songTitle = song?.title ?? 'Unknown Song';
+
+                      // Navigate to audio player with the Track from favorite
+                      if (context.mounted) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => AudioPlayerScreen(
+                              track: favorite.track,
+                              songTitle: songTitle,
+                              concertName: '', // Not shown in audio player
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    onRemove: () async {
+                      // Remove from favorites
+                      await ref
+                          .read(favoriteTrackActionsProvider)
+                          .removeFavorite(favorite.track.id);
+
+                      // Show snackbar confirmation
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Removed "${favorite.track.name}" from favorites',
+                            ),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                  );
+                },
+              ),
             ),
           );
         },

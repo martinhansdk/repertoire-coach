@@ -185,7 +185,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
             ),
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text('add marker'),
+              title: const Text('Add marker'),
               onTap: () {
                 Navigator.pop(context);
                 final notifier = ref.read(markerSyncNotifierProvider(widget.params).notifier);
@@ -208,7 +208,7 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline),
-              title: const Text('delete marker'),
+              title: const Text('Delete marker'),
               onTap: () {
                 Navigator.pop(context);
                 ref.read(markerSyncNotifierProvider(widget.params).notifier).deleteMarker(markerIndex);
@@ -309,27 +309,30 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
             },
           ),
         },
-        child: Focus(
-          autofocus: true,
-          child: Column(
-            children: [
-              // Audio player controls
-              _buildAudioControls(theme, playbackInfoAsync),
+        child: SafeArea(
+          top: false,
+          child: Focus(
+            autofocus: true,
+            child: Column(
+              children: [
+                // Audio player controls
+                _buildAudioControls(theme, playbackInfoAsync),
 
-              const Divider(),
+                const Divider(),
 
-              // Marker list
-              Expanded(
-                child: ClipRect(
-                  child: _buildMarkerList(theme, state),
+                // Marker list
+                Expanded(
+                  child: ClipRect(
+                    child: _buildMarkerList(theme, state),
+                  ),
                 ),
-              ),
 
-              const Divider(),
+                const Divider(),
 
-              // Action buttons
-              _buildActionButtons(theme, canSync),
-            ],
+                // Action buttons
+                _buildActionButtons(theme, canSync),
+              ],
+            ),
           ),
         ),
       ),
@@ -570,8 +573,9 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   }
 
   Widget _buildActionButtons(ThemeData theme, bool canSync) {
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
       child: Column(
         children: [
           // Sync button (prominent)

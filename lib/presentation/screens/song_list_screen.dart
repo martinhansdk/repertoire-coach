@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../providers/song_provider.dart';
+import '../providers/sync_provider.dart';
 import '../widgets/create_song_dialog.dart';
 import '../widgets/song_card.dart';
 import 'song_detail_screen.dart';
@@ -35,6 +36,7 @@ class SongListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final songsAsync = ref.watch(songsByConcertProvider(concertId));
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -49,35 +51,47 @@ class SongListScreen extends ConsumerWidget {
             );
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              // Refresh the songs list
-              ref.invalidate(songsByConcertProvider(concertId));
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppConstants.paddingSmall,
-              ),
-              itemCount: songs.length,
-              itemBuilder: (context, index) {
-                final song = songs[index];
-                return SongCard(
-                  song: song,
-                  onTap: () {
-                    // Navigate to song detail screen (with tracks)
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => SongDetailScreen(
-                          songId: song.id,
-                          songTitle: song.title,
-                          concertName: concertName,
-                          choirId: choirId,
-                        ),
-                      ),
-                    );
-                  },
-                );
+          return SafeArea(
+            top: false,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                try {
+                  await ref.read(syncControllerProvider.notifier).syncFromRemote();
+                } catch (_) {
+                  // Keep pull-to-refresh functional in offline/test environments.
+                } finally {
+                  ref.invalidate(songsByConcertProvider(concertId));
+                }
               },
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  0,
+                  AppConstants.paddingSmall,
+                  0,
+                  AppConstants.paddingSmall + bottomInset + 80,
+                ),
+                itemCount: songs.length,
+                itemBuilder: (context, index) {
+                  final song = songs[index];
+                  return SongCard(
+                    song: song,
+                    onTap: () {
+                      // Navigate to song detail screen (with tracks)
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => SongDetailScreen(
+                            songId: song.id,
+                            songTitle: song.title,
+                            concertName: concertName,
+                            choirId: choirId,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           );
         },

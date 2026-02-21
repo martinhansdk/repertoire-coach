@@ -54,6 +54,7 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
     final theme = Theme.of(context);
     final markersAsync = ref.watch(markersByMarkerSetProvider(widget.params.markerSetId));
     final text = _textController.text;
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     markersAsync.whenData((markers) {
       if (_didPrefill || _textController.text.isNotEmpty) {
@@ -81,86 +82,89 @@ class _TextInputStepState extends ConsumerState<TextInputStep> {
     final nonEmptyLines = lines.where((line) => line.trim().isNotEmpty).length;
     final hasNonEmptyLines = nonEmptyLines > 0;
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Text input field
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              maxLines: null,
-              expands: true,
-              autofocus: true,
-              textAlignVertical: TextAlignVertical.top,
-              decoration: InputDecoration(
-                hintText: 'intro\nverse 1\nchorus\nverse 2\nchorus\nbridge\nchorus\noutro',
-                border: const OutlineInputBorder(),
-                alignLabelWithHint: true,
-                helperText: 'Press the button below when done, or paste from clipboard',
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Text input field
+            Expanded(
+              child: TextField(
+                controller: _textController,
+                maxLines: null,
+                expands: true,
+                autofocus: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: InputDecoration(
+                  hintText: 'intro\nverse 1\nchorus\nverse 2\nchorus\nbridge\nchorus\noutro',
+                  border: const OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                  helperText: 'Press the button below when done, or paste from clipboard',
+                ),
+                onChanged: (_) => setState(() {}), // Rebuild to update counter
               ),
-              onChanged: (_) => setState(() {}), // Rebuild to update counter
             ),
-          ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Line counter
-          Row(
-            children: [
-              Icon(
-                Icons.list_alt,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '$totalLines lines ($nonEmptyLines non-empty)',
-                style: theme.textTheme.bodySmall?.copyWith(
+            // Line counter
+            Row(
+              children: [
+                Icon(
+                  Icons.list_alt,
+                  size: 16,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Save / time sync actions
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  key: const ValueKey('markerSyncSaveTextButton'),
-                  onPressed: hasNonEmptyLines ? _onSavePressed : null,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
+                const SizedBox(width: 8),
+                Text(
+                  '$totalLines lines ($nonEmptyLines non-empty)',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  key: const ValueKey('markerSyncNextButton'),
-                  onPressed: hasNonEmptyLines ? _onNextPressed : null,
-                  icon: const Icon(Icons.schedule),
-                  label: const Text('Time Sync'),
-                ),
-              ),
-            ],
-          ),
-
-          // Warning if no non-empty lines
-          if (!hasNonEmptyLines && text.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Please enter at least one non-empty line',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-              textAlign: TextAlign.center,
+              ],
             ),
+
+            const SizedBox(height: 16),
+
+            // Save / time sync actions
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: const ValueKey('markerSyncSaveTextButton'),
+                    onPressed: hasNonEmptyLines ? _onSavePressed : null,
+                    icon: const Icon(Icons.save),
+                    label: const Text('Save'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    key: const ValueKey('markerSyncNextButton'),
+                    onPressed: hasNonEmptyLines ? _onNextPressed : null,
+                    icon: const Icon(Icons.schedule),
+                    label: const Text('Time Sync'),
+                  ),
+                ),
+              ],
+            ),
+
+            // Warning if no non-empty lines
+            if (!hasNonEmptyLines && text.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Please enter at least one non-empty line',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

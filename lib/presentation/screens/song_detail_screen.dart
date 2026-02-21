@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
+import '../providers/sync_provider.dart';
 import '../providers/track_provider.dart';
 import '../widgets/add_track_dialog.dart';
 import '../widgets/track_card.dart';
@@ -38,6 +39,7 @@ class SongDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(tracksBySongProvider(songId));
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -67,34 +69,46 @@ class SongDetailScreen extends ConsumerWidget {
             );
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              // Refresh the tracks list
-              ref.invalidate(tracksBySongProvider(songId));
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppConstants.paddingSmall,
-              ),
-              itemCount: tracks.length,
-              itemBuilder: (context, index) {
-                final track = tracks[index];
-                return TrackCard(
-                  track: track,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AudioPlayerScreen(
-                          track: track,
-                          songTitle: songTitle,
-                          concertName: concertName,
-                        ),
-                      ),
-                    );
-                  },
-                );
+          return SafeArea(
+            top: false,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                try {
+                  await ref.read(syncControllerProvider.notifier).syncFromRemote();
+                } catch (_) {
+                  // Keep pull-to-refresh functional in offline/test environments.
+                } finally {
+                  ref.invalidate(tracksBySongProvider(songId));
+                }
               },
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  0,
+                  AppConstants.paddingSmall,
+                  0,
+                  AppConstants.paddingSmall + bottomInset + 80,
+                ),
+                itemCount: tracks.length,
+                itemBuilder: (context, index) {
+                  final track = tracks[index];
+                  return TrackCard(
+                    track: track,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AudioPlayerScreen(
+                            track: track,
+                            songTitle: songTitle,
+                            concertName: concertName,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           );
         },

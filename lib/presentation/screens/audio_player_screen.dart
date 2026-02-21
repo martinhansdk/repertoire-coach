@@ -128,7 +128,10 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       ),
       body: playbackInfoAsync.when(
         data: (playbackInfo) {
-          return _buildPlaybackControls(playbackInfo);
+          return SafeArea(
+            top: false,
+            child: _buildPlaybackControls(playbackInfo),
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(

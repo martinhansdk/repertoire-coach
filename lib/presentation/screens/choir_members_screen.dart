@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/choir_provider.dart';
+import '../providers/sync_provider.dart';
 import '../widgets/add_member_dialog.dart';
 
 /// Choir Members Screen
@@ -22,6 +23,7 @@ class ChoirMembersScreen extends ConsumerWidget {
     final choirAsync = ref.watch(choirByIdProvider(choirId));
     final profilesAsync = ref.watch(choirMemberProfilesProvider(choirId));
     final isOwnerAsync = ref.watch(isChoirOwnerProvider(choirId));
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -33,42 +35,57 @@ class ChoirMembersScreen extends ConsumerWidget {
             return const Center(child: Text('No members'));
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(choirMembersProvider(choirId));
-              ref.invalidate(choirMemberProfilesProvider(choirId));
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.all(AppConstants.paddingSmall),
-              itemCount: profiles.length,
-              itemBuilder: (context, index) {
-                final profile = profiles[index];
-                final isOwner = choirAsync.value?.ownerId == profile.userId;
-
-                return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(profile.displayLabel[0].toUpperCase()),
-                    ),
-                    title: Text(profile.displayLabel),
-                    subtitle: Text(
-                      isOwner ? 'Owner · ${profile.email}' : profile.email,
-                    ),
-                    trailing: isOwnerAsync.when(
-                      data: (currentUserIsOwner) =>
-                          currentUserIsOwner && !isOwner
-                              ? IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline),
-                                  onPressed: () =>
-                                      _removeMember(context, ref, profile),
-                                )
-                              : null,
-                      loading: () => null,
-                      error: (_, __) => null,
-                    ),
-                  ),
-                );
+          return SafeArea(
+            top: false,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                try {
+                  await ref.read(syncControllerProvider.notifier).syncFromRemote();
+                } catch (_) {
+                  // Keep pull-to-refresh functional in offline/test environments.
+                } finally {
+                  ref.invalidate(choirMembersProvider(choirId));
+                  ref.invalidate(choirMemberProfilesProvider(choirId));
+                }
               },
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  AppConstants.paddingSmall,
+                  AppConstants.paddingSmall,
+                  AppConstants.paddingSmall,
+                  AppConstants.paddingSmall + bottomInset + 80,
+                ),
+                itemCount: profiles.length,
+                itemBuilder: (context, index) {
+                  final profile = profiles[index];
+                  final isOwner = choirAsync.value?.ownerId == profile.userId;
+
+                  return Card(
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        child: Text(profile.displayLabel[0].toUpperCase()),
+                      ),
+                      title: Text(profile.displayLabel),
+                      subtitle: Text(
+                        isOwner ? 'Owner · ${profile.email}' : profile.email,
+                      ),
+                      trailing: isOwnerAsync.when(
+                        data: (currentUserIsOwner) =>
+                            currentUserIsOwner && !isOwner
+                                ? IconButton(
+                                    icon: const Icon(Icons.remove_circle_outline),
+                                    onPressed: () =>
+                                        _removeMember(context, ref, profile),
+                                  )
+                                : null,
+                        loading: () => null,
+                        error: (_, __) => null,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           );
         },

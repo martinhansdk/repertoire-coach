@@ -4,6 +4,7 @@ import '../../core/constants.dart';
 import '../../domain/entities/marker_set.dart';
 import '../providers/auth_provider.dart';
 import '../providers/marker_provider.dart';
+import '../providers/sync_provider.dart';
 import 'marker_sync/marker_sync_screen.dart';
 import '../widgets/marker_set_dialog.dart';
 
@@ -115,6 +116,7 @@ class MarkerManagerScreen extends ConsumerWidget {
       );
     }
     final markerSetsAsync = ref.watch(markerSetsByTrackProvider((trackId, userId)));
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -150,29 +152,42 @@ class MarkerManagerScreen extends ConsumerWidget {
             );
           }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(markerSetsByTrackProvider);
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppConstants.paddingSmall,
-              ),
-              itemCount: markerSets.length,
-              itemBuilder: (context, index) {
-                final markerSet = markerSets[index];
-                return _MarkerSetCard(
-                  trackId: trackId,
-                  markerSet: markerSet,
-                  onDelete: () => _deleteMarkerSet(
-                    context,
-                    ref,
-                    markerSet.id,
-                    markerSet.name,
-                    userId,
-                  ),
-                );
+          return SafeArea(
+            top: false,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                try {
+                  await ref.read(syncControllerProvider.notifier).syncFromRemote();
+                } catch (_) {
+                  // Keep pull-to-refresh functional in offline/test environments.
+                } finally {
+                  ref.invalidate(markerSetsByTrackProvider((trackId, userId)));
+                }
               },
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  0,
+                  AppConstants.paddingSmall,
+                  0,
+                  AppConstants.paddingSmall + bottomInset + 80,
+                ),
+                itemCount: markerSets.length,
+                itemBuilder: (context, index) {
+                  final markerSet = markerSets[index];
+                  return _MarkerSetCard(
+                    trackId: trackId,
+                    markerSet: markerSet,
+                    onDelete: () => _deleteMarkerSet(
+                      context,
+                      ref,
+                      markerSet.id,
+                      markerSet.name,
+                      userId,
+                    ),
+                  );
+                },
+              ),
             ),
           );
         },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:repertoire_coach/core/services/error_reporter.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
@@ -46,6 +47,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 ? null
                 : _displayNameController.text.trim(),
           );
+      TextInput.finishAutofillContext(shouldSave: true);
 
       // Sign up successful
       if (mounted) {
@@ -143,7 +145,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         ),
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.email],
+                        autofillHints: const [
+                          AutofillHints.newUsername,
+                          AutofillHints.username,
+                          AutofillHints.email,
+                        ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your email';
@@ -180,6 +186,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         obscureText: _obscurePassword,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.newPassword],
+                        keyboardType: TextInputType.visiblePassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter a password';
@@ -217,6 +226,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         obscureText: _obscureConfirmPassword,
                         textInputAction: TextInputAction.done,
                         autofillHints: const [AutofillHints.newPassword],
+                        keyboardType: TextInputType.visiblePassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         onFieldSubmitted: (_) => _signUp(),
                         validator: (value) {
                           if (value == null || value.isEmpty) {

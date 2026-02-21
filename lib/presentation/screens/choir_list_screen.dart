@@ -47,10 +47,16 @@ class ChoirListScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async {
-              // Trigger full sync from remote instead of just invalidating
-              await ref.read(syncControllerProvider.notifier).syncFromRemote();
+              try {
+                await ref.read(syncControllerProvider.notifier).syncFromRemote();
+              } catch (_) {
+                // Keep pull-to-refresh functional in offline/test environments.
+              } finally {
+                ref.invalidate(choirsProvider);
+              }
             },
             child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(
                 vertical: AppConstants.paddingSmall,
               ),
