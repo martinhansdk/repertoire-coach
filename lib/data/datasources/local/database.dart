@@ -282,227 +282,214 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
         },
         onUpgrade: (Migrator m, int from, int to) async {
-          if (from == 1 && to == 2) {
-            // Add Choirs and ChoirMembers tables
-            await m.createTable(choirs);
-            await m.createTable(choirMembers);
-
-            // Create indexes for performance
-            await customStatement(
-              'CREATE INDEX idx_choir_members_user ON choir_members(user_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_choir_members_choir ON choir_members(choir_id)',
-            );
-          }
-          if (from == 2 && to == 3) {
-            // Add Songs table
-            await m.createTable(songs);
-
-            // Create index for concert_id lookup
-            await customStatement(
-              'CREATE INDEX idx_songs_concert ON songs(concert_id)',
-            );
-          }
-          if (from == 3 && to == 4) {
-            // Add Tracks table
-            await m.createTable(tracks);
-
-            // Create index for song_id lookup
-            await customStatement(
-              'CREATE INDEX idx_tracks_song ON tracks(song_id)',
-            );
-          }
-          if (from == 4 && to == 5) {
-            // Remove voice_part column from tracks table
-            // SQLite doesn't support DROP COLUMN directly in older versions,
-            // so we need to recreate the table
-            await customStatement('''
-              CREATE TABLE tracks_new (
-                id TEXT NOT NULL PRIMARY KEY,
-                song_id TEXT NOT NULL,
-                name TEXT NOT NULL,
-                file_path TEXT,
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL,
-                deleted INTEGER NOT NULL DEFAULT 0,
-                synced INTEGER NOT NULL DEFAULT 0
-              )
-            ''');
-
-            // Copy data from old table to new (excluding voice_part)
-            await customStatement('''
-              INSERT INTO tracks_new (id, song_id, name, file_path, created_at, updated_at, deleted, synced)
-              SELECT id, song_id, name, file_path, created_at, updated_at, deleted, synced
-              FROM tracks
-            ''');
-
-            // Drop old table
-            await customStatement('DROP TABLE tracks');
-
-            // Rename new table to original name
-            await customStatement('ALTER TABLE tracks_new RENAME TO tracks');
-
-            // Recreate index
-            await customStatement(
-              'CREATE INDEX idx_tracks_song ON tracks(song_id)',
-            );
-          }
-          if (from == 6 && to == 7) {
-            // Add MarkerSets and Markers tables
-            await m.createTable(markerSets);
-            await m.createTable(markers);
-
-            // Create indexes for performance
-            await customStatement(
-              'CREATE INDEX idx_marker_sets_track ON marker_sets(track_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_marker_sets_user ON marker_sets(created_by_user_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_markers_set ON markers(marker_set_id)',
-            );
-          }
-          if (from == 7 && to == 8) {
-            // Add is_time_synced to marker_sets
-            await customStatement(
-              'ALTER TABLE marker_sets ADD COLUMN is_time_synced INTEGER NOT NULL DEFAULT 1',
-            );
-          }
-          if (from == 9 && to == 10) {
-            // Add deleted column to FavoriteTracks for soft-delete sync
-            await customStatement(
-              'ALTER TABLE favorite_tracks ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0',
-            );
-          }
-          if (from == 10 && to == 11) {
-            // Add updated_at to markers
-            await customStatement(
-              'ALTER TABLE markers ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
-            );
-            await customStatement(
-              'UPDATE markers SET updated_at = created_at',
-            );
-
-            // Add updated_at and deleted to choir_members
-            await customStatement(
-              'ALTER TABLE choir_members ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
-            );
-            await customStatement(
-              'UPDATE choir_members SET updated_at = joined_at',
-            );
-            await customStatement(
-              'ALTER TABLE choir_members ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0',
-            );
-
-            // Add updated_at to favorite_tracks
-            await customStatement(
-              'ALTER TABLE favorite_tracks ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
-            );
-            await customStatement(
-              'UPDATE favorite_tracks SET updated_at = added_at',
-            );
-
-            // Drop user_playback_states table
-            await customStatement(
-              'DROP TABLE IF EXISTS user_playback_states',
-            );
-          }
-          if (from < 12 && to >= 12) {
-            await customStatement(
-              "ALTER TABLE marker_sets ADD COLUMN markers_json TEXT NOT NULL DEFAULT '[]'",
-            );
-
-            // Backfill payload from legacy marker rows ordered by display_order.
-            final allMarkerSets = await (select(markerSets)).get();
-            for (final markerSet in allMarkerSets) {
-              final rows = await (select(markers)
-                    ..where((m) => m.markerSetId.equals(markerSet.id))
-                    ..where((m) => m.deleted.equals(false))
-                    ..orderBy([(m) => OrderingTerm.asc(m.displayOrder)]))
-                  .get();
-              final payload = rows
-                  .map(
-                    (marker) => <String, dynamic>{
-                      'label': marker.label,
-                      'position_ms': marker.positionMs,
-                    },
+          // Step-by-step migration: each case handles exactly one version
+          // increment. This ensures multi-version upgrades (e.g. v8 → v12)
+          // apply every intermediate step in order, preventing tables or
+          // columns from being silently skipped.
+          //
+          // IMPORTANT: newly-created tables use raw SQL with the historical
+          // schema at that version, NOT m.createTable(). Using m.createTable()
+          // would create the table with the *current* Dart model (all future
+          // columns included), which would cause subsequent ALTER TABLE ADD
+          // COLUMN migrations to fail with "column already exists".
+          for (var step = from; step < to; step++) {
+            switch (step) {
+              case 1: // v1 → v2: add Choirs and ChoirMembers
+                await m.createTable(choirs);
+                // choir_members v2 schema: no updated_at, no deleted
+                // (both are added in step 10 / v10→v11)
+                await customStatement('''
+                  CREATE TABLE choir_members (
+                    choir_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    joined_at INTEGER NOT NULL,
+                    synced INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (choir_id, user_id)
                   )
-                  .toList(growable: false);
-              final json = jsonEncode(payload);
-              await (update(markerSets)..where((ms) => ms.id.equals(markerSet.id)))
-                  .write(
-                MarkerSetsCompanion(markersJson: Value(json)),
-              );
+                ''');
+                await customStatement(
+                  'CREATE INDEX idx_choir_members_user ON choir_members(user_id)',
+                );
+                await customStatement(
+                  'CREATE INDEX idx_choir_members_choir ON choir_members(choir_id)',
+                );
+
+              case 2: // v2 → v3: add Songs
+                await m.createTable(songs);
+                await customStatement(
+                  'CREATE INDEX idx_songs_concert ON songs(concert_id)',
+                );
+
+              case 3: // v3 → v4: add Tracks (with voice_part, removed in step 4)
+                await customStatement('''
+                  CREATE TABLE tracks (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    song_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    file_path TEXT,
+                    voice_part TEXT,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    deleted INTEGER NOT NULL DEFAULT 0,
+                    synced INTEGER NOT NULL DEFAULT 0
+                  )
+                ''');
+                await customStatement(
+                  'CREATE INDEX idx_tracks_song ON tracks(song_id)',
+                );
+
+              case 4: // v4 → v5: remove voice_part from tracks
+                // SQLite doesn't support DROP COLUMN, so recreate the table.
+                await customStatement('''
+                  CREATE TABLE tracks_new (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    song_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    file_path TEXT,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    deleted INTEGER NOT NULL DEFAULT 0,
+                    synced INTEGER NOT NULL DEFAULT 0
+                  )
+                ''');
+                await customStatement('''
+                  INSERT INTO tracks_new
+                    (id, song_id, name, file_path, created_at, updated_at, deleted, synced)
+                  SELECT id, song_id, name, file_path, created_at, updated_at, deleted, synced
+                  FROM tracks
+                ''');
+                await customStatement('DROP TABLE tracks');
+                await customStatement('ALTER TABLE tracks_new RENAME TO tracks');
+                await customStatement(
+                  'CREATE INDEX idx_tracks_song ON tracks(song_id)',
+                );
+
+              case 5: // v5 → v6: add audio columns to tracks
+                await customStatement('ALTER TABLE tracks ADD COLUMN audio_url TEXT');
+                await customStatement('ALTER TABLE tracks ADD COLUMN storage_path TEXT');
+                await customStatement('ALTER TABLE tracks ADD COLUMN duration_ms INTEGER');
+
+              case 6: // v6 → v7: add MarkerSets and Markers
+                // marker_sets v7 schema: no is_time_synced (step 7), no markers_json (step 11)
+                await customStatement('''
+                  CREATE TABLE marker_sets (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    track_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    is_shared INTEGER NOT NULL DEFAULT 0,
+                    created_by_user_id TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    deleted INTEGER NOT NULL DEFAULT 0,
+                    synced INTEGER NOT NULL DEFAULT 0
+                  )
+                ''');
+                // markers v7 schema: no updated_at (added in step 10 / v10→v11)
+                await customStatement('''
+                  CREATE TABLE markers (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    marker_set_id TEXT NOT NULL,
+                    label TEXT NOT NULL,
+                    position_ms INTEGER NOT NULL,
+                    display_order INTEGER NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    deleted INTEGER NOT NULL DEFAULT 0,
+                    synced INTEGER NOT NULL DEFAULT 0
+                  )
+                ''');
+                await customStatement(
+                  'CREATE INDEX idx_marker_sets_track ON marker_sets(track_id)',
+                );
+                await customStatement(
+                  'CREATE INDEX idx_marker_sets_user ON marker_sets(created_by_user_id)',
+                );
+                await customStatement(
+                  'CREATE INDEX idx_markers_set ON markers(marker_set_id)',
+                );
+
+              case 7: // v7 → v8: add is_time_synced to marker_sets
+                await customStatement(
+                  'ALTER TABLE marker_sets ADD COLUMN is_time_synced INTEGER NOT NULL DEFAULT 1',
+                );
+
+              case 8: // v8 → v9: add FavoriteTracks
+                // favorite_tracks v9 schema: no deleted (step 9), no updated_at (step 10)
+                await customStatement('''
+                  CREATE TABLE favorite_tracks (
+                    user_id TEXT NOT NULL,
+                    track_id TEXT NOT NULL,
+                    song_id TEXT NOT NULL,
+                    added_at INTEGER NOT NULL,
+                    synced INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (user_id, track_id)
+                  )
+                ''');
+                await customStatement(
+                  'CREATE INDEX idx_favorite_tracks_user ON favorite_tracks(user_id)',
+                );
+                await customStatement(
+                  'CREATE INDEX idx_favorite_tracks_track ON favorite_tracks(track_id)',
+                );
+                await customStatement(
+                  'CREATE INDEX idx_favorite_tracks_user_added ON favorite_tracks(user_id, added_at DESC)',
+                );
+
+              case 9: // v9 → v10: add deleted to favorite_tracks (soft-delete sync)
+                await customStatement(
+                  'ALTER TABLE favorite_tracks ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0',
+                );
+
+              case 10: // v10 → v11: add updated_at to multiple tables
+                await customStatement(
+                  'ALTER TABLE markers ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
+                );
+                await customStatement('UPDATE markers SET updated_at = created_at');
+
+                await customStatement(
+                  'ALTER TABLE choir_members ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
+                );
+                await customStatement('UPDATE choir_members SET updated_at = joined_at');
+                await customStatement(
+                  'ALTER TABLE choir_members ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0',
+                );
+
+                await customStatement(
+                  'ALTER TABLE favorite_tracks ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
+                );
+                await customStatement('UPDATE favorite_tracks SET updated_at = added_at');
+
+                await customStatement('DROP TABLE IF EXISTS user_playback_states');
+
+              case 11: // v11 → v12: add markers_json to marker_sets + backfill
+                await customStatement(
+                  "ALTER TABLE marker_sets ADD COLUMN markers_json TEXT NOT NULL DEFAULT '[]'",
+                );
+
+                // Backfill JSON payload from legacy marker rows.
+                // At this point all columns referenced below exist:
+                //   marker_sets.markers_json  (just added above)
+                //   markers.updated_at        (added in step 10)
+                final allMarkerSets = await (select(markerSets)).get();
+                for (final markerSet in allMarkerSets) {
+                  final rows = await (select(markers)
+                        ..where((t) => t.markerSetId.equals(markerSet.id))
+                        ..where((t) => t.deleted.equals(false))
+                        ..orderBy([(t) => OrderingTerm.asc(t.displayOrder)]))
+                      .get();
+                  final payload = rows
+                      .map(
+                        (marker) => <String, dynamic>{
+                          'label': marker.label,
+                          'position_ms': marker.positionMs,
+                        },
+                      )
+                      .toList(growable: false);
+                  final jsonStr = jsonEncode(payload);
+                  await (update(markerSets)
+                        ..where((ms) => ms.id.equals(markerSet.id)))
+                      .write(MarkerSetsCompanion(markersJson: Value(jsonStr)));
+                }
             }
-          }
-          if (from == 8 && to == 9) {
-            // Add FavoriteTracks table
-            await m.createTable(favoriteTracks);
-
-            // Create indexes for performance
-            await customStatement(
-              'CREATE INDEX idx_favorite_tracks_user ON favorite_tracks(user_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_favorite_tracks_track ON favorite_tracks(track_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_favorite_tracks_user_added ON favorite_tracks(user_id, added_at DESC)',
-            );
-          }
-          // Handle multi-version upgrade (e.g., 1 -> 5)
-          if (from == 1 && to == 5) {
-            // Add Choirs and ChoirMembers tables
-            await m.createTable(choirs);
-            await m.createTable(choirMembers);
-
-            // Add Songs table
-            await m.createTable(songs);
-
-            // Add Tracks table
-            await m.createTable(tracks);
-
-            // Create indexes for performance
-            await customStatement(
-              'CREATE INDEX idx_choir_members_user ON choir_members(user_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_choir_members_choir ON choir_members(choir_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_songs_concert ON songs(concert_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_tracks_song ON tracks(song_id)',
-            );
-          }
-          // Handle 2 -> 5 upgrade
-          if (from == 2 && to == 5) {
-            // Add Songs table
-            await m.createTable(songs);
-
-            // Add Tracks table
-            await m.createTable(tracks);
-
-            // Create indexes
-            await customStatement(
-              'CREATE INDEX idx_songs_concert ON songs(concert_id)',
-            );
-            await customStatement(
-              'CREATE INDEX idx_tracks_song ON tracks(song_id)',
-            );
-          }
-          // Handle 3 -> 5 upgrade
-          if (from == 3 && to == 5) {
-            // Add Tracks table
-            await m.createTable(tracks);
-
-            // Create index
-            await customStatement(
-              'CREATE INDEX idx_tracks_song ON tracks(song_id)',
-            );
           }
         },
       );
