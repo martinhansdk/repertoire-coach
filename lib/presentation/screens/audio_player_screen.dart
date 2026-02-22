@@ -106,10 +106,15 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       shortcuts: {
         LogicalKeySet(LogicalKeyboardKey.space): const _TogglePlayPauseIntent(),
         LogicalKeySet(LogicalKeyboardKey.keyK): const _TogglePlayPauseIntent(),
+        LogicalKeySet(LogicalKeyboardKey.mediaPlayPause): const _TogglePlayPauseIntent(),
         LogicalKeySet(LogicalKeyboardKey.arrowLeft): const _SeekBackwardIntent(),
         LogicalKeySet(LogicalKeyboardKey.keyJ): const _SeekBackwardIntent(),
+        LogicalKeySet(LogicalKeyboardKey.mediaTrackPrevious): const _SeekBackwardIntent(),
+        LogicalKeySet(LogicalKeyboardKey.mediaRewind): const _SeekBackwardIntent(),
         LogicalKeySet(LogicalKeyboardKey.arrowRight): const _SeekForwardIntent(),
         LogicalKeySet(LogicalKeyboardKey.keyL): const _SeekForwardIntent(),
+        LogicalKeySet(LogicalKeyboardKey.mediaTrackNext): const _SeekForwardIntent(),
+        LogicalKeySet(LogicalKeyboardKey.mediaFastForward): const _SeekForwardIntent(),
         LogicalKeySet(LogicalKeyboardKey.keyR): const _ToggleLoopIntent(),
       },
       child: Actions(

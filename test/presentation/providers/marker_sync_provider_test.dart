@@ -338,10 +338,10 @@ void main() {
       });
 
       test('updates synced position when invariant is preserved', () {
-        final didUpdate = notifier.nudgeSyncedPosition(1, 50);
+        final didUpdate = notifier.nudgeSyncedPosition(1, 200);
 
         expect(didUpdate, isTrue);
-        expect(notifier.state.syncedPositions[1], 2050);
+        expect(notifier.state.syncedPositions[1], 2200);
       });
 
       test('rejects update when it would go before previous marker', () {

@@ -330,6 +330,50 @@ void main() {
     verify(mockAudioPlayerRepository.seek(const Duration(seconds: 15))).called(1);
   });
 
+  testWidgets('media play/pause key toggles play/pause', (tester) async {
+    final playbackInfo = PlaybackInfo.idle().copyWith(
+      currentTrack: tTrack1,
+      state: AudioPlayerState.paused,
+    );
+    when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
+    when(mockAudioPlayerRepository.playbackStream).thenAnswer(
+      (_) => Stream.value(playbackInfo),
+    );
+
+    await tester.pumpWidget(
+      createWidgetUnderTest(playbackInfoStream: Stream.value(playbackInfo)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
+    await tester.pump();
+
+    verify(mockAudioPlayerRepository.resume()).called(1);
+  });
+
+  testWidgets('media next track key seeks forward 10 seconds', (tester) async {
+    final playbackInfo = PlaybackInfo.idle().copyWith(
+      currentTrack: tTrack1,
+      state: AudioPlayerState.paused,
+      position: const Duration(seconds: 5),
+      duration: const Duration(minutes: 2),
+    );
+    when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
+    when(mockAudioPlayerRepository.playbackStream).thenAnswer(
+      (_) => Stream.value(playbackInfo),
+    );
+
+    await tester.pumpWidget(
+      createWidgetUnderTest(playbackInfoStream: Stream.value(playbackInfo)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaTrackNext);
+    await tester.pump();
+
+    verify(mockAudioPlayerRepository.seek(const Duration(seconds: 15))).called(1);
+  });
+
   testWidgets('clears markers when switching to track with no marker sets', (tester) async {
     final controller = StreamController<PlaybackInfo>();
     final markerSet1 = MarkerSet(

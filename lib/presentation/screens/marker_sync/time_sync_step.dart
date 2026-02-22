@@ -209,23 +209,23 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
             ),
             ListTile(
               leading: const Icon(Icons.remove),
-              title: const Text('-50ms'),
+              title: const Text('-200ms'),
               enabled: isSynced,
               onTap: isSynced
                   ? () {
                       Navigator.pop(context);
-                      _fineTuneMarker(markerIndex, -50);
+                      _fineTuneMarker(markerIndex, -200);
                     }
                   : null,
             ),
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text('+50ms'),
+              title: const Text('+200ms'),
               enabled: isSynced,
               onTap: isSynced
                   ? () {
                       Navigator.pop(context);
-                      _fineTuneMarker(markerIndex, 50);
+                      _fineTuneMarker(markerIndex, 200);
                     }
                   : null,
             ),
