@@ -246,6 +246,7 @@ class LocalFavoriteTrackDataSource {
             trackId: Value(trackId),
             songId: Value(songId),
             addedAt: Value(addedAt),
+            updatedAt: Value(addedAt),
             deleted: const Value(false),
             synced: Value(!markForSync),
           ),
