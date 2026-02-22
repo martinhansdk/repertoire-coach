@@ -751,6 +751,40 @@ class AppDatabase extends _$AppDatabase {
       );
     }).toList();
   }
+
+  /// Get favorite tracks with song and concert metadata in a single query.
+  ///
+  /// Replaces the N+1 pattern in [_getFavoriteMediaItems]: instead of
+  /// fetching song and concert separately for each favourite, this joins all
+  /// four tables at once. Used by Android Auto content browsing.
+  Future<
+      List<
+          ({
+            FavoriteTrack favorite,
+            Track track,
+            Song? song,
+            Concert? concert,
+          })>> getFavoriteTracksWithMeta(String userId) async {
+    final query = select(favoriteTracks).join([
+      innerJoin(tracks, tracks.id.equalsExp(favoriteTracks.trackId)),
+      leftOuterJoin(songs, songs.id.equalsExp(tracks.songId)),
+      leftOuterJoin(concerts, concerts.id.equalsExp(songs.concertId)),
+    ])
+      ..where(favoriteTracks.userId.equals(userId))
+      ..where(favoriteTracks.deleted.equals(false))
+      ..where(tracks.deleted.equals(false))
+      ..orderBy([OrderingTerm.desc(favoriteTracks.addedAt)]);
+
+    final rows = await query.get();
+    return rows.map((row) {
+      return (
+        favorite: row.readTable(favoriteTracks),
+        track: row.readTable(tracks),
+        song: row.readTableOrNull(songs),
+        concert: row.readTableOrNull(concerts),
+      );
+    }).toList();
+  }
 }
 
 /// Open database connection

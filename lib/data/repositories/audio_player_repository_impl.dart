@@ -525,39 +525,32 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   }
 
   /// Build a list of playable [MediaItem]s from the user's favorite tracks.
+  ///
+  /// Uses a single 4-way join query (favorites→tracks→songs→concerts) instead
+  /// of N+1 sequential lookups, avoiding potential Android Auto browse timeouts
+  /// for users with many favourites.
   Future<List<MediaItem>> _getFavoriteMediaItems() async {
     final userId = _userId;
     if (userId == null) return [];
 
     try {
-      // Query favorites joined with tracks from local Drift DB
-      final favorites = await _database.getFavoriteTracks(userId);
-      final items = <MediaItem>[];
-
-      for (final fav in favorites) {
-        final trackRow = fav.track;
-        // Look up song and concert for display metadata
-        final songRow = await _database.getSongById(trackRow.songId);
-        String? concertName;
-        if (songRow != null) {
-          final concertRow = await _database.getConcertById(songRow.concertId);
-          concertName = concertRow?.name;
-        }
-
-        items.add(MediaItem(
+      final rows = await _database.getFavoriteTracksWithMeta(userId);
+      return rows.map((row) {
+        final trackRow = row.track;
+        final songRow = row.song;
+        final concertRow = row.concert;
+        return MediaItem(
           id: trackRow.id,
           title: songRow != null
               ? '${songRow.title} – ${trackRow.name}'
               : trackRow.name,
-          album: concertName,
+          album: concertRow?.name,
           duration: trackRow.durationMs != null
               ? Duration(milliseconds: trackRow.durationMs!)
               : null,
           playable: true,
-        ));
-      }
-
-      return items;
+        );
+      }).toList();
     } catch (e, stackTrace) {
       ErrorReporter.report(e, stackTrace: stackTrace, screen: 'android_auto_favorites');
       return [];
