@@ -99,7 +99,7 @@ void main() {
   group('Signed URL Verification', () {
     testWidgets(
       'should generate signed URL when playing cloud-stored track',
-      skip: false, // Testing with fixed pumps instead of pumpAndSettle
+      skip: true, // Requires Supabase connection - run manually
       (tester) async {
         // This test verifies that the signed URL generation is working
         // by checking console output or playback success

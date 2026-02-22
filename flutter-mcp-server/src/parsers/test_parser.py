@@ -30,6 +30,11 @@ class TestParser:
 
     def parse(self, output: str) -> TestResult:
         """Parse Flutter test output into TestResult."""
+        # Flutter's compact reporter uses \r to overwrite terminal progress lines.
+        # Normalize \r\n and standalone \r to \n so each progress update is its
+        # own line, otherwise re.findall picks up ALL +N/-N counts across an
+        # entire \r-separated sequence and inflates summary.failed.
+        output = output.replace('\r\n', '\n').replace('\r', '\n')
         lines = output.split('\n')
 
         summary = TestSummary()
@@ -50,9 +55,13 @@ class TestParser:
             if test_match:
                 time, status, count, description = test_match.groups()
 
-                # Extract ALL status+count pairs from the line (compact reporter includes all)
-                # Find all patterns like "+42", "-1", "~3" in the line
-                all_counts = re.findall(r'([+\-~])(\d+)', line)
+                # Extract ALL status+count pairs, but ONLY from the counter section
+                # of the line (before the test description). Scanning the full
+                # line would falsely match things like "non-200" or "returns 404"
+                # in test names, treating them as failure counts.
+                # Counter section format: "HH:MM +N [-M] [~K]:"
+                counter_match = re.match(r'\s*\d{2}:\d{2}((?:\s+[+\-~]\d+)+):', line)
+                all_counts = re.findall(r'([+\-~])(\d+)', counter_match.group(1)) if counter_match else []
                 for stat, cnt in all_counts:
                     if stat == '+':
                         summary.passed = int(cnt)
