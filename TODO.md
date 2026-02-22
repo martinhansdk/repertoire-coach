@@ -561,22 +561,24 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 - [ ] Test `R2SignerClient` — mock `http.Client`; cover play/upload/delete happy paths, 401/403/404 error responses, missing session
 - [ ] Test `AudioStorageService` — mock `R2SignerClient` and `http.Client`; cover upload from bytes, upload from file, unsupported extension, R2 PUT failure, delete delegation
 
-**Priority 1: Data Source Layer**
-- [ ] Test `local_song_data_source.dart` (CRUD, soft delete, sync state)
-- [ ] Test `local_concert_data_source.dart` (CRUD, soft delete)
-- [ ] Test `local_choir_data_source.dart` (CRUD, soft delete)
-- [ ] Test `local_track_data_source.dart` (CRUD, soft delete)
-- [ ] Test `local_section_data_source.dart` (CRUD, soft delete)
-- [ ] Test `local_user_data_source.dart` (CRUD)
-- [ ] Test `local_user_playback_state_data_source.dart` (CRUD)
+**Priority 1: Data Source Layer** ✅ COMPLETE (2026-02-22)
+- [x] Test `local_song_data_source.dart` (CRUD, soft delete, sync state)
+- [x] Test `local_concert_data_source.dart` (CRUD, soft delete)
+- [x] Test `local_choir_data_source.dart` (CRUD, soft delete)
+- [x] Test `local_track_data_source.dart` (CRUD, soft delete)
+- [x] Test `local_marker_data_source.dart` (MarkerSet+marker CRUD, JSON payload, sync, monotonic invariant)
+- [x] Test `local_favorite_track_data_source.dart` (CRUD, sync, watch stream)
+- Note: `local_user_playback_state_data_source.dart` does not exist as a standalone file (handled in DB layer)
 
-**Priority 2: Provider Layer**
-- [ ] Test `concert_provider.dart` (initialization, dependencies, async loading)
-- [ ] Test `song_provider.dart`
-- [ ] Test `choir_provider.dart`
-- [ ] Test `audio_player_provider.dart`
-- [ ] Test `file_storage_provider.dart`
-- [ ] Test `sync_provider.dart` (when implemented)
+**Priority 2: Provider Layer** ✅ COMPLETE (2026-02-22)
+- [x] Test `concert_provider.dart`
+- [x] Test `song_provider.dart`
+- [x] Test `choir_provider.dart`
+- [x] Test `audio_player_provider.dart`
+- [x] Test `file_management_provider.dart`
+- [x] Test `sync_provider.dart`
+- [x] Test `marker_provider.dart`
+- [x] Test `favorite_track_provider.dart`
 
 **Priority 3: AudioPlayerScreen**
 - [ ] Extract `AudioPlaybackNotifier` StateNotifier (improves testability)
