@@ -44,7 +44,7 @@ void main() {
 
     // Verify that bottom navigation is present
     expect(find.text('Choirs'), findsOneWidget);
-    expect(find.text('Concerts'), findsOneWidget);
+    expect(find.text('Favorites'), findsOneWidget);
 
     // Cleanup
     await database.close();
