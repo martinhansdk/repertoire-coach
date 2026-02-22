@@ -75,12 +75,35 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   Future<void> _initialize() async {
     await _initializeAudioService();
     await _configureAudioSession();
-    // Notify Android Auto that the browse tree is ready. Auto may have called
-    // onLoadChildren() before AudioService.init() completed (cold start via
-    // car display) and cached an empty result. Signalling here causes it to
-    // re-query, picking up the real favourites list.
-    (_audioHandler as _AudioPlayerHandler?)
-        ?.refreshChildren(AudioService.browsableRootId);
+
+    final handler = _audioHandler as _AudioPlayerHandler?;
+    if (handler != null) {
+      // Sync repository state when Android Auto initiates playback.
+      // Without this callback, _currentTrack stays null while a track plays
+      // from the car display, causing the phone UI to show no active track.
+      handler.onTrackLoaded = (trackRow, songTitle, concertName) {
+        _currentTrack = Track(
+          id: trackRow.id,
+          songId: trackRow.songId,
+          name: trackRow.name,
+          audioUrl: trackRow.audioUrl,
+          storagePath: trackRow.storagePath,
+          durationMs: trackRow.durationMs,
+          filePath: trackRow.filePath,
+          createdAt: trackRow.createdAt,
+          updatedAt: trackRow.updatedAt,
+        );
+        _currentSongName = songTitle;
+        _currentAlbumName = concertName;
+        _updatePlaybackInfo();
+      };
+
+      // Notify Android Auto that the browse tree is ready. Auto may have called
+      // onLoadChildren() before AudioService.init() completed (cold start via
+      // car display) and cached an empty result. Signalling here causes it to
+      // re-query, picking up the real favourites list.
+      handler.refreshChildren(AudioService.browsableRootId);
+    }
   }
 
   @override
@@ -427,6 +450,11 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   /// Per-parentMediaId subjects used to signal Android Auto to re-query children.
   final _childrenSubjects = <String, BehaviorSubject<Map<String, dynamic>>>{};
 
+  /// Callback invoked when Android Auto initiates playback so that
+  /// [AudioPlayerRepositoryImpl] can sync its own state (_currentTrack etc.).
+  /// Parameters: (trackRow, songTitle, concertName)
+  void Function(db.Track, String?, String?)? onTrackLoaded;
+
   /// Android Auto browsable root ID used by audio_service
   static const _favoritesId = 'favorites';
 
@@ -549,6 +577,14 @@ class _AudioPlayerHandler extends BaseAudioHandler {
     final trackRow = await _database.getTrackById(trackId);
     if (trackRow == null) return;
 
+    // Look up song and concert for display metadata and repository sync
+    final songRow = await _database.getSongById(trackRow.songId);
+    String? concertName;
+    if (songRow != null) {
+      final concertRow = await _database.getConcertById(songRow.concertId);
+      concertName = concertRow?.name;
+    }
+
     // Fetch a short-lived presigned R2 URL for playback
     String? signedUrl;
     if (trackRow.storagePath != null) {
@@ -568,10 +604,26 @@ class _AudioPlayerHandler extends BaseAudioHandler {
       return; // No audio source available
     }
 
-    final item = preferredItem ?? MediaItem(id: trackRow.id, title: trackRow.name);
+    final item = preferredItem ??
+        MediaItem(
+          id: trackRow.id,
+          title: songRow != null
+              ? '${songRow.title} – ${trackRow.name}'
+              : trackRow.name,
+          album: concertName,
+          duration: trackRow.durationMs != null
+              ? Duration(milliseconds: trackRow.durationMs!)
+              : null,
+          playable: true,
+        );
 
     // Update the notification metadata
     mediaItem.add(item);
+
+    // Sync AudioPlayerRepositoryImpl state so the phone UI reflects the
+    // track that Android Auto started. Without this, _currentTrack stays
+    // null and the phone shows no active track.
+    onTrackLoaded?.call(trackRow, songRow?.title, concertName);
 
     await _player.seek(Duration.zero);
     if (autoPlay) {
