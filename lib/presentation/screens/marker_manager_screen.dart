@@ -238,6 +238,7 @@ class MarkerManagerScreen extends ConsumerWidget {
       }
     }
 
+    if (!context.mounted) return null;
     return showDialog<_MarkerSetCopySelection>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -296,7 +297,7 @@ class MarkerManagerScreen extends ConsumerWidget {
                 children: [
                   DropdownButtonFormField<String>(
                     key: const ValueKey('copyMarkerSetConcertDropdown'),
-                    value: selectedConcertId,
+                    initialValue: selectedConcertId,
                     decoration: const InputDecoration(
                       labelText: 'Source Concert',
                       border: OutlineInputBorder(),
@@ -335,7 +336,7 @@ class MarkerManagerScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     key: const ValueKey('copyMarkerSetSongDropdown'),
-                    value: selectedSongId,
+                    initialValue: selectedSongId,
                     decoration: const InputDecoration(
                       labelText: 'Source Song',
                       border: OutlineInputBorder(),
@@ -372,7 +373,7 @@ class MarkerManagerScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<_TrackWithContext>(
                     key: const ValueKey('copyMarkerSetTrackDropdown'),
-                    value: selectedTrack,
+                    initialValue: selectedTrack,
                     decoration: const InputDecoration(
                       labelText: 'Source Track',
                       border: OutlineInputBorder(),
@@ -399,7 +400,7 @@ class MarkerManagerScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<MarkerSet>(
                     key: const ValueKey('copyMarkerSetSourceSetDropdown'),
-                    value: selectedMarkerSet,
+                    initialValue: selectedMarkerSet,
                     decoration: const InputDecoration(
                       labelText: 'Source Marker Set',
                       border: OutlineInputBorder(),
