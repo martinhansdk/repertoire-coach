@@ -146,12 +146,13 @@ class MarkerManagerScreen extends ConsumerWidget {
       for (final song in songs) {
         final tracks = await trackRepository.getTracksBySong(song.id);
         for (final track in tracks) {
-          if (track.id == trackId) continue;
           tracksWithContext.add(
             _TrackWithContext(
               track: track,
-              songTitle: song.title,
+              concertId: concert.id,
               concertName: concert.name,
+              songId: song.id,
+              songTitle: song.title,
             ),
           );
         }
@@ -198,17 +199,50 @@ class MarkerManagerScreen extends ConsumerWidget {
     }
 
     final markerRepository = ref.read(markerRepositoryProvider);
-    _TrackWithContext? selectedTrack;
-    MarkerSet? selectedMarkerSet;
-    List<MarkerSet> sourceMarkerSets = [];
+    final destinationMarkerSets = await markerRepository.getMarkerSetsByTrack(
+      trackId,
+      userId: userId,
+    );
+    final existingDestinationNames = destinationMarkerSets
+        .map((set) => set.name.trim().toLowerCase())
+        .where((name) => name.isNotEmpty)
+        .toSet();
+    bool nameExistsOnDestination(String name) =>
+        existingDestinationNames.contains(name.trim().toLowerCase());
+    _TrackWithContext? currentTrackOption;
+    for (final option in trackOptions) {
+      if (option.track.id == trackId) {
+        currentTrackOption = option;
+        break;
+      }
+    }
+    String? selectedConcertId = currentTrackOption?.concertId ?? trackOptions.first.concertId;
+    String? selectedSongId = currentTrackOption?.songId ?? trackOptions.first.songId;
+    _TrackWithContext selectedTrack = currentTrackOption ?? trackOptions.first;
+    List<MarkerSet> sourceMarkerSets = await markerRepository.getMarkerSetsByTrack(
+      selectedTrack.track.id,
+      userId: userId,
+    );
+    MarkerSet? selectedMarkerSet = sourceMarkerSets.isNotEmpty ? sourceMarkerSets.first : null;
     bool isLoadingSets = false;
-    final nameController = TextEditingController();
+    final nameController = TextEditingController(
+      text: (selectedMarkerSet != null && !nameExistsOnDestination(selectedMarkerSet.name))
+          ? selectedMarkerSet.name
+          : '',
+    );
+    final concertOptions = <_ConcertOption>[];
+    final seenConcerts = <String>{};
+    for (final option in trackOptions) {
+      if (seenConcerts.add(option.concertId)) {
+        concertOptions.add(_ConcertOption(id: option.concertId, name: option.concertName));
+      }
+    }
 
     return showDialog<_MarkerSetCopySelection>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          Future<void> loadMarkerSets(_TrackWithContext track) async {
+          Future<void> loadMarkerSets(_TrackWithContext track, {bool defaultFirst = true}) async {
             setState(() {
               isLoadingSets = true;
               sourceMarkerSets = [];
@@ -223,22 +257,118 @@ class MarkerManagerScreen extends ConsumerWidget {
             if (!context.mounted) return;
             setState(() {
               sourceMarkerSets = sets;
+              if (defaultFirst && sets.isNotEmpty) {
+                selectedMarkerSet = sets.first;
+                nameController.text = nameExistsOnDestination(sets.first.name)
+                    ? ''
+                    : sets.first.name;
+              }
               isLoadingSets = false;
             });
           }
 
-          final canCopy = selectedTrack != null &&
-              selectedMarkerSet != null &&
-              nameController.text.trim().isNotEmpty;
+          final songsForConcert = <_SongOption>[];
+          final seenSongIdsForConcert = <String>{};
+          for (final option in trackOptions) {
+            if (option.concertId == selectedConcertId &&
+                seenSongIdsForConcert.add(option.songId)) {
+              songsForConcert.add(_SongOption(id: option.songId, title: option.songTitle));
+            }
+          }
+
+          final tracksForSong = trackOptions
+              .where((track) =>
+                  track.concertId == selectedConcertId && track.songId == selectedSongId)
+              .toList();
+
+          final canCopy = selectedMarkerSet != null && nameController.text.trim().isNotEmpty;
 
           return AlertDialog(
-            title: const Text('Copy Marker Set From Track'),
+            title: Text(
+              'Copy from',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             content: SizedBox(
               width: 440,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('copyMarkerSetConcertDropdown'),
+                    value: selectedConcertId,
+                    decoration: const InputDecoration(
+                      labelText: 'Source Concert',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: concertOptions
+                        .map(
+                          (concert) => DropdownMenuItem<String>(
+                            value: concert.id,
+                            child: Text(
+                              concert.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (String? value) {
+                      if (value == null || value == selectedConcertId) return;
+
+                      _TrackWithContext? firstTrackInConcert;
+                      for (final track in trackOptions) {
+                        if (track.concertId == value) {
+                          firstTrackInConcert = track;
+                          break;
+                        }
+                      }
+                      if (firstTrackInConcert == null) return;
+
+                      setState(() {
+                        selectedConcertId = value;
+                        selectedSongId = firstTrackInConcert!.songId;
+                        selectedTrack = firstTrackInConcert!;
+                      });
+                      loadMarkerSets(firstTrackInConcert!);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('copyMarkerSetSongDropdown'),
+                    value: selectedSongId,
+                    decoration: const InputDecoration(
+                      labelText: 'Source Song',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: songsForConcert
+                        .map(
+                          (song) => DropdownMenuItem<String>(
+                            value: song.id,
+                            child: Text(
+                              song.title,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (String? value) {
+                      if (value == null || value == selectedSongId) return;
+                      _TrackWithContext? firstTrackInSong;
+                      for (final track in trackOptions) {
+                        if (track.concertId == selectedConcertId && track.songId == value) {
+                          firstTrackInSong = track;
+                          break;
+                        }
+                      }
+                      if (firstTrackInSong == null) return;
+                      setState(() {
+                        selectedSongId = value;
+                        selectedTrack = firstTrackInSong!;
+                      });
+                      loadMarkerSets(firstTrackInSong!);
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<_TrackWithContext>(
                     key: const ValueKey('copyMarkerSetTrackDropdown'),
                     value: selectedTrack,
@@ -246,19 +376,19 @@ class MarkerManagerScreen extends ConsumerWidget {
                       labelText: 'Source Track',
                       border: OutlineInputBorder(),
                     ),
-                    items: trackOptions
+                    items: tracksForSong
                         .map(
                           (option) => DropdownMenuItem<_TrackWithContext>(
                             value: option,
                             child: Text(
-                              '${option.concertName} / ${option.songTitle} / ${option.track.name}',
+                              option.track.name,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         )
                         .toList(),
                     onChanged: (_TrackWithContext? value) {
-                      if (value == null) return;
+                      if (value == null || value.track.id == selectedTrack.track.id) return;
                       setState(() {
                         selectedTrack = value;
                       });
@@ -286,7 +416,13 @@ class MarkerManagerScreen extends ConsumerWidget {
                         : (MarkerSet? value) {
                             setState(() {
                               selectedMarkerSet = value;
-                              nameController.text = value?.name ?? '';
+                              if (value == null) {
+                                nameController.text = '';
+                              } else {
+                                nameController.text = nameExistsOnDestination(value.name)
+                                    ? ''
+                                    : value.name;
+                              }
                             });
                           },
                   ),
@@ -294,7 +430,7 @@ class MarkerManagerScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     const LinearProgressIndicator(),
                   ],
-                  if (!isLoadingSets && selectedTrack != null && sourceMarkerSets.isEmpty) ...[
+                  if (!isLoadingSets && sourceMarkerSets.isEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
                       'No marker sets found on selected track.',
@@ -313,6 +449,16 @@ class MarkerManagerScreen extends ConsumerWidget {
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
+                  if (nameController.text.trim().isNotEmpty &&
+                      nameExistsOnDestination(nameController.text)) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'A marker set with this name already exists on this track.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.tertiary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -527,13 +673,17 @@ class MarkerManagerScreen extends ConsumerWidget {
 
 class _TrackWithContext {
   final Track track;
-  final String songTitle;
+  final String concertId;
   final String concertName;
+  final String songId;
+  final String songTitle;
 
   const _TrackWithContext({
     required this.track,
-    required this.songTitle,
+    required this.concertId,
     required this.concertName,
+    required this.songId,
+    required this.songTitle,
   });
 
   @override
@@ -543,6 +693,26 @@ class _TrackWithContext {
 
   @override
   int get hashCode => track.id.hashCode;
+}
+
+class _ConcertOption {
+  final String id;
+  final String name;
+
+  const _ConcertOption({
+    required this.id,
+    required this.name,
+  });
+}
+
+class _SongOption {
+  final String id;
+  final String title;
+
+  const _SongOption({
+    required this.id,
+    required this.title,
+  });
 }
 
 class _MarkerSetCopySelection {
