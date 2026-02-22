@@ -440,23 +440,28 @@ class _AudioPlayerHandler extends BaseAudioHandler {
     String parentMediaId, [
     Map<String, dynamic>? options,
   ]) async {
-    if (parentMediaId == AudioService.browsableRootId) {
-      // Root level: single "Favorites" browsable folder
-      return [
-        MediaItem(
-          id: _favoritesId,
-          title: 'Favorites',
-          playable: false,
-          extras: const {'browsable': true},
-        ),
-      ];
-    }
+    try {
+      if (parentMediaId == AudioService.browsableRootId) {
+        // Root level: single "Favorites" browsable folder
+        return [
+          MediaItem(
+            id: _favoritesId,
+            title: 'Favorites',
+            playable: false,
+            extras: const {'browsable': true},
+          ),
+        ];
+      }
 
-    if (parentMediaId == _favoritesId) {
-      return _getFavoriteMediaItems();
-    }
+      if (parentMediaId == _favoritesId) {
+        return await _getFavoriteMediaItems();
+      }
 
-    return [];
+      return [];
+    } catch (e, stackTrace) {
+      ErrorReporter.report(e, stackTrace: stackTrace, screen: 'android_auto_browse');
+      return [];
+    }
   }
 
   /// Build a list of playable [MediaItem]s from the user's favorite tracks.
@@ -464,34 +469,39 @@ class _AudioPlayerHandler extends BaseAudioHandler {
     final userId = _userId;
     if (userId == null) return [];
 
-    // Query favorites joined with tracks from local Drift DB
-    final favorites = await _database.getFavoriteTracks(userId);
-    final items = <MediaItem>[];
+    try {
+      // Query favorites joined with tracks from local Drift DB
+      final favorites = await _database.getFavoriteTracks(userId);
+      final items = <MediaItem>[];
 
-    for (final fav in favorites) {
-      final trackRow = fav.track;
-      // Look up song and concert for display metadata
-      final songRow = await _database.getSongById(trackRow.songId);
-      String? concertName;
-      if (songRow != null) {
-        final concertRow = await _database.getConcertById(songRow.concertId);
-        concertName = concertRow?.name;
+      for (final fav in favorites) {
+        final trackRow = fav.track;
+        // Look up song and concert for display metadata
+        final songRow = await _database.getSongById(trackRow.songId);
+        String? concertName;
+        if (songRow != null) {
+          final concertRow = await _database.getConcertById(songRow.concertId);
+          concertName = concertRow?.name;
+        }
+
+        items.add(MediaItem(
+          id: trackRow.id,
+          title: songRow != null
+              ? '${songRow.title} – ${trackRow.name}'
+              : trackRow.name,
+          album: concertName,
+          duration: trackRow.durationMs != null
+              ? Duration(milliseconds: trackRow.durationMs!)
+              : null,
+          playable: true,
+        ));
       }
 
-      items.add(MediaItem(
-        id: trackRow.id,
-        title: songRow != null
-            ? '${songRow.title} – ${trackRow.name}'
-            : trackRow.name,
-        album: concertName,
-        duration: trackRow.durationMs != null
-            ? Duration(milliseconds: trackRow.durationMs!)
-            : null,
-        playable: true,
-      ));
+      return items;
+    } catch (e, stackTrace) {
+      ErrorReporter.report(e, stackTrace: stackTrace, screen: 'android_auto_favorites');
+      return [];
     }
-
-    return items;
   }
 
   // ---------------------------------------------------------------------------
