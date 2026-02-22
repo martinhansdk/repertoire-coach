@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'supabase_service.dart';
 import '../config/environment.dart';
@@ -22,14 +23,28 @@ class R2UploadTarget {
 /// Requires the caller to be authenticated — calls will throw [R2SignerException]
 /// with status 401 if the session has expired.
 class R2SignerClient {
-  final SupabaseService _supabaseService;
+  /// Returns the current auth token, or null if no active session.
+  /// Stored as a closure so that tests can inject a fake without needing
+  /// to mock the entire Supabase client auth chain.
+  final String? Function() _getToken;
   final http.Client _http;
 
   static String get _baseUrl =>
       '${Environment.supabaseUrl}/functions/v1/audio-signer';
 
-  R2SignerClient(this._supabaseService, {http.Client? httpClient})
-      : _http = httpClient ?? http.Client();
+  R2SignerClient(SupabaseService supabaseService, {http.Client? httpClient})
+      : _getToken =
+            (() => supabaseService.client.auth.currentSession?.accessToken),
+        _http = httpClient ?? http.Client();
+
+  /// Test-only constructor that injects the token getter directly,
+  /// avoiding the need to mock the entire Supabase auth chain.
+  @visibleForTesting
+  R2SignerClient.withTokenGetter({
+    required String? Function() getToken,
+    http.Client? httpClient,
+  })  : _getToken = getToken,
+        _http = httpClient ?? http.Client();
 
   /// Returns a short-lived presigned GET URL for playing [trackId].
   Future<String> getPlayUrl(String trackId) async {
@@ -65,7 +80,7 @@ class R2SignerClient {
     String action,
     Map<String, String> body,
   ) async {
-    final token = _supabaseService.client.auth.currentSession?.accessToken;
+    final token = _getToken();
     if (token == null) {
       throw const R2SignerException('No active session', statusCode: 401);
     }

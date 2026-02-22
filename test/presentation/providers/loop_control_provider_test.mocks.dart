@@ -187,6 +187,15 @@ class MockAudioPlayerRepository extends _i1.Mock
       ) as _i4.Future<void>);
 
   @override
+  void notifyFavouritesChanged() => super.noSuchMethod(
+        Invocation.method(
+          #notifyFavouritesChanged,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   _i4.Future<void> dispose() => (super.noSuchMethod(
         Invocation.method(
           #dispose,

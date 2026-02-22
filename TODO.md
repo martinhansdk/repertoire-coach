@@ -503,21 +503,21 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 
 ## Phase 5: Android Auto
 
-### Native Android Development
-- [ ] Create Android module in Flutter project
-- [ ] Implement MediaBrowserService
-- [ ] Implement MediaSession
-- [ ] Build media hierarchy (browsable concerts and songs)
-- [ ] Expose concerts as folders in Android Auto
-- [ ] Default to most recently accessed concert
-- [ ] Handle playback commands from Auto
+> **Implementation complete** via `audio_service` package (MediaBrowserService +
+> MediaSession provided by the package; no native module required).
+> See `lib/data/repositories/audio_player_repository_impl.dart` and
+> `docs/ANDROID_AUTO.md` for architecture details.
 
-### Platform Channel Integration
-- [ ] Create platform channel between Flutter and Android
-- [ ] Expose concert and song library to native Android
-- [ ] Send playback commands from native to Flutter
-- [ ] Update native MediaSession from Flutter playback state
-- [ ] Sync last accessed concert between Flutter and native
+### Implemented ✅
+- [x] MediaBrowserService (via audio_service)
+- [x] MediaSession (via audio_service)
+- [x] Favourites browse folder exposed to Android Auto
+- [x] Playback commands from Auto (play/pause/seek/rewind/fastForward)
+- [x] Voice search (playFromSearch)
+- [x] Background playback with lock-screen notification
+- [x] Android Manifest declarations (MEDIA_CONTENT_CONTROL, browse service)
+- [x] Bug fixes (see docs/android_auto_bugs.md): error handling, DB migration,
+      notifyChildrenChanged, state sync, N+1 queries, cleanup, channel ID
 
 ### Testing & Refinement
 - [ ] Test with Android Auto simulator
@@ -666,6 +666,6 @@ Once the backfill script has been run and all tracks verified to play from R2:
 ## Notes
 - Focus on getting core functionality working locally first
 - Add cloud features incrementally
-- Android Auto is the most complex feature - save for last
+- Android Auto implementation is complete (audio_service-based)
 - Test on real devices early and often
 - Keep the UI simple and intuitive for in-car use
