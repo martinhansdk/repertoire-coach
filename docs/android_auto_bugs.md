@@ -119,49 +119,11 @@ Also call `AudioService.notifyChildrenChanged(_favoritesId)` whenever the user a
 
 ---
 
-## Bug 4 — CRITICAL (Playback): `audioUrl` field ignored in `_playTrackById`
+## Bug 4 — ~~CRITICAL (Playback): `audioUrl` field ignored in `_playTrackById`~~ — NOT APPLICABLE
 
-**File:** `lib/data/repositories/audio_player_repository_impl.dart`
-**Lines:** 501–539
+**Status: moot — `audioUrl` is being removed.**
 
-`_playTrackById` only checks `storagePath` (R2) and `filePath` (local):
-
-```dart
-String? signedUrl;
-if (trackRow.storagePath != null) {
-  try {
-    signedUrl = await _signerClient.getPlayUrl(trackRow.id);
-  } catch (_) {}
-}
-
-if (signedUrl != null) {
-  await _player.setUrl(signedUrl);
-} else if (trackRow.filePath != null) {
-  await _player.setFilePath(trackRow.filePath!);
-} else {
-  return;  // ← silent no-op: nothing plays
-}
-```
-
-The `Tracks` table has an `audioUrl` column (a public Supabase Storage URL) for tracks uploaded before the R2 migration. Any track that has `storagePath == null` and `filePath == null` but has a non-null `audioUrl` will silently fail to play from Android Auto. The `return` statement at line 526 is reached, no error is reported, and the car display shows the track as selected but doesn't play.
-
-Compare with `AudioPlayerRepositoryImpl.playTrack()` at line 217, which correctly falls back to `track.audioUrl`:
-
-```dart
-final effectiveAudioUrl = audioUrl ?? track.audioUrl;  // ← uses audioUrl
-```
-
-This inconsistency means the same track that plays fine in the phone UI fails in Android Auto.
-
-**Fix:** Add a fallback to `trackRow.audioUrl`:
-
-```dart
-final effectiveUrl = signedUrl ?? trackRow.audioUrl;
-if (effectiveUrl != null) {
-  await _player.setUrl(effectiveUrl);
-} else if (trackRow.filePath != null) {
-  ...
-```
+`TODO.md` lines 643–652 ("R2 Storage Migration Cleanup") plans to drop the `audio_url` column and the `audioUrl` field from the `Track` entity once the R2 backfill is verified. After that removal, `_playTrackById` will be correct as-is: `storagePath` (R2) and `filePath` (local) will be the only two sources. No fix needed here; just ensure the cleanup tasks in TODO.md are completed.
 
 ---
 
@@ -253,7 +215,7 @@ The actual application package is `com.repertoirecoach.repertoire_coach` (visibl
 | 1 | Critical | Favourites silently empty on any DB error | No try-catch in `getChildren` / `_getFavoriteMediaItems` | `audio_player_repository_impl.dart:438` |
 | 2 | Critical | Favourites empty on upgrade from schema < v9 | Migration gaps: multi-version upgrades skip `favorite_tracks` creation | `database.dart:280` |
 | 3 | Critical | Favourites empty on cold start via Android Auto | No `notifyChildrenChanged()` after `AudioService.init()` | `audio_player_repository_impl.dart:74` |
-| 4 | Critical | Tracks with `audioUrl` (Supabase Storage) don't play | `audioUrl` field ignored in `_playTrackById` | `audio_player_repository_impl.dart:511` |
+| 4 | ~~Critical~~ N/A | ~~Tracks with `audioUrl` don't play~~ | `audioUrl` is being removed (see TODO.md R2 cleanup) | — |
 | 5 | Significant | Phone UI out of sync after Android Auto playback | `_currentTrack` not updated on Android Auto play | `audio_player_repository_impl.dart:501` |
 | 6 | Moderate | Favourites empty for users with many tracks | N+1 queries may exceed Android Auto timeout | `audio_player_repository_impl.dart:463` |
 | 7 | Minor | Memory leak if handler recreated | `cleanup()` never called | `audio_player_repository_impl.dart:690` |
@@ -262,3 +224,5 @@ The actual application package is `com.repertoirecoach.repertoire_coach` (visibl
 ### Most likely cause of the reported "fails to present the favourites"
 
 Bugs 1, 2, and 3 work together: if the device has an old schema (Bug 2), the database query throws an exception; Bug 1 lets that exception propagate silently; Bug 3 means Android Auto never re-queries after the handler becomes ready. Any one of these alone can produce a blank browse tree; all three together make it nearly certain to fail on any non-fresh-install scenario.
+
+Bug 4 (audioUrl) is not applicable — `audioUrl` is being removed as part of the planned R2 migration cleanup (TODO.md lines 643–652).
