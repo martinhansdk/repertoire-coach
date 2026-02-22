@@ -323,13 +323,13 @@ class MarkerManagerScreen extends ConsumerWidget {
                         }
                       }
                       if (firstTrackInConcert == null) return;
-
+                      final resolvedTrack = firstTrackInConcert;
                       setState(() {
                         selectedConcertId = value;
-                        selectedSongId = firstTrackInConcert!.songId;
-                        selectedTrack = firstTrackInConcert!;
+                        selectedSongId = resolvedTrack.songId;
+                        selectedTrack = resolvedTrack;
                       });
-                      loadMarkerSets(firstTrackInConcert!);
+                      loadMarkerSets(resolvedTrack);
                     },
                   ),
                   const SizedBox(height: 12),
@@ -361,11 +361,12 @@ class MarkerManagerScreen extends ConsumerWidget {
                         }
                       }
                       if (firstTrackInSong == null) return;
+                      final resolvedTrack = firstTrackInSong;
                       setState(() {
                         selectedSongId = value;
-                        selectedTrack = firstTrackInSong!;
+                        selectedTrack = resolvedTrack;
                       });
-                      loadMarkerSets(firstTrackInSong!);
+                      loadMarkerSets(resolvedTrack);
                     },
                   ),
                   const SizedBox(height: 12),
