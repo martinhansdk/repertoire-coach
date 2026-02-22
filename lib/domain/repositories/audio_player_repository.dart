@@ -81,6 +81,12 @@ abstract class AudioPlayerRepository {
   /// Get the current playback speed
   double get speed;
 
+  /// Notify Android Auto that the Favourites browse folder content has changed.
+  ///
+  /// Call this after adding or removing a favourite track so that the car
+  /// display refreshes without requiring a manual reconnect.
+  void notifyFavouritesChanged();
+
   /// Dispose of the audio player and release all resources
   Future<void> dispose();
 }

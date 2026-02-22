@@ -138,6 +138,9 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   Future<void> setSpeed(double speed) async {}
 
   @override
+  void notifyFavouritesChanged() {}
+
+  @override
   Future<void> dispose() async {
     await _controller.close();
   }

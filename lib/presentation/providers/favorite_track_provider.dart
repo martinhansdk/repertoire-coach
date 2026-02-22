@@ -7,6 +7,7 @@ import '../../data/repositories/favorite_track_repository_impl.dart';
 import '../../domain/entities/favorite_track.dart';
 import '../../domain/repositories/favorite_track_repository.dart';
 import 'auth_provider.dart';
+import 'audio_player_provider.dart' show audioPlayerRepositoryProvider;
 import 'concert_provider.dart' show databaseProvider;
 import 'track_provider.dart';
 
@@ -116,6 +117,10 @@ class FavoriteTrackActions {
     _ref.invalidate(favoritesProvider);
     _ref.invalidate(isFavoriteProvider(trackId));
     _ref.invalidate(favoriteCountProvider);
+
+    // Tell Android Auto to re-query the Favourites browse folder so the new
+    // track appears on the car display without a manual reconnect.
+    _notifyAndroidAutoFavourites();
   }
 
   /// Remove a track from favorites
@@ -130,5 +135,18 @@ class FavoriteTrackActions {
     _ref.invalidate(favoritesProvider);
     _ref.invalidate(isFavoriteProvider(trackId));
     _ref.invalidate(favoriteCountProvider);
+
+    // Tell Android Auto to re-query the Favourites browse folder.
+    _notifyAndroidAutoFavourites();
+  }
+
+  /// Signals Android Auto to refresh its Favourites browse folder.
+  /// Wrapped in try-catch: AudioService may not be running on all platforms.
+  void _notifyAndroidAutoFavourites() {
+    try {
+      _ref.read(audioPlayerRepositoryProvider).notifyFavouritesChanged();
+    } catch (_) {
+      // AudioService not running (e.g. desktop / iOS without CarPlay). Ignore.
+    }
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:just_audio/just_audio.dart' as ja;
 import 'package:audio_session/audio_session.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:rxdart/rxdart.dart';
 import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/loop_range.dart';
 import '../../domain/entities/playback_info.dart';
@@ -74,6 +75,17 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   Future<void> _initialize() async {
     await _initializeAudioService();
     await _configureAudioSession();
+    // Notify Android Auto that the browse tree is ready. Auto may have called
+    // onLoadChildren() before AudioService.init() completed (cold start via
+    // car display) and cached an empty result. Signalling here causes it to
+    // re-query, picking up the real favourites list.
+    (_audioHandler as _AudioPlayerHandler?)
+        ?.refreshChildren(AudioService.browsableRootId);
+  }
+
+  @override
+  void notifyFavouritesChanged() {
+    (_audioHandler as _AudioPlayerHandler?)?.refreshChildren('favorites');
   }
 
   /// Configure audio session for background playback
@@ -412,6 +424,9 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   StreamSubscription<ja.PlayerState>? _playerStateSubscription;
   StreamSubscription<Duration>? _positionSubscription;
 
+  /// Per-parentMediaId subjects used to signal Android Auto to re-query children.
+  final _childrenSubjects = <String, BehaviorSubject<Map<String, dynamic>>>{};
+
   /// Android Auto browsable root ID used by audio_service
   static const _favoritesId = 'favorites';
 
@@ -431,6 +446,23 @@ class _AudioPlayerHandler extends BaseAudioHandler {
   // ---------------------------------------------------------------------------
   // Android Auto: content browsing
   // ---------------------------------------------------------------------------
+
+  /// Override subscribeToChildren so Android Auto re-queries when we emit on
+  /// the subject.  [BaseAudioHandler] returns a new sealed BehaviorSubject on
+  /// every call; by storing our own subjects we can emit to them from outside.
+  @override
+  ValueStream<Map<String, dynamic>> subscribeToChildren(String parentMediaId) {
+    return _childrenSubjects.putIfAbsent(
+      parentMediaId,
+      () => BehaviorSubject.seeded({}),
+    );
+  }
+
+  /// Emit an event on [parentMediaId]'s subject so the framework calls
+  /// [_platform.notifyChildrenChanged], prompting Android Auto to re-query.
+  void refreshChildren(String parentMediaId) {
+    _childrenSubjects[parentMediaId]?.add({});
+  }
 
   /// Return the current authenticated user ID, or null if not logged in.
   String? get _userId => _supabaseService.client.auth.currentUser?.id;
@@ -696,9 +728,13 @@ class _AudioPlayerHandler extends BaseAudioHandler {
     _broadcastState();
   }
 
-  /// Cleanup subscriptions
+  /// Cleanup subscriptions and subjects
   Future<void> cleanup() async {
     await _playerStateSubscription?.cancel();
     await _positionSubscription?.cancel();
+    for (final subject in _childrenSubjects.values) {
+      await subject.close();
+    }
+    _childrenSubjects.clear();
   }
 }
