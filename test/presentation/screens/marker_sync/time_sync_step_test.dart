@@ -484,8 +484,31 @@ void main() {
         await tester.longPress(find.byKey(const ValueKey('markerSyncMarker_0')));
         await tester.pumpAndSettle();
 
+        expect(find.text('-50ms'), findsOneWidget);
+        expect(find.text('+50ms'), findsOneWidget);
         expect(find.text('Add marker'), findsOneWidget);
         expect(find.text('Delete marker'), findsOneWidget);
+      });
+
+      testWidgets('fine tune +50ms updates synced marker time', (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        fakeAudioRepository.updatePosition(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('markerSyncMarkHereButton')));
+        await tester.pumpAndSettle();
+
+        await tester.longPress(find.byKey(const ValueKey('markerSyncMarker_0')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('+50ms'));
+        await tester.pumpAndSettle();
+
+        final markerTile = find.byKey(const ValueKey('markerSyncMarker_0'));
+        expect(
+          find.descendant(of: markerTile, matching: find.text('0:05.050')),
+          findsOneWidget,
+        );
       });
 
       testWidgets('add marker inserts behind selected marker', (tester) async {

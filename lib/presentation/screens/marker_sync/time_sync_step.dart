@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/marker_invariant_exception.dart';
+import '../../../core/services/screen_awake_service.dart';
 import '../../../domain/entities/audio_player_state.dart';
+import '../../../domain/entities/playback_info.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../providers/marker_provider.dart';
 import '../../providers/marker_sync_provider.dart';
@@ -25,12 +27,23 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   final _scrollController = ScrollController();
   bool _didResetPlayback = false;
   bool _isSaving = false;
+  bool _isKeepingScreenAwake = false;
   static const double _markerItemExtent = 64.0;
 
   @override
   void dispose() {
+    if (_isKeepingScreenAwake) {
+      ScreenAwakeService.setEnabled(false);
+      _isKeepingScreenAwake = false;
+    }
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _setKeepScreenAwake(bool enabled) async {
+    if (_isKeepingScreenAwake == enabled) return;
+    _isKeepingScreenAwake = enabled;
+    await ScreenAwakeService.setEnabled(enabled);
   }
 
   Future<void> _resetPlaybackPosition() async {
@@ -195,6 +208,28 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.remove),
+              title: const Text('-50ms'),
+              enabled: isSynced,
+              onTap: isSynced
+                  ? () {
+                      Navigator.pop(context);
+                      _fineTuneMarker(markerIndex, -50);
+                    }
+                  : null,
+            ),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('+50ms'),
+              enabled: isSynced,
+              onTap: isSynced
+                  ? () {
+                      Navigator.pop(context);
+                      _fineTuneMarker(markerIndex, 50);
+                    }
+                  : null,
+            ),
+            ListTile(
               leading: const Icon(Icons.link_off),
               title: const Text('Clear synced time'),
               enabled: isSynced,
@@ -219,6 +254,21 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
         ),
       ),
     );
+  }
+
+  void _fineTuneMarker(int markerIndex, int deltaMs) {
+    final didUpdate = ref
+        .read(markerSyncNotifierProvider(widget.params).notifier)
+        .nudgeSyncedPosition(markerIndex, deltaMs);
+    if (!didUpdate && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not fine-tune marker because it would break marker ordering.',
+          ),
+        ),
+      );
+    }
   }
 
   void _discard() {
@@ -253,6 +303,17 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
             _scrollToCurrentMarker();
           });
         }
+      },
+    );
+    ref.listen<AsyncValue<PlaybackInfo>>(
+      playbackInfoProvider,
+      (_, next) {
+        final playback = next.value;
+        final isPlayingSyncTrack =
+            playback != null &&
+            playback.isPlaying &&
+            playback.currentTrack?.id == widget.params.trackId;
+        _setKeepScreenAwake(isPlayingSyncTrack);
       },
     );
 

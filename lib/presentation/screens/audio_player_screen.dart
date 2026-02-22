@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/screen_awake_service.dart';
 import '../../domain/entities/audio_player_state.dart';
 import '../../domain/entities/playback_info.dart';
 import '../../domain/entities/track.dart';
@@ -29,6 +31,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   bool _isDraggingSlider = false;
   double _dragValue = 0.0;
   late final AudioPlayerControls _audioControls;
+  bool _isKeepingScreenAwake = false;
 
   @override
   void initState() {
@@ -51,8 +54,97 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
 
   @override
   void dispose() {
+    if (_isKeepingScreenAwake) {
+      ScreenAwakeService.setEnabled(false);
+      _isKeepingScreenAwake = false;
+    }
     _audioControls.stop();
     super.dispose();
+  }
+
+  Future<void> _setKeepScreenAwake(bool enabled) async {
+    if (_isKeepingScreenAwake == enabled) return;
+    _isKeepingScreenAwake = enabled;
+    await ScreenAwakeService.setEnabled(enabled);
+  }
+
+  Future<void> _seekBackward10Seconds(PlaybackInfo playbackInfo) async {
+    final currentPosition = playbackInfo.position;
+    final newPosition = currentPosition - const Duration(seconds: 10);
+    final seekPosition = newPosition < Duration.zero ? Duration.zero : newPosition;
+    await _audioControls.seek(seekPosition);
+  }
+
+  Future<void> _seekForward10Seconds(PlaybackInfo playbackInfo) async {
+    final currentPosition = playbackInfo.position;
+    final newPosition = currentPosition + const Duration(seconds: 10);
+    final seekPosition = newPosition > playbackInfo.duration
+        ? playbackInfo.duration
+        : newPosition;
+    await _audioControls.seek(seekPosition);
+  }
+
+  Future<void> _togglePlayPause(PlaybackInfo playbackInfo) async {
+    final isDifferentTrack = playbackInfo.currentTrack?.id != widget.track.id;
+    if (playbackInfo.isPlaying) {
+      await _audioControls.pause();
+      return;
+    }
+    if (isDifferentTrack || playbackInfo.state == AudioPlayerState.idle) {
+      await _audioControls.playTrack(
+        widget.track,
+        songName: widget.songTitle,
+        albumName: widget.concertName,
+      );
+      return;
+    }
+    await _audioControls.resume();
+  }
+
+  Widget _buildKeyboardShortcuts(PlaybackInfo playbackInfo, Widget child) {
+    return Shortcuts(
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.space): const _TogglePlayPauseIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyK): const _TogglePlayPauseIntent(),
+        LogicalKeySet(LogicalKeyboardKey.arrowLeft): const _SeekBackwardIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyJ): const _SeekBackwardIntent(),
+        LogicalKeySet(LogicalKeyboardKey.arrowRight): const _SeekForwardIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyL): const _SeekForwardIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyR): const _ToggleLoopIntent(),
+      },
+      child: Actions(
+        actions: {
+          _TogglePlayPauseIntent: CallbackAction<_TogglePlayPauseIntent>(
+            onInvoke: (_) {
+              _togglePlayPause(playbackInfo);
+              return null;
+            },
+          ),
+          _SeekBackwardIntent: CallbackAction<_SeekBackwardIntent>(
+            onInvoke: (_) {
+              _seekBackward10Seconds(playbackInfo);
+              return null;
+            },
+          ),
+          _SeekForwardIntent: CallbackAction<_SeekForwardIntent>(
+            onInvoke: (_) {
+              _seekForward10Seconds(playbackInfo);
+              return null;
+            },
+          ),
+          _ToggleLoopIntent: CallbackAction<_ToggleLoopIntent>(
+            onInvoke: (_) {
+              _audioControls.toggleTrackLoop();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: child,
+        ),
+      ),
+    );
   }
 
   @override
@@ -66,6 +158,8 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
         if (previousTrack.id != nextTrack.id) {
           ref.read(selectedMarkerSetProvider.notifier).state = null;
         }
+        final isPlaying = next.value?.isPlaying ?? false;
+        _setKeepScreenAwake(isPlaying);
       },
     );
 
@@ -128,9 +222,12 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       ),
       body: playbackInfoAsync.when(
         data: (playbackInfo) {
-          return SafeArea(
-            top: false,
-            child: _buildPlaybackControls(playbackInfo),
+          return _buildKeyboardShortcuts(
+            playbackInfo,
+            SafeArea(
+              top: false,
+              child: _buildPlaybackControls(playbackInfo),
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -168,12 +265,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                     icon: const Icon(Icons.replay_10),
                     iconSize: 28,
                     onPressed: () {
-                      final currentPosition = playbackInfo.position;
-                      final newPosition = currentPosition - const Duration(seconds: 10);
-                      final seekPosition = newPosition < Duration.zero
-                          ? Duration.zero
-                          : newPosition;
-                      ref.read(audioPlayerControlsProvider).seek(seekPosition);
+                      _seekBackward10Seconds(playbackInfo);
                     },
                   ),
                       IconButton(
@@ -182,32 +274,14 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                     ),
                     iconSize: 48,
                     onPressed: () {
-                      final isDifferentTrack =
-                          playbackInfo.currentTrack?.id != widget.track.id;
-                      if (playbackInfo.isPlaying) {
-                        _audioControls.pause();
-                      } else if (isDifferentTrack ||
-                          playbackInfo.state == AudioPlayerState.idle) {
-                        _audioControls.playTrack(
-                          widget.track,
-                          songName: widget.songTitle,
-                          albumName: widget.concertName,
-                        );
-                      } else {
-                        _audioControls.resume();
-                      }
+                      _togglePlayPause(playbackInfo);
                     },
                   ),
                       IconButton(
                     icon: const Icon(Icons.forward_10),
                     iconSize: 28,
                     onPressed: () {
-                      final currentPosition = playbackInfo.position;
-                      final newPosition = currentPosition + const Duration(seconds: 10);
-                      final seekPosition = newPosition > playbackInfo.duration
-                          ? playbackInfo.duration
-                          : newPosition;
-                      ref.read(audioPlayerControlsProvider).seek(seekPosition);
+                      _seekForward10Seconds(playbackInfo);
                     },
                   ),
                       const SizedBox(width: 4),
@@ -466,4 +540,20 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
   }
+}
+
+class _TogglePlayPauseIntent extends Intent {
+  const _TogglePlayPauseIntent();
+}
+
+class _SeekBackwardIntent extends Intent {
+  const _SeekBackwardIntent();
+}
+
+class _SeekForwardIntent extends Intent {
+  const _SeekForwardIntent();
+}
+
+class _ToggleLoopIntent extends Intent {
+  const _ToggleLoopIntent();
 }

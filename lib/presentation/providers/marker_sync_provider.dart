@@ -341,6 +341,52 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
     );
   }
 
+  /// Fine-tune a synced marker position by [deltaMs] while preserving monotonic order.
+  ///
+  /// Returns true when the position was updated, false when the update would
+  /// violate ordering constraints or the marker is not synced.
+  bool nudgeSyncedPosition(int index, int deltaMs) {
+    if (index < 0 || index >= state.labels.length) return false;
+
+    final currentPosition = state.syncedPositions[index];
+    if (currentPosition == null) return false;
+
+    final nextPosition = (currentPosition + deltaMs).clamp(0, 1 << 31).toInt();
+
+    int? previousSynced;
+    for (int i = index - 1; i >= 0; i--) {
+      final position = state.syncedPositions[i];
+      if (position != null) {
+        previousSynced = position;
+        break;
+      }
+    }
+
+    int? nextSynced;
+    for (int i = index + 1; i < state.labels.length; i++) {
+      final position = state.syncedPositions[i];
+      if (position != null) {
+        nextSynced = position;
+        break;
+      }
+    }
+
+    if (previousSynced != null && nextPosition < previousSynced) {
+      return false;
+    }
+    if (nextSynced != null && nextPosition > nextSynced) {
+      return false;
+    }
+
+    final updatedPositions = Map<int, int>.from(state.syncedPositions);
+    updatedPositions[index] = nextPosition;
+    state = state.copyWith(
+      syncedPositions: updatedPositions,
+      isDirty: true,
+    );
+    return true;
+  }
+
   /// Insert a marker after [index] and shift later marker indices.
   void addMarkerAfter(int index, {String label = 'New marker'}) {
     if (index < -1 || index >= state.labels.length) return;

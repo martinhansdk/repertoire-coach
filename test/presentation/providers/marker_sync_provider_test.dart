@@ -329,6 +329,36 @@ void main() {
       });
     });
 
+    group('nudgeSyncedPosition', () {
+      setUp(() {
+        notifier.setLabels('intro\nverse\nchorus');
+        notifier.syncNextMarker(1000);
+        notifier.syncNextMarker(2000);
+        notifier.syncNextMarker(3000);
+      });
+
+      test('updates synced position when invariant is preserved', () {
+        final didUpdate = notifier.nudgeSyncedPosition(1, 50);
+
+        expect(didUpdate, isTrue);
+        expect(notifier.state.syncedPositions[1], 2050);
+      });
+
+      test('rejects update when it would go before previous marker', () {
+        final didUpdate = notifier.nudgeSyncedPosition(1, -1500);
+
+        expect(didUpdate, isFalse);
+        expect(notifier.state.syncedPositions[1], 2000);
+      });
+
+      test('rejects update when it would go after next marker', () {
+        final didUpdate = notifier.nudgeSyncedPosition(1, 1200);
+
+        expect(didUpdate, isFalse);
+        expect(notifier.state.syncedPositions[1], 2000);
+      });
+    });
+
     group('restart', () {
       setUp(() {
         notifier.setLabels('intro\nverse\nchorus');
