@@ -141,7 +141,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
       _audioHandler = await AudioService.init(
         builder: () => _AudioPlayerHandler(_player, _database, _supabaseService, _signerClient),
         config: AudioServiceConfig(
-          androidNotificationChannelId: 'com.example.repertoire_coach.audio',
+          androidNotificationChannelId: 'com.repertoirecoach.repertoire_coach.audio',
           androidNotificationChannelName: 'Repertoire Coach Audio',
           androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
@@ -428,6 +428,7 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   @override
   Future<void> dispose() async {
     await _loopSubscription?.cancel();
+    await (_audioHandler as _AudioPlayerHandler?)?.cleanup();
     await _player.dispose();
     await _playbackController.close();
   }
