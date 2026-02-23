@@ -1,5 +1,4 @@
-import 'dart:developer' as developer;
-
+import '../../core/services/error_reporter.dart';
 import 'sync_adapter.dart';
 import 'syncable.dart';
 
@@ -89,15 +88,11 @@ class SyncAlgorithm<T extends Syncable> {
               pushedIds.add(id);
             }
           }
-        } catch (e) {
-          // Push failed for this item - log and continue with others
+        } catch (e, st) {
+          // Push failed for this item - log and continue with others.
           // Item stays unsynced and will be retried on next sync.
           // Record the failure so the pull phase doesn't overwrite local changes.
-          developer.log(
-            'Failed to push item $id: $e',
-            name: 'SyncAlgorithm',
-            error: e,
-          );
+          ErrorReporter.report(e, stackTrace: st, screen: 'sync');
           failedPushIds.add(id);
           pushFailures++;
         }
@@ -138,13 +133,9 @@ class SyncAlgorithm<T extends Syncable> {
         pulled: pulled,
         pushFailures: pushFailures,
       );
-    } catch (e) {
-      // Fatal error during sync - log and rethrow
-      developer.log(
-        'Sync failed: $e',
-        name: 'SyncAlgorithm',
-        error: e,
-      );
+    } catch (e, st) {
+      // Fatal error during sync - log and rethrow.
+      ErrorReporter.report(e, stackTrace: st, screen: 'sync');
       rethrow;
     }
   }

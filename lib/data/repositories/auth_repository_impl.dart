@@ -1,6 +1,5 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:repertoire_coach/core/services/error_reporter.dart';
 import 'package:repertoire_coach/core/services/supabase_service.dart';
 import 'package:repertoire_coach/domain/repositories/auth_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -137,10 +136,9 @@ class AuthRepositoryImpl implements AuthRepository {
         'display_name': displayName,
         'language_preference': 'en', // Default language
       });
-    } catch (e) {
-      // Log error but don't fail sign up if user record creation fails
-      // The user is still authenticated via Supabase Auth
-      developer.log('Warning: Failed to create user record: $e', name: 'AuthRepositoryImpl', error: e);
+    } catch (e, st) {
+      // Don't fail sign up if user record creation fails — user is still authenticated.
+      ErrorReporter.report(e, stackTrace: st, screen: 'auth');
     }
   }
 }
