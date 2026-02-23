@@ -662,7 +662,6 @@ class AppDatabase extends _$AppDatabase {
   /// Used during sync to remove tracks that were deleted on remote.
   /// Only deletes tracks that are already synced (came from remote).
   Future<void> hardDeleteTracksNotIn(Set<String> keepIds) async {
-    if (keepIds.isEmpty) return;
     await (delete(tracks)
           ..where((t) => t.id.isNotIn(keepIds))
           ..where((t) => t.synced.equals(true)))
@@ -674,7 +673,6 @@ class AppDatabase extends _$AppDatabase {
   /// Used during sync to remove concerts deleted on remote.
   /// Only deletes concerts that are already synced.
   Future<void> hardDeleteConcertsNotIn(Set<String> keepIds) async {
-    if (keepIds.isEmpty) return;
     await (delete(concerts)
           ..where((c) => c.id.isNotIn(keepIds))
           ..where((c) => c.synced.equals(true)))
@@ -686,7 +684,6 @@ class AppDatabase extends _$AppDatabase {
   /// Used during sync to remove songs deleted on remote.
   /// Only deletes songs that are already synced.
   Future<void> hardDeleteSongsNotIn(Set<String> keepIds) async {
-    if (keepIds.isEmpty) return;
     await (delete(songs)
           ..where((s) => s.id.isNotIn(keepIds))
           ..where((s) => s.synced.equals(true)))
@@ -698,7 +695,6 @@ class AppDatabase extends _$AppDatabase {
   /// Used during sync to remove marker sets deleted on remote.
   /// Only deletes marker sets that are already synced.
   Future<void> hardDeleteMarkerSetsNotIn(Set<String> keepIds) async {
-    if (keepIds.isEmpty) return;
     await (delete(markerSets)
           ..where((ms) => ms.id.isNotIn(keepIds))
           ..where((ms) => ms.synced.equals(true)))
@@ -710,7 +706,6 @@ class AppDatabase extends _$AppDatabase {
   /// Used during sync to remove markers deleted on remote.
   /// Only deletes markers that are already synced.
   Future<void> hardDeleteMarkersNotIn(Set<String> keepIds) async {
-    if (keepIds.isEmpty) return;
     await (delete(markers)
           ..where((m) => m.id.isNotIn(keepIds))
           ..where((m) => m.synced.equals(true)))

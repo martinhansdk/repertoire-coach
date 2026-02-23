@@ -317,6 +317,62 @@ void main() {
       expect(adapter.remote.length, 2);
     });
 
+    // Regression test for the marker-set reversion bug (2026-02-22).
+    //
+    // Root cause chain:
+    //   1. RemoteMarkerDataSource.updateMarkerSet() sent markers_json as a raw
+    //      Dart String.  PostgREST stored it as a JSONB scalar string; the
+    //      migration-012 CHECK constraint called jsonb_array_elements() on it
+    //      and threw "cannot extract elements from a scalar", rejecting every
+    //      update silently.
+    //   2. Because both direct pushes in the repository failed, remote kept the
+    //      old markers_json.
+    //   3. On sync, local was newer (T3) than remote (T_old), so the push phase
+    //      called updateOnRemote — which also failed for the same reason.
+    //   4. Bug 3 (pre-fix): the push catch block did NOT add the item to
+    //      pushedIds, so the pull phase saw syncedLocal[id]=null (item was
+    //      unsynced) and called upsertLocal(remote_old) — overwriting the user's
+    //      local changes with the old server data.  Visible as the marker set
+    //      reverting after sync.
+    //
+    // The fix: add failedPushIds and skip those in the pull phase.
+    // This test must fail if the failedPushIds guard is removed.
+    test(
+        '14. regression: push failure does not overwrite local data with stale remote',
+        () async {
+      // Local: user just saved the marker set → unsynced, newer timestamp
+      final localItem = adapter.createItem(
+        id: 'marker-set-1',
+        timestamp: DateTime(2024, 2, 1, 12, 0, 1), // T3: client save time
+        data: 'new-markers-json',
+      );
+      // Remote: last successful sync → older timestamp, old payload
+      final remoteItem = adapter.createItem(
+        id: 'marker-set-1',
+        timestamp: DateTime(2024, 2, 1, 12, 0, 0), // T_old
+        data: 'old-markers-json',
+      );
+
+      adapter.addLocal(localItem, synced: false); // unsynced: user's new data
+      adapter.addRemote(remoteItem); // remote: stale
+
+      // Simulate the push always failing (encoding bug, RLS rejection, etc.)
+      adapter.failingIds.add('marker-set-1');
+
+      final result = await algorithm.sync();
+
+      expect(result.pushFailures, 1);
+      expect(result.pushedUpdates, 0);
+
+      // CRITICAL: local data must NOT be overwritten with old remote data.
+      // Pre-fix: adapter.local['marker-set-1']!.item.data would be
+      // 'old-markers-json' because the pull phase called upsertLocal(remote).
+      expect(adapter.local['marker-set-1']!.item.data, 'new-markers-json');
+
+      // Item stays unsynced so it is retried on the next sync run.
+      expect(adapter.local['marker-set-1']!.synced, false);
+    });
+
     test('upsertLocal does not resurrect items with pending soft-deletes',
         () async {
       // Local has unsynced soft-delete

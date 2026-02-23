@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/marker_model.dart';
@@ -104,7 +106,12 @@ class RemoteMarkerDataSource {
             'name': markerSet.name,
             'is_shared': markerSet.isShared,
             'is_time_synced': markerSet.isTimeSynced,
-            'markers_json': markerSet.markersJson,
+            // Decode markersJson string to a Dart object so the Supabase client
+            // serialises it as a JSON array, not a JSON string scalar.  Sending
+            // the raw String causes PostgREST to store it as a JSONB scalar, which
+            // makes the marker_set_payload_is_time_synced CHECK constraint throw
+            // "cannot extract elements from a scalar".
+            'markers_json': jsonDecode(markerSet.markersJson),
             'updated_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', markerSet.id);

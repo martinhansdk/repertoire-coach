@@ -30,6 +30,9 @@ class SyncAlgorithm<T extends Syncable> {
 
     // Track which items were successfully pushed (to skip during pull)
     final pushedIds = <String>{};
+    // Track items whose push failed — skip them during pull so a transient
+    // push failure doesn't cause the pull phase to overwrite local changes.
+    final failedPushIds = <String>{};
 
     try {
       // Step 1: Fetch local items and all remote items
@@ -88,12 +91,14 @@ class SyncAlgorithm<T extends Syncable> {
           }
         } catch (e) {
           // Push failed for this item - log and continue with others
-          // Item stays unsynced and will be retried on next sync
+          // Item stays unsynced and will be retried on next sync.
+          // Record the failure so the pull phase doesn't overwrite local changes.
           developer.log(
             'Failed to push item $id: $e',
             name: 'SyncAlgorithm',
             error: e,
           );
+          failedPushIds.add(id);
           pushFailures++;
         }
       }
@@ -105,8 +110,9 @@ class SyncAlgorithm<T extends Syncable> {
       for (final remoteItem in allRemote) {
         final id = remoteItem.syncId;
 
-        // Skip items we already handled in push phase
-        if (pushedIds.contains(id)) {
+        // Skip items we already handled in push phase, and items whose push
+        // failed (we don't want a transient failure to overwrite local changes).
+        if (pushedIds.contains(id) || failedPushIds.contains(id)) {
           continue;
         }
 
