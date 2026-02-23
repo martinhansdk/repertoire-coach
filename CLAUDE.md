@@ -608,6 +608,37 @@ Scripts write detailed logs to `logs/` directory.
 - Compilation errors
 - Broken tests from code changes
 
+## Debugging Bugs
+
+### Gather information before reading code
+
+When a bug is reported, resist the urge to read code and reason about root causes.
+Code reading loops are slow and often miss the actual cause. Instead, gather hard
+evidence first:
+
+1. **Reproduce on a real device with logcat** — `adb logcat -s flutter` captures
+   every `debugPrint` and `ErrorReporter` call. A single reproduction run usually
+   points directly at the failing line.
+2. **Write a failing unit test that reproduces the symptom** — even if the root
+   cause isn't known yet, a failing test narrows the search and becomes the
+   regression guard once the fix is applied.
+3. **Then read code** to understand why the test fails and design the fix.
+
+Only resort to static code analysis (reading files, reasoning about data flow) when
+device reproduction is not possible (e.g. rare race condition, CI-only failure).
+
+### Write the failing test before fixing the bug
+
+**Always write the failing test first, then fix the bug.**
+
+- Write a test that reproduces the observed symptom and confirm it fails.
+- Apply the fix.
+- Confirm the test now passes.
+
+This order ensures the test genuinely catches the bug (not a false-positive green),
+produces a useful regression guard, and keeps commits clean (test + fix together).
+Fixing first and testing second risks writing a test that passes vacuously.
+
 ## Troubleshooting with Claude
 
 **When stuck:**
