@@ -610,22 +610,24 @@ Scripts write detailed logs to `logs/` directory.
 
 ## Debugging Bugs
 
-### Gather information before reading code
+### Recognise when code reading is not enough
 
-When a bug is reported, resist the urge to read code and reason about root causes.
-Code reading loops are slow and often miss the actual cause. Instead, gather hard
-evidence first:
+Reading code is valuable — but it only works when there is enough information to
+reason from. Watch for these signs that code reading has hit a dead end:
 
-1. **Reproduce on a real device with logcat** — `adb logcat -s flutter` captures
-   every `debugPrint` and `ErrorReporter` call. A single reproduction run usually
-   points directly at the failing line.
-2. **Write a failing unit test that reproduces the symptom** — even if the root
-   cause isn't known yet, a failing test narrows the search and becomes the
-   regression guard once the fix is applied.
-3. **Then read code** to understand why the test fails and design the fix.
+- You have read multiple files and still cannot confirm *which* branch of code
+  executes at runtime.
+- You are forming hypotheses but have no way to verify them from the code alone.
+- The same files keep getting re-read without new conclusions.
 
-Only resort to static code analysis (reading files, reasoning about data flow) when
-device reproduction is not possible (e.g. rare race condition, CI-only failure).
+When any of these apply, **stop and gather runtime evidence instead**:
+
+- **Logcat on a real device** — `adb logcat -s flutter` captures every
+  `debugPrint` and `ErrorReporter` call. A single reproduction run often points
+  directly at the failing line and confirms or rules out hypotheses immediately.
+- **A failing unit test** — even before the root cause is known, writing a test
+  that reproduces the symptom narrows the search space and becomes a regression
+  guard once the fix is applied.
 
 ### Write the failing test before fixing the bug
 
