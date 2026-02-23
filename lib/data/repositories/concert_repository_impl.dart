@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import '../../core/services/error_reporter.dart';
 import '../../core/services/supabase_service.dart';
 import '../../domain/entities/concert.dart';
 import '../../domain/repositories/concert_repository.dart';
@@ -59,9 +59,8 @@ class ConcertRepositoryImpl implements ConcertRepository {
       try {
         await _remoteDataSource.createConcert(concertModel);
         await _localDataSource.markAsSynced(concert.id);
-      } catch (e) {
-        // Log error but don't fail the operation - will sync later
-        debugPrint('Failed to sync concert to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'concert_repository');
       }
     }
   }
@@ -78,9 +77,8 @@ class ConcertRepositoryImpl implements ConcertRepository {
       try {
         await _remoteDataSource.updateConcert(concertModel);
         await _localDataSource.markAsSynced(concert.id);
-      } catch (e) {
-        // Log error but don't fail the operation - will sync later
-        debugPrint('Failed to sync concert update to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'concert_repository');
       }
     }
 
@@ -96,9 +94,8 @@ class ConcertRepositoryImpl implements ConcertRepository {
     if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
       try {
         await _remoteDataSource.deleteConcert(concertId);
-      } catch (e) {
-        // Log error but don't fail the operation - will sync later
-        debugPrint('Failed to sync concert deletion to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'concert_repository');
       }
     }
   }

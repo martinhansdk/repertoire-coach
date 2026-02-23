@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import '../../core/services/error_reporter.dart';
 import '../../core/services/supabase_service.dart';
 import '../../domain/entities/track.dart';
 import '../../domain/repositories/track_repository.dart';
@@ -38,8 +38,8 @@ class TrackRepositoryImpl implements TrackRepository {
       try {
         await _remoteDataSource.createTrack(trackModel);
         await _localDataSource.markAsSynced(track.id);
-      } catch (e) {
-        debugPrint('Failed to sync track to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'track_repository');
       }
     }
   }
@@ -53,8 +53,8 @@ class TrackRepositoryImpl implements TrackRepository {
       try {
         await _remoteDataSource.updateTrack(trackModel);
         await _localDataSource.markAsSynced(track.id);
-      } catch (e) {
-        debugPrint('Failed to sync track update to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'track_repository');
       }
     }
 
@@ -68,8 +68,8 @@ class TrackRepositoryImpl implements TrackRepository {
     if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
       try {
         await _remoteDataSource.deleteTrack(trackId);
-      } catch (e) {
-        debugPrint('Failed to sync track deletion to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'track_repository');
       }
     }
   }

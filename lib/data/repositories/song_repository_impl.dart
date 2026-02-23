@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import '../../core/services/error_reporter.dart';
 import '../../core/services/supabase_service.dart';
 import '../../domain/entities/song.dart';
 import '../../domain/repositories/song_repository.dart';
@@ -38,8 +38,8 @@ class SongRepositoryImpl implements SongRepository {
       try {
         await _remoteDataSource.createSong(songModel);
         await _localDataSource.markAsSynced(song.id);
-      } catch (e) {
-        debugPrint('Failed to sync song to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'song_repository');
       }
     }
   }
@@ -53,8 +53,8 @@ class SongRepositoryImpl implements SongRepository {
       try {
         await _remoteDataSource.updateSong(songModel);
         await _localDataSource.markAsSynced(song.id);
-      } catch (e) {
-        debugPrint('Failed to sync song update to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'song_repository');
       }
     }
 
@@ -68,8 +68,8 @@ class SongRepositoryImpl implements SongRepository {
     if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
       try {
         await _remoteDataSource.deleteSong(songId);
-      } catch (e) {
-        debugPrint('Failed to sync song deletion to remote: $e');
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'song_repository');
       }
     }
   }
