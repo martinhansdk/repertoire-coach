@@ -198,6 +198,23 @@ void main() {
           .getSingleOrNull();
       expect(raw, isNull);
     });
+
+    // Regression test for Bug 2 (2026-02-22): hardDeleteMarkerSetsNotIn()
+    // had an early-return guard `if (keepIds.isEmpty) return;` that prevented
+    // cleanup when the user was removed from all choirs (legitimate empty set).
+    // Pre-fix: ms1 would survive the call. Post-fix: it is hard-deleted.
+    test('regression: hardDeleteMarkerSetsNotIn with empty set deletes all synced records',
+        () async {
+      await dataSource.insertMarkerSet(testMarkerSet);
+      await dataSource.markMarkerSetAsSynced('ms1');
+
+      await dataSource.hardDeleteMarkerSetsNotIn({});
+
+      final raw = await (database.select(database.markerSets)
+            ..where((ms) => ms.id.equals('ms1')))
+          .getSingleOrNull();
+      expect(raw, isNull);
+    });
   });
 
   // -----------------------------------------------------------------------

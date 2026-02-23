@@ -1,3 +1,4 @@
+import '../../core/services/error_reporter.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/errors/marker_invariant_exception.dart';
 import '../../domain/entities/marker.dart';
@@ -65,12 +66,8 @@ class MarkerRepositoryImpl implements MarkerRepository {
     if (_canSyncToRemote) {
       try {
         await _remoteDataSource!.createMarkerSet(markerSetModel);
-      } catch (e) {
-        // Log error but don't fail - data is already saved locally
-        // TODO: Use proper logging framework
-// ignore: avoid_print
-print('Failed to sync marker set to Supabase: $e');
-        // TODO: Add to sync queue for retry
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
       }
     }
   }
@@ -98,11 +95,8 @@ print('Failed to sync marker set to Supabase: $e');
     if (success && _canSyncToRemote) {
       try {
         await _remoteDataSource!.updateMarkerSet(markerSetModel);
-      } catch (e) {
-        // Log error but don't fail - data is already saved locally
-        // ignore: avoid_print
-print('Failed to sync marker set update to Supabase: $e');
-        // TODO: Add to sync queue for retry
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
       }
     }
 
@@ -118,11 +112,8 @@ print('Failed to sync marker set update to Supabase: $e');
     if (_canSyncToRemote) {
       try {
         await _remoteDataSource!.deleteMarkerSet(markerSetId);
-      } catch (e) {
-        // Log error but don't fail - data is already deleted locally
-        // ignore: avoid_print
-print('Failed to sync marker set deletion to Supabase: $e');
-        // TODO: Add to sync queue for retry
+      } catch (e, st) {
+        ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
       }
     }
   }
@@ -207,9 +198,8 @@ print('Failed to sync marker set deletion to Supabase: $e');
 
     try {
       await _remoteDataSource!.updateMarkerSet(updatedSet);
-    } catch (e) {
-      // ignore: avoid_print
-      print('Failed to sync marker payload to Supabase: $e');
+    } catch (e, st) {
+      ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
     }
   }
 

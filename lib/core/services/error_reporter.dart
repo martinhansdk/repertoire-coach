@@ -21,6 +21,9 @@ class ErrorReporter {
     StackTrace? stackTrace,
     String? screen,
   }) {
+    final tag = screen != null ? '[$screen] ' : '';
+    debugPrint('[ErrorReporter] $tag$error');
+    if (stackTrace != null) debugPrint(stackTrace.toString());
     if (!SupabaseService.isInitialized) return;
     // ignore: unawaited_futures
     _insert(error, stackTrace, screen);

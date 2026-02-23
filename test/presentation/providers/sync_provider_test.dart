@@ -16,7 +16,9 @@ import 'package:repertoire_coach/data/datasources/local/local_favorite_track_dat
 import 'package:repertoire_coach/data/datasources/remote/remote_favorite_track_data_source.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
+import 'package:repertoire_coach/presentation/providers/song_provider.dart';
 import 'package:repertoire_coach/presentation/providers/sync_provider.dart';
+import 'package:repertoire_coach/presentation/providers/track_provider.dart';
 
 class _DummyLocalChoirDataSource extends Fake
     implements LocalChoirDataSource {}
@@ -74,6 +76,48 @@ class _FakeSupabaseService extends Fake implements SupabaseService {
 }
 
 void main() {
+  // Regression test for Bug 1 (2026-02-22): _refreshProviders() was missing
+  // invalidations for songsByConcertProvider and tracksBySongProvider.
+  // Because these are family providers they don't rebuild automatically when
+  // parent providers are invalidated — they must be explicitly invalidated.
+  // Pre-fix: reads after sync would return the stale cached value.
+  test('regression: sync invalidates songsByConcertProvider and tracksBySongProvider',
+      () async {
+    var songsReads = 0;
+    var tracksReads = 0;
+
+    final container = ProviderContainer(
+      overrides: [
+        supabaseServiceProvider.overrideWithValue(_FakeSupabaseService()),
+        syncServiceProvider.overrideWithValue(_FakeSyncService()),
+        songsByConcertProvider('concert-1').overrideWith(
+          (ref) async {
+            songsReads += 1;
+            return [];
+          },
+        ),
+        tracksBySongProvider('song-1').overrideWith(
+          (ref) async {
+            tracksReads += 1;
+            return [];
+          },
+        ),
+      ],
+    );
+
+    await container.read(songsByConcertProvider('concert-1').future);
+    await container.read(tracksBySongProvider('song-1').future);
+    expect(songsReads, 1);
+    expect(tracksReads, 1);
+
+    await container.read(syncControllerProvider.notifier).syncFromRemote();
+
+    await container.read(songsByConcertProvider('concert-1').future);
+    await container.read(tracksBySongProvider('song-1').future);
+    expect(songsReads, 2);
+    expect(tracksReads, 2);
+  });
+
   test('sync invalidates marker providers', () async {
     var markerSetsReads = 0;
     var markersReads = 0;
