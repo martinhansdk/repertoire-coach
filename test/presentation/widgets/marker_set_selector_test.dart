@@ -17,7 +17,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'user-1',
       createdAt: now,
-        updatedAt: now,
+      updatedAt: now,
     );
 
     final markerSet2 = MarkerSet(
@@ -28,7 +28,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'user-1',
       createdAt: now,
-        updatedAt: now,
+      updatedAt: now,
     );
 
     final markerSet3 = MarkerSet(
@@ -39,7 +39,7 @@ void main() {
       isTimeSynced: true,
       createdByUserId: 'user-1',
       createdAt: now,
-        updatedAt: now,
+      updatedAt: now,
     );
 
     Widget createWidgetUnderTest({
@@ -63,15 +63,16 @@ void main() {
     }
 
     group('Empty State', () {
-      testWidgets('should display empty state when no marker sets provided', (tester) async {
+      testWidgets('should display chip with bookmarks icon when no marker sets', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
         await tester.pumpAndSettle();
 
+        expect(find.byType(ActionChip), findsOneWidget);
         expect(find.byIcon(Icons.bookmarks_outlined), findsOneWidget);
-        expect(find.text('No marker sets'), findsOneWidget);
+        expect(find.text('Markers'), findsOneWidget);
       });
 
-      testWidgets('should show create button in empty state when onManageMarkers provided', (tester) async {
+      testWidgets('should call onManageMarkers when empty chip is tapped', (tester) async {
         bool manageTapped = false;
 
         await tester.pumpWidget(createWidgetUnderTest(
@@ -79,73 +80,33 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        expect(find.text('Create'), findsOneWidget);
-        expect(find.byIcon(Icons.add), findsOneWidget);
-
-        await tester.tap(find.text('Create'));
+        await tester.tap(find.byType(ActionChip));
         await tester.pump();
 
         expect(manageTapped, true);
       });
 
-      testWidgets('should not show create button when onManageMarkers is null', (tester) async {
+      testWidgets('should show chip even when onManageMarkers is null', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
           onManageMarkers: null,
         ));
         await tester.pumpAndSettle();
 
-        expect(find.text('Create'), findsNothing);
+        expect(find.byType(ActionChip), findsOneWidget);
+        expect(find.text('Markers'), findsOneWidget);
       });
     });
 
-    group('Dropdown with Marker Sets', () {
-      testWidgets('should display dropdown with marker sets', (tester) async {
+    group('Chip Display', () {
+      testWidgets('should show ActionChip with selected set name', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1, markerSet2, markerSet3],
+          markerSets: [markerSet1, markerSet2],
+          initialSelectedId: 'set-1',
         ));
         await tester.pumpAndSettle();
 
-        expect(find.byType(DropdownButton<String>), findsOneWidget);
-      });
-
-      testWidgets('should show all marker sets in dropdown', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1, markerSet2, markerSet3],
-        ));
-        await tester.pumpAndSettle();
-
-        // Open dropdown
-        await tester.tap(find.byType(DropdownButton<String>));
-        await tester.pumpAndSettle();
-
-        expect(find.text('Structure').hitTestable(), findsOneWidget);
-        expect(find.text('Rehearsal Marks').hitTestable(), findsOneWidget);
-        expect(find.text('Bar Numbers').hitTestable(), findsOneWidget);
-      });
-
-      testWidgets('should show correct icon for private marker set', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1],
-        ));
-        await tester.pumpAndSettle();
-
-        // Open dropdown to see icons
-        await tester.tap(find.byType(DropdownButton<String>));
-        await tester.pumpAndSettle();
-
-        expect(find.byIcon(Icons.lock), findsWidgets);
-      });
-
-      testWidgets('should show correct icon for shared marker set', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet2],
-        ));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byType(DropdownButton<String>));
-        await tester.pumpAndSettle();
-
-        expect(find.byIcon(Icons.people), findsWidgets);
+        expect(find.byType(ActionChip), findsOneWidget);
+        expect(find.text('Structure'), findsOneWidget);
       });
 
       testWidgets('should select first marker set by default', (tester) async {
@@ -154,7 +115,6 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        // First item should be displayed in dropdown
         expect(find.text('Structure'), findsOneWidget);
       });
 
@@ -168,52 +128,92 @@ void main() {
         expect(find.text('Rehearsal Marks'), findsOneWidget);
       });
 
-      testWidgets('should fallback to first item if initial selection is invalid', (tester) async {
+      testWidgets('should fall back to first item if initial selection is invalid', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
           markerSets: [markerSet1, markerSet2],
           initialSelectedId: 'invalid-id',
         ));
         await tester.pumpAndSettle();
 
-        // Should select first item
         expect(find.text('Structure'), findsOneWidget);
       });
 
-      // SKIP: Dropdown interaction timing issue
-      testWidgets('should change selection when different item selected', (tester) async {
+      testWidgets('should show bookmarks icon on chip', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSets: [markerSet1],
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.bookmarks), findsOneWidget);
+      });
+    });
+
+    group('Bottom Sheet', () {
+      testWidgets('should open bottom sheet when chip is tapped', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSets: [markerSet1, markerSet2],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(ActionChip));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Marker sets'), findsOneWidget);
+      });
+
+      testWidgets('should show all marker sets in bottom sheet', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
           markerSets: [markerSet1, markerSet2, markerSet3],
         ));
         await tester.pumpAndSettle();
 
-        // Initially shows first item
-        expect(find.text('Structure'), findsOneWidget);
-
-        // Open dropdown
-        await tester.tap(find.byType(DropdownButton<String>));
+        await tester.tap(find.byType(ActionChip));
         await tester.pumpAndSettle();
 
-        // Select different item (use .last to select from the menu, not the button)
-        await tester.tap(find.text('Rehearsal Marks').last);
-        await tester.pumpAndSettle();
-
-        // Multiple pumps needed for dropdown state and provider update
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pumpAndSettle();
-
-        // Verify the dropdown value changed
-        final dropdown = tester.widget<DropdownButton<String>>(
-          find.byType(DropdownButton<String>),
-        );
-        expect(dropdown.value, 'set-2');
-
-        // Should show selected item in the dropdown button
+        // 'Structure' appears in both the chip (background) and the sheet
+        expect(find.text('Structure'), findsWidgets);
         expect(find.text('Rehearsal Marks'), findsOneWidget);
-      }, skip: true);
+        expect(find.text('Bar Numbers'), findsOneWidget);
+      });
 
-      // SKIP: Dropdown interaction timing issue
-      testWidgets('should update provider when selection changes', (tester) async {
+      testWidgets('should show checkmark next to currently selected set', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSets: [markerSet1, markerSet2],
+          initialSelectedId: 'set-1',
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(ActionChip));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.check), findsOneWidget);
+      });
+
+      testWidgets('should show lock icon for private sets in sheet', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSets: [markerSet1],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(ActionChip));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.lock), findsOneWidget);
+      });
+
+      testWidgets('should show people icon for shared sets in sheet', (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(
+          markerSets: [markerSet2],
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(ActionChip));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.people), findsOneWidget);
+      });
+
+      testWidgets('should update selection and close sheet when set is tapped', (tester) async {
         String? selectedId;
 
         await tester.pumpWidget(
@@ -234,44 +234,51 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Open dropdown and select second item
-        await tester.tap(find.byType(DropdownButton<String>));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Rehearsal Marks').last);
+        // Open sheet
+        await tester.tap(find.byType(ActionChip));
         await tester.pumpAndSettle();
 
-        // Multiple pumps needed for provider update
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+        // Select second set
+        await tester.tap(find.text('Rehearsal Marks'));
         await tester.pumpAndSettle();
 
         expect(selectedId, 'set-2');
-      }, skip: true);
+        // Sheet should be dismissed
+        expect(find.text('Marker sets'), findsNothing);
+        // Chip should now show selected name
+        expect(find.text('Rehearsal Marks'), findsOneWidget);
+      });
     });
 
-    group('Manage Button', () {
-      testWidgets('should show manage button when onManageMarkers provided', (tester) async {
+    group('Manage Markers', () {
+      testWidgets('should show edit button in sheet when onManageMarkers provided', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
           markerSets: [markerSet1],
           onManageMarkers: () {},
         ));
         await tester.pumpAndSettle();
 
+        await tester.tap(find.byType(ActionChip));
+        await tester.pumpAndSettle();
+
         expect(find.byIcon(Icons.edit), findsOneWidget);
-        expect(find.byTooltip('Manage Markers'), findsOneWidget);
+        expect(find.byTooltip('Manage markers'), findsOneWidget);
       });
 
-      testWidgets('should not show manage button when onManageMarkers is null', (tester) async {
+      testWidgets('should not show edit button in sheet when onManageMarkers is null', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
           markerSets: [markerSet1],
           onManageMarkers: null,
         ));
         await tester.pumpAndSettle();
 
+        await tester.tap(find.byType(ActionChip));
+        await tester.pumpAndSettle();
+
         expect(find.byIcon(Icons.edit), findsNothing);
       });
 
-      testWidgets('should call onManageMarkers when manage button tapped', (tester) async {
+      testWidgets('should close sheet and call onManageMarkers when edit tapped', (tester) async {
         bool manageTapped = false;
 
         await tester.pumpWidget(createWidgetUnderTest(
@@ -280,137 +287,19 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
+        await tester.tap(find.byType(ActionChip));
+        await tester.pumpAndSettle();
+
         await tester.tap(find.byIcon(Icons.edit));
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         expect(manageTapped, true);
-      });
-    });
-
-    group('Layout', () {
-      testWidgets('should use Row layout with dropdown and optional button', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1],
-          onManageMarkers: () {},
-        ));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(Row), findsWidgets);
-        expect(find.byType(Expanded), findsAtLeastNWidgets(1)); // Dropdown should be expanded
-      });
-
-      testWidgets('should have proper spacing between dropdown and button', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1],
-          onManageMarkers: () {},
-        ));
-        await tester.pumpAndSettle();
-
-        // SizedBox with width 8 should exist
-        final sizedBoxes = tester.widgetList<SizedBox>(find.byType(SizedBox));
-        expect(sizedBoxes.any((box) => box.width == 8), true);
-      });
-    });
-
-    group('Dropdown Behavior', () {
-      testWidgets('should expand dropdown to full width', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1],
-        ));
-        await tester.pumpAndSettle();
-
-        final dropdown = tester.widget<DropdownButton<String>>(
-          find.byType(DropdownButton<String>),
-        );
-        expect(dropdown.isExpanded, true);
-      });
-
-      testWidgets('should handle long marker set names with ellipsis', (tester) async {
-        final longNameMarkerSet = MarkerSet(
-          id: 'set-long',
-          trackId: 'track-1',
-          name: 'This is a very long marker set name that should be truncated',
-          isShared: false,
-          isTimeSynced: true,
-          createdByUserId: 'user-1',
-          createdAt: now,
-        updatedAt: now,
-        );
-
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [longNameMarkerSet],
-        ));
-        await tester.pumpAndSettle();
-
-        // Find the Text widget with overflow
-        final textWidget = tester.widget<Text>(
-          find.text('This is a very long marker set name that should be truncated'),
-        );
-        expect(textWidget.overflow, TextOverflow.ellipsis);
-      });
-
-      testWidgets('should display all dropdown items correctly', (tester) async {
-        final markerSets = List.generate(
-          5,
-          (i) => MarkerSet(
-            id: 'set-$i',
-            trackId: 'track-1',
-            name: 'Set $i',
-            isShared: i % 2 == 0,
-            isTimeSynced: true,
-            createdByUserId: 'user-1',
-            createdAt: now,
-        updatedAt: now,
-          ),
-        );
-
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: markerSets,
-        ));
-        await tester.pumpAndSettle();
-
-        // Open dropdown
-        await tester.tap(find.byType(DropdownButton<String>));
-        await tester.pumpAndSettle();
-
-        // Should show all 5 items
-        for (int i = 0; i < 5; i++) {
-          expect(find.text('Set $i'), findsWidgets);
-        }
+        // Sheet should be dismissed
+        expect(find.text('Marker sets'), findsNothing);
       });
     });
 
     group('State Management', () {
-      // SKIP: State persistence timing issue
-      testWidgets('should maintain selection across rebuilds', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1, markerSet2],
-        ));
-        await tester.pumpAndSettle();
-
-        // Select second item
-        await tester.tap(find.byType(DropdownButton<String>));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Rehearsal Marks').last);
-        await tester.pumpAndSettle();
-
-        // Multiple pumps needed for state update
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pumpAndSettle();
-
-        expect(find.text('Rehearsal Marks'), findsOneWidget);
-
-        // Rebuild widget
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1, markerSet2],
-        ));
-        await tester.pumpAndSettle();
-
-        // Selection should be maintained
-        expect(find.text('Rehearsal Marks'), findsOneWidget);
-      }, skip: true);
-
       testWidgets('should handle marker sets list changing', (tester) async {
         await tester.pumpWidget(createWidgetUnderTest(
           markerSets: [markerSet1, markerSet2],
@@ -423,7 +312,6 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        // Should show new marker set
         expect(find.text('Bar Numbers'), findsOneWidget);
       });
 
@@ -433,15 +321,13 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        expect(find.text('No marker sets'), findsOneWidget);
+        expect(find.text('Markers'), findsOneWidget);
 
-        // Add marker sets
         await tester.pumpWidget(createWidgetUnderTest(
           markerSets: [markerSet1],
         ));
         await tester.pumpAndSettle();
 
-        expect(find.byType(DropdownButton<String>), findsOneWidget);
         expect(find.text('Structure'), findsOneWidget);
       });
 
@@ -451,37 +337,14 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        expect(find.byType(DropdownButton<String>), findsOneWidget);
+        expect(find.text('Structure'), findsOneWidget);
 
-        // Remove marker sets
         await tester.pumpWidget(createWidgetUnderTest(
           markerSets: [],
         ));
         await tester.pumpAndSettle();
 
-        expect(find.text('No marker sets'), findsOneWidget);
-      });
-    });
-
-    group('Icons and Visual Elements', () {
-      testWidgets('should show private icon in empty state', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest());
-        await tester.pumpAndSettle();
-
-        expect(find.byIcon(Icons.bookmarks_outlined), findsOneWidget);
-      });
-
-      testWidgets('should show both private and shared icons in dropdown', (tester) async {
-        await tester.pumpWidget(createWidgetUnderTest(
-          markerSets: [markerSet1, markerSet2],
-        ));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byType(DropdownButton<String>));
-        await tester.pumpAndSettle();
-
-        expect(find.byIcon(Icons.lock), findsWidgets);
-        expect(find.byIcon(Icons.people), findsWidgets);
+        expect(find.text('Markers'), findsOneWidget);
       });
     });
   });

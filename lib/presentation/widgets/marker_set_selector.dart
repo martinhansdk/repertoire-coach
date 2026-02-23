@@ -3,32 +3,33 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/marker_set.dart';
 import '../providers/selected_marker_set_provider.dart';
 
-/// Dropdown widget for selecting a marker set
+/// Chip widget for selecting a marker set via a bottom sheet.
 ///
-/// Displays a dropdown of available marker sets for the current track.
-/// Updates the selected marker set provider when selection changes.
+/// Shows the selected set name as a compact chip. Tapping opens a bottom
+/// sheet with the full list of sets and an optional manage action.
 class MarkerSetSelector extends ConsumerWidget {
   final List<MarkerSet> markerSets;
   final VoidCallback? onManageMarkers;
-  final bool compact;
 
   const MarkerSetSelector({
     super.key,
     required this.markerSets,
     this.onManageMarkers,
-    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final selectedId = ref.watch(selectedMarkerSetProvider);
 
     if (markerSets.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(selectedMarkerSetProvider.notifier).state = null;
       });
-      return _EmptyState(onManageMarkers: onManageMarkers);
+      return ActionChip(
+        avatar: const Icon(Icons.bookmarks_outlined, size: 16),
+        label: const Text('Markers'),
+        onPressed: onManageMarkers,
+      );
     }
 
     // Ensure selected ID is valid, otherwise select first
@@ -36,148 +37,115 @@ class MarkerSetSelector extends ConsumerWidget {
         ? selectedId
         : markerSets.first.id;
 
-    // Update selection if it was invalid
     if (validSelectedId != selectedId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(selectedMarkerSetProvider.notifier).state = validSelectedId;
       });
     }
 
-    // Use LayoutBuilder to check available space and decide on compact mode
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final selectedMarkerSet = markerSets.firstWhere((set) => set.id == validSelectedId);
+    final selectedSet = markerSets.firstWhere((set) => set.id == validSelectedId);
 
-        // Estimate text width (rough estimate: 8px per character)
-        final estimatedTextWidth = selectedMarkerSet.name.length * 8.0;
-        // Add overhead for icon (24) + padding (16) + dropdown icon (24) + manage button (48)
-        final estimatedTotalWidth = estimatedTextWidth + 112;
+    return ActionChip(
+      avatar: const Icon(Icons.bookmarks, size: 16),
+      label: Text(
+        selectedSet.name,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onPressed: () => _showMarkerSetSheet(context, ref, validSelectedId),
+    );
+  }
 
-        // If estimated width exceeds available space and we have a manage button, use compact mode
-        final shouldUseCompactMode = estimatedTotalWidth > constraints.maxWidth && onManageMarkers != null;
-
-        if (shouldUseCompactMode) {
-          return IconButton(
-            icon: const Icon(Icons.bookmarks),
-            tooltip: 'Manage Markers',
-            onPressed: onManageMarkers,
-          );
-        }
-
-        // Show full dropdown
-        return Row(
-          children: [
-            Expanded(
-              child: DropdownButton<String>(
-                value: validSelectedId,
-                isExpanded: true,
-                items: markerSets.map((markerSet) {
-                  return DropdownMenuItem<String>(
-                    value: markerSet.id,
-                    child: compact
-                        ? Text(
-                            markerSet.name,
-                            overflow: TextOverflow.ellipsis,
-                          )
-                        : Row(
-                            children: [
-                              Icon(
-                                markerSet.isShared ? Icons.people : Icons.lock,
-                                size: 16,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  markerSet.name,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    ref.read(selectedMarkerSetProvider.notifier).state = newValue;
-                  }
-                },
-              ),
-            ),
-            if (onManageMarkers != null && !compact) ...[
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.edit),
-                tooltip: 'Manage Markers',
-                onPressed: onManageMarkers,
-              ),
-            ],
-          ],
-        );
-      },
+  void _showMarkerSetSheet(BuildContext context, WidgetRef ref, String? selectedId) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => _MarkerSetSheet(
+        markerSets: markerSets,
+        selectedId: selectedId,
+        onSelected: (id) {
+          ref.read(selectedMarkerSetProvider.notifier).state = id;
+          Navigator.pop(context);
+        },
+        onManageMarkers: onManageMarkers != null
+            ? () {
+                Navigator.pop(context);
+                onManageMarkers!();
+              }
+            : null,
+      ),
     );
   }
 }
 
-/// Empty state when no marker sets are available
-class _EmptyState extends StatelessWidget {
+class _MarkerSetSheet extends StatelessWidget {
+  final List<MarkerSet> markerSets;
+  final String? selectedId;
+  final ValueChanged<String> onSelected;
   final VoidCallback? onManageMarkers;
 
-  const _EmptyState({this.onManageMarkers});
+  const _MarkerSetSheet({
+    required this.markerSets,
+    required this.selectedId,
+    required this.onSelected,
+    this.onManageMarkers,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Use LayoutBuilder to check if full empty state fits
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Estimate width needed: icon (24) + padding (24) + text (~110) + button (~90) + padding (24)
-        const estimatedWidth = 272.0;
-
-        // If it doesn't fit and we have a manage button, show compact version
-        if (constraints.maxWidth < estimatedWidth && onManageMarkers != null) {
-          return IconButton(
-            icon: const Icon(Icons.bookmarks_outlined),
-            tooltip: 'Create Marker Set',
-            onPressed: onManageMarkers,
-          );
-        }
-
-        // Show full empty state
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.5),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 32,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.bookmarks_outlined,
-                color: theme.colorScheme.onSurfaceVariant,
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+              child: Row(
+                children: [
+                  Text('Marker sets', style: theme.textTheme.titleMedium),
+                  const Spacer(),
+                  if (onManageMarkers != null)
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Manage markers',
+                      onPressed: onManageMarkers,
+                    ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'No marker sets',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+            ),
+            const Divider(height: 1),
+            // Marker set list
+            ...markerSets.map((set) {
+              final isSelected = set.id == selectedId;
+              return ListTile(
+                leading: Icon(
+                  set.isShared ? Icons.people : Icons.lock,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-              ),
-              if (onManageMarkers != null)
-                TextButton.icon(
-                  onPressed: onManageMarkers,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create'),
-                ),
-            ],
-          ),
-        );
-      },
+                title: Text(set.name),
+                trailing: isSelected
+                    ? Icon(Icons.check, color: theme.colorScheme.primary)
+                    : null,
+                selected: isSelected,
+                onTap: () => onSelected(set.id),
+              );
+            }),
+          ],
+        ),
+      ),
     );
   }
 }

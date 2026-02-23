@@ -427,7 +427,7 @@ void main() {
 
     expect(find.text('Intro'), findsNothing);
     expect(find.byType(MarkerProgressBar), findsNothing);
-    expect(find.text('No marker sets'), findsOneWidget);
+    expect(find.text('Markers'), findsOneWidget);
 
     await controller.close();
   });

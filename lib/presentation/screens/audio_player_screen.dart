@@ -261,19 +261,16 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isCompact = constraints.maxWidth < 420;
-                  return Row(
-                    children: [
-                      IconButton(
+              Row(
+                children: [
+                  IconButton(
                     icon: const Icon(Icons.replay_10),
                     iconSize: 28,
                     onPressed: () {
                       _seekBackward10Seconds(playbackInfo);
                     },
                   ),
-                      IconButton(
+                  IconButton(
                     icon: Icon(
                       playbackInfo.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
                     ),
@@ -282,15 +279,15 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       _togglePlayPause(playbackInfo);
                     },
                   ),
-                      IconButton(
+                  IconButton(
                     icon: const Icon(Icons.forward_10),
                     iconSize: 28,
                     onPressed: () {
                       _seekForward10Seconds(playbackInfo);
                     },
                   ),
-                      const SizedBox(width: 4),
-                      IconButton(
+                  const SizedBox(width: 4),
+                  IconButton(
                     icon: Icon(
                       playbackInfo.isTrackLooping ? Icons.repeat_one : Icons.loop,
                     ),
@@ -299,15 +296,14 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       ref.read(audioPlayerControlsProvider).toggleTrackLoop();
                     },
                   ),
-                      const SizedBox(width: 4),
-                      _buildSpeedButton(playbackInfo),
-                      const SizedBox(width: 4),
-                      Expanded(
+                  const SizedBox(width: 4),
+                  _buildSpeedButton(playbackInfo),
+                  const SizedBox(width: 4),
+                  Expanded(
                     child: markerSetsAsync.when(
                       data: (markerSets) {
                         return MarkerSetSelector(
                           markerSets: markerSets,
-                          compact: isCompact,
                           onManageMarkers: () {
                             Navigator.push(
                               context,
@@ -326,9 +322,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       error: (_, __) => const SizedBox.shrink(),
                     ),
                   ),
-                    ],
-                  );
-                },
+                ],
               ),
 
               const SizedBox(height: 6),
