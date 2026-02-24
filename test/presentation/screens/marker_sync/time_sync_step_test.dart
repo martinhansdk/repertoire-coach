@@ -1150,6 +1150,34 @@ void main() {
       });
     });
 
+    group('Widget Lifecycle', () {
+      testWidgets('scroll postFrameCallback does not crash after widget is disposed',
+          (tester) async {
+        await tester.pumpWidget(await createWidgetUnderTest(labels: ['verse', 'chorus']));
+        await tester.pumpAndSettle();
+
+        // Change currentIndex synchronously — triggers ref.listen which calls
+        // addPostFrameCallback(_scrollToCurrentMarker). The callback is queued
+        // but has not yet fired.
+        notifier.jumpToMarker(1);
+
+        // Replace the widget tree. In the next frame:
+        //   1. TimeSyncStep is disposed (build phase).
+        //   2. The queued postFrameCallback fires (postFrameCallbacks phase).
+        // Without the fix, step 2 calls ref.read() on a disposed ref and throws
+        // "Bad state: Cannot use ref after the widget was disposed."
+        // With the fix, the mounted guard fires first and the callback returns.
+        await tester.pumpWidget(
+          const MaterialApp(home: Scaffold(body: Text('replaced'))),
+        );
+
+        // Flush any remaining callbacks.
+        await tester.pump();
+
+        // If we reach here without an exception, the fix is working.
+      });
+    });
+
     group('Edge Cases', () {
       testWidgets('handles no labels', (tester) async {
         await tester.pumpWidget(await createWidgetUnderTest(labels: []));

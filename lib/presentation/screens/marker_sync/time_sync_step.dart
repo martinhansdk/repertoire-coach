@@ -62,8 +62,8 @@ class _TimeSyncStepState extends ConsumerState<TimeSyncStep> {
   }
 
   void _scrollToCurrentMarker() {
-    final state = ref.read(markerSyncNotifierProvider(widget.params));
     if (!mounted) return;
+    final state = ref.read(markerSyncNotifierProvider(widget.params));
 
     if (!_scrollController.hasClients) return;
     final markerIndex = state.currentIndex + 1; // +1 because "..." is at index 0
