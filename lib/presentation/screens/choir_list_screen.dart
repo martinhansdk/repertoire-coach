@@ -11,11 +11,25 @@ import 'choir_detail_screen.dart';
 /// Choir List Screen
 ///
 /// Displays all choirs where the current user is a member.
-class ChoirListScreen extends ConsumerWidget {
+class ChoirListScreen extends ConsumerStatefulWidget {
   const ChoirListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChoirListScreen> createState() => _ChoirListScreenState();
+}
+
+class _ChoirListScreenState extends ConsumerState<ChoirListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final syncStatus = ref.read(syncControllerProvider).status;
+    if (syncStatus == SyncStatus.idle || syncStatus == SyncStatus.success) {
+      ref.read(syncControllerProvider.notifier).syncFromRemote();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final choirsAsync = ref.watch(choirsProvider);
     final syncState = ref.watch(syncControllerProvider);
     final isSyncing = syncState.status == SyncStatus.syncing;
@@ -90,14 +104,14 @@ class ChoirListScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateChoirDialog(context),
+        onPressed: () => _showCreateChoirDialog(),
         icon: const Icon(Icons.add),
         label: const Text('New Choir'),
       ),
     );
   }
 
-  Future<void> _showCreateChoirDialog(BuildContext context) async {
+  Future<void> _showCreateChoirDialog() async {
     await showDialog<String>(
       context: context,
       builder: (context) => const CreateChoirDialog(),

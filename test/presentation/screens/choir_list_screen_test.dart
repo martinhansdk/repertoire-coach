@@ -31,6 +31,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(MockSyncController.new),
             choirsProvider.overrideWith((ref) => Future.value([])),
           ],
           child: const MaterialApp(home: ChoirListScreen()),
@@ -52,6 +53,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(MockSyncController.new),
             choirsProvider.overrideWith((ref) => completer.future),
           ],
           child: const MaterialApp(home: ChoirListScreen()),
@@ -108,6 +110,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(MockSyncController.new),
             choirsProvider.overrideWith((ref) => Future.value(testChoirs)),
           ],
           child: const MaterialApp(home: ChoirListScreen()),
@@ -246,6 +249,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(MockSyncController.new),
             choirsProvider.overrideWith((ref) => Future.value([])),
           ],
           child: const MaterialApp(home: ChoirListScreen()),
@@ -310,8 +314,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Assert - sync should be called (which is now the pull-to-refresh action)
-      expect(syncCallCount, 1);
+      // Assert - sync is called twice: once on screen entry (initState) and once on pull-to-refresh
+      expect(syncCallCount, 2);
 
       container.dispose();
     });
@@ -333,6 +337,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(MockSyncController.new),
             choirsProvider.overrideWith((ref) => Future.value(testChoirs)),
           ],
           child: const MaterialApp(home: ChoirListScreen()),
@@ -352,6 +357,61 @@ void main() {
       // Should find choirs further down the list
       expect(find.text('Choir 10', skipOffstage: false), findsOneWidget);
     });
+
+    group('Sync On Enter', () {
+      testWidgets('triggers syncFromRemote when status is idle', (tester) async {
+        late final _ConfigurableSyncController controller;
+        controller = _ConfigurableSyncController(SyncState.initial);
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            choirsProvider.overrideWith((ref) => Future.value([])),
+          ],
+          child: const MaterialApp(home: ChoirListScreen()),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 1);
+      });
+
+      testWidgets('triggers syncFromRemote when status is success', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.success());
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            choirsProvider.overrideWith((ref) => Future.value([])),
+          ],
+          child: const MaterialApp(home: ChoirListScreen()),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 1);
+      });
+
+      testWidgets('does not trigger syncFromRemote when status is syncing', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.syncing());
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            choirsProvider.overrideWith((ref) => Future.value([])),
+          ],
+          child: const MaterialApp(home: ChoirListScreen()),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 0);
+      });
+
+      testWidgets('does not trigger syncFromRemote when status is error', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.error('network error'));
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            choirsProvider.overrideWith((ref) => Future.value([])),
+          ],
+          child: const MaterialApp(home: ChoirListScreen()),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 0);
+      });
+    });
   });
 }
 
@@ -368,5 +428,20 @@ class _TestSyncController extends SyncController {
   Future<void> syncFromRemote() async {
     onSync?.call();
     // Do nothing else - just track the call
+  }
+}
+
+class _ConfigurableSyncController extends SyncController {
+  final SyncState initialState;
+  int syncCallCount = 0;
+
+  _ConfigurableSyncController(this.initialState);
+
+  @override
+  SyncState build() => initialState;
+
+  @override
+  Future<void> syncFromRemote() async {
+    syncCallCount++;
   }
 }

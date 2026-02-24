@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:repertoire_coach/core/services/sync_service.dart';
 import 'package:repertoire_coach/domain/entities/song.dart';
 import 'package:repertoire_coach/presentation/providers/song_provider.dart';
+import 'package:repertoire_coach/presentation/providers/sync_provider.dart';
 import 'package:repertoire_coach/presentation/screens/song_list_screen.dart';
 import 'package:repertoire_coach/presentation/widgets/song_card.dart';
 
@@ -37,6 +39,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             songsByConcertProvider('concert1').overrideWith((arg) async => mockSongs),
           ],
           child: const MaterialApp(
@@ -61,6 +64,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             songsByConcertProvider('concert1').overrideWith((arg) async => mockSongs),
           ],
           child: const MaterialApp(
@@ -88,6 +92,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             songsByConcertProvider('concert1').overrideWith((arg) async => mockSongs),
           ],
           child: const MaterialApp(
@@ -113,6 +118,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             songsByConcertProvider('concert1').overrideWith((arg) async => []),
           ],
           child: const MaterialApp(
@@ -140,6 +146,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             songsByConcertProvider('concert1').overrideWith((arg) async {
               // Simulate slow loading
               await Future.delayed(const Duration(milliseconds: 100));
@@ -171,6 +178,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             songsByConcertProvider('concert1').overrideWith((arg) async {
               throw Exception('Database error');
             }),
@@ -200,6 +208,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             songsByConcertProvider('concert1').overrideWith((arg) async => mockSongs),
           ],
           child: const MaterialApp(
@@ -229,6 +238,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             songsByConcertProvider('concert1').overrideWith((arg) async => []),
           ],
           child: const MaterialApp(
@@ -251,5 +261,80 @@ void main() {
       // Assert
       expect(find.text('Add New Song'), findsOneWidget);
     });
+
+    group('Sync On Enter', () {
+      const testScreen = SongListScreen(
+        concertId: 'concert1',
+        concertName: 'Spring Concert',
+        choirId: 'choir1',
+      );
+
+      testWidgets('triggers syncFromRemote when status is idle', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.initial);
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            songsByConcertProvider('concert1').overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(home: testScreen),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 1);
+      });
+
+      testWidgets('triggers syncFromRemote when status is success', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.success());
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            songsByConcertProvider('concert1').overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(home: testScreen),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 1);
+      });
+
+      testWidgets('does not trigger syncFromRemote when status is syncing', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.syncing());
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            songsByConcertProvider('concert1').overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(home: testScreen),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 0);
+      });
+
+      testWidgets('does not trigger syncFromRemote when status is error', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.error('network error'));
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            songsByConcertProvider('concert1').overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(home: testScreen),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 0);
+      });
+    });
   });
+}
+
+class _ConfigurableSyncController extends SyncController {
+  final SyncState initialState;
+  int syncCallCount = 0;
+
+  _ConfigurableSyncController(this.initialState);
+
+  @override
+  SyncState build() => initialState;
+
+  @override
+  Future<void> syncFromRemote() async {
+    syncCallCount++;
+  }
 }

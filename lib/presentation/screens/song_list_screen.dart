@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
+import '../../core/services/sync_service.dart';
 import '../providers/song_provider.dart';
 import '../providers/sync_provider.dart';
 import '../widgets/create_song_dialog.dart';
@@ -11,7 +12,7 @@ import 'song_detail_screen.dart';
 ///
 /// Displays all songs for a specific concert.
 /// Songs are sorted chronologically (oldest first).
-class SongListScreen extends ConsumerWidget {
+class SongListScreen extends ConsumerStatefulWidget {
   final String concertId;
   final String concertName;
   final String choirId;
@@ -23,31 +24,45 @@ class SongListScreen extends ConsumerWidget {
     required this.choirId,
   });
 
-  Future<void> _showCreateSongDialog(BuildContext context) async {
+  @override
+  ConsumerState<SongListScreen> createState() => _SongListScreenState();
+}
+
+class _SongListScreenState extends ConsumerState<SongListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final syncStatus = ref.read(syncControllerProvider).status;
+    if (syncStatus == SyncStatus.idle || syncStatus == SyncStatus.success) {
+      ref.read(syncControllerProvider.notifier).syncFromRemote();
+    }
+  }
+
+  Future<void> _showCreateSongDialog() async {
     await showDialog(
       context: context,
       builder: (context) => CreateSongDialog(
-        concertId: concertId,
-        concertName: concertName,
+        concertId: widget.concertId,
+        concertName: widget.concertName,
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final songsAsync = ref.watch(songsByConcertProvider(concertId));
+  Widget build(BuildContext context) {
+    final songsAsync = ref.watch(songsByConcertProvider(widget.concertId));
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(concertName),
+        title: Text(widget.concertName),
       ),
       body: songsAsync.when(
         data: (songs) {
           if (songs.isEmpty) {
             return _EmptyState(
-              concertName: concertName,
-              onAddSong: () => _showCreateSongDialog(context),
+              concertName: widget.concertName,
+              onAddSong: () => _showCreateSongDialog(),
             );
           }
 
@@ -60,7 +75,7 @@ class SongListScreen extends ConsumerWidget {
                 } catch (_) {
                   // Keep pull-to-refresh functional in offline/test environments.
                 } finally {
-                  ref.invalidate(songsByConcertProvider(concertId));
+                  ref.invalidate(songsByConcertProvider(widget.concertId));
                 }
               },
               child: ListView.builder(
@@ -83,8 +98,8 @@ class SongListScreen extends ConsumerWidget {
                           builder: (context) => SongDetailScreen(
                             songId: song.id,
                             songTitle: song.title,
-                            concertName: concertName,
-                            choirId: choirId,
+                            concertName: widget.concertName,
+                            choirId: widget.choirId,
                           ),
                         ),
                       );
@@ -101,12 +116,12 @@ class SongListScreen extends ConsumerWidget {
         error: (error, stack) => _ErrorState(
           error: error.toString(),
           onRetry: () {
-            ref.invalidate(songsByConcertProvider(concertId));
+            ref.invalidate(songsByConcertProvider(widget.concertId));
           },
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateSongDialog(context),
+        onPressed: () => _showCreateSongDialog(),
         icon: const Icon(Icons.add),
         label: const Text('Add Song'),
       ),

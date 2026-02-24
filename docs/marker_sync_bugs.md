@@ -44,7 +44,7 @@ behaviour as `nudgeSyncedPosition`).
 
 ---
 
-## 2. `_syncMarkerSetPayload` sends stale `is_time_synced` [ ]
+## 2. `_syncMarkerSetPayload` sends stale `is_time_synced` [x]
 
 **File:** `lib/data/repositories/marker_repository_impl.dart` — `_syncMarkerSetPayload()`
 
@@ -80,7 +80,7 @@ payload (same logic as the DB function: `true` iff every non-empty label has a n
 
 ---
 
-## 3. "ref after disposed" in `_scrollToCurrentMarker` [ ]
+## 3. "ref after disposed" in `_scrollToCurrentMarker` [x]
 
 **File:** `lib/presentation/screens/marker_sync/time_sync_step.dart` — `_scrollToCurrentMarker()`
 
@@ -114,7 +114,7 @@ before any `ref` access.
 
 ---
 
-## 4. No sync trigger on web (pull-to-refresh not available) [ ]
+## 4. No sync trigger on web (pull-to-refresh not available) [x]
 
 **Problem:**
 The only manual sync trigger is pull-to-refresh, which is a mobile gesture unavailable on web.

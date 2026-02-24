@@ -11,6 +11,7 @@ import '../providers/marker_provider.dart';
 import '../providers/song_provider.dart';
 import '../providers/sync_provider.dart';
 import '../providers/track_provider.dart';
+import '../../core/services/sync_service.dart';
 import 'marker_sync/marker_sync_screen.dart';
 import '../widgets/marker_label_markup.dart';
 import '../widgets/marker_set_dialog.dart';
@@ -19,13 +20,51 @@ import '../widgets/marker_set_dialog.dart';
 ///
 /// Manages marker sets and markers for a specific track.
 /// Users can create, edit, and delete marker sets and markers.
-class MarkerManagerScreen extends ConsumerWidget {
+///
+/// Triggers a background sync on first entry so web users (who cannot
+/// pull-to-refresh) still get fresh data from other choir members.
+class MarkerManagerScreen extends ConsumerStatefulWidget {
   final String trackId;
   final String trackName;
   final String songTitle;
 
   const MarkerManagerScreen({
     super.key,
+    required this.trackId,
+    required this.trackName,
+    required this.songTitle,
+  });
+
+  @override
+  ConsumerState<MarkerManagerScreen> createState() => _MarkerManagerScreenState();
+}
+
+class _MarkerManagerScreenState extends ConsumerState<MarkerManagerScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final syncStatus = ref.read(syncControllerProvider).status;
+    if (syncStatus == SyncStatus.idle || syncStatus == SyncStatus.success) {
+      ref.read(syncControllerProvider.notifier).syncFromRemote();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _MarkerManagerContent(
+      trackId: widget.trackId,
+      trackName: widget.trackName,
+      songTitle: widget.songTitle,
+    );
+  }
+}
+
+class _MarkerManagerContent extends ConsumerWidget {
+  final String trackId;
+  final String trackName;
+  final String songTitle;
+
+  const _MarkerManagerContent({
     required this.trackId,
     required this.trackName,
     required this.songTitle,

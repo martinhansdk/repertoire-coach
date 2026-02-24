@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repertoire_coach/core/services/supabase_service.dart';
+import 'package:repertoire_coach/core/services/sync_service.dart';
 import 'package:repertoire_coach/domain/entities/track.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
+import 'package:repertoire_coach/presentation/providers/sync_provider.dart';
 import 'package:repertoire_coach/presentation/providers/track_provider.dart';
 import 'package:repertoire_coach/presentation/screens/song_detail_screen.dart';
 import 'package:repertoire_coach/presentation/widgets/add_track_dialog.dart';
@@ -35,6 +37,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1').overrideWith((ref) => Future.value([])),
           ],
           child: const MaterialApp(
@@ -64,6 +67,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1').overrideWith((ref) => completer.future),
           ],
           child: const MaterialApp(
@@ -89,6 +93,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1').overrideWith((ref) => Future.value([])),
           ],
           child: const MaterialApp(
@@ -204,6 +209,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1').overrideWith((ref) => Future.value(tracks)),
           ],
           child: const MaterialApp(
@@ -230,6 +236,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1').overrideWith((ref) => Future.value([])),
           ],
           child: const MaterialApp(
@@ -257,6 +264,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1').overrideWith((ref) => Future.value([])),
           ],
           child: const MaterialApp(
@@ -286,6 +294,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1').overrideWith((ref) => Future.value([])),
           ],
           child: const MaterialApp(
@@ -314,6 +323,7 @@ void main() {
       var loadCount = 0;
       final container = ProviderContainer(
         overrides: [
+          syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
           tracksBySongProvider('s1').overrideWith((ref) {
             loadCount++;
             return Future.value([testTrack]);
@@ -359,6 +369,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1')
                 .overrideWith((ref) => Future.value([testTrack])),
             supabaseServiceProvider.overrideWithValue(_FakeSupabaseService()),
@@ -402,6 +413,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
             tracksBySongProvider('s1').overrideWith((ref) => Future.value(tracks)),
           ],
           child: const MaterialApp(
@@ -428,5 +440,81 @@ void main() {
       // Should find tracks further down the list
       expect(find.text('Track 10', skipOffstage: false), findsOneWidget);
     });
+
+    group('Sync On Enter', () {
+      const testScreen = SongDetailScreen(
+        songId: 's1',
+        songTitle: 'Test Song',
+        concertName: 'Test Concert',
+        choirId: 'choir1',
+      );
+
+      testWidgets('triggers syncFromRemote when status is idle', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.initial);
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            tracksBySongProvider('s1').overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(home: testScreen),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 1);
+      });
+
+      testWidgets('triggers syncFromRemote when status is success', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.success());
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            tracksBySongProvider('s1').overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(home: testScreen),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 1);
+      });
+
+      testWidgets('does not trigger syncFromRemote when status is syncing', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.syncing());
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            tracksBySongProvider('s1').overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(home: testScreen),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 0);
+      });
+
+      testWidgets('does not trigger syncFromRemote when status is error', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.error('network error'));
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            tracksBySongProvider('s1').overrideWith((ref) async => []),
+          ],
+          child: const MaterialApp(home: testScreen),
+        ));
+        await tester.pump();
+        expect(controller.syncCallCount, 0);
+      });
+    });
   });
+}
+
+class _ConfigurableSyncController extends SyncController {
+  final SyncState initialState;
+  int syncCallCount = 0;
+
+  _ConfigurableSyncController(this.initialState);
+
+  @override
+  SyncState build() => initialState;
+
+  @override
+  Future<void> syncFromRemote() async {
+    syncCallCount++;
+  }
 }

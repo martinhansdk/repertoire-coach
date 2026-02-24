@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
+import '../../core/services/sync_service.dart';
 import '../providers/sync_provider.dart';
 import '../providers/track_provider.dart';
 import '../widgets/add_track_dialog.dart';
@@ -11,7 +12,7 @@ import 'audio_player_screen.dart';
 ///
 /// Displays song information and all tracks for a specific song.
 /// Tracks are sorted chronologically (oldest first).
-class SongDetailScreen extends ConsumerWidget {
+class SongDetailScreen extends ConsumerStatefulWidget {
   final String songId;
   final String songTitle;
   final String concertName;
@@ -25,20 +26,34 @@ class SongDetailScreen extends ConsumerWidget {
     required this.choirId,
   });
 
-  Future<void> _showAddTrackDialog(BuildContext context) async {
+  @override
+  ConsumerState<SongDetailScreen> createState() => _SongDetailScreenState();
+}
+
+class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final syncStatus = ref.read(syncControllerProvider).status;
+    if (syncStatus == SyncStatus.idle || syncStatus == SyncStatus.success) {
+      ref.read(syncControllerProvider.notifier).syncFromRemote();
+    }
+  }
+
+  Future<void> _showAddTrackDialog() async {
     await showDialog(
       context: context,
       builder: (context) => AddTrackDialog(
-        songId: songId,
-        songTitle: songTitle,
-        choirId: choirId,
+        songId: widget.songId,
+        songTitle: widget.songTitle,
+        choirId: widget.choirId,
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tracksAsync = ref.watch(tracksBySongProvider(songId));
+  Widget build(BuildContext context) {
+    final tracksAsync = ref.watch(tracksBySongProvider(widget.songId));
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
@@ -47,11 +62,11 @@ class SongDetailScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              songTitle,
+              widget.songTitle,
               style: const TextStyle(fontSize: 18),
             ),
             Text(
-              concertName,
+              widget.concertName,
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
@@ -64,8 +79,8 @@ class SongDetailScreen extends ConsumerWidget {
         data: (tracks) {
           if (tracks.isEmpty) {
             return _EmptyState(
-              songTitle: songTitle,
-              onAddTrack: () => _showAddTrackDialog(context),
+              songTitle: widget.songTitle,
+              onAddTrack: () => _showAddTrackDialog(),
             );
           }
 
@@ -78,7 +93,7 @@ class SongDetailScreen extends ConsumerWidget {
                 } catch (_) {
                   // Keep pull-to-refresh functional in offline/test environments.
                 } finally {
-                  ref.invalidate(tracksBySongProvider(songId));
+                  ref.invalidate(tracksBySongProvider(widget.songId));
                 }
               },
               child: ListView.builder(
@@ -100,8 +115,8 @@ class SongDetailScreen extends ConsumerWidget {
                         MaterialPageRoute(
                           builder: (context) => AudioPlayerScreen(
                             track: track,
-                            songTitle: songTitle,
-                            concertName: concertName,
+                            songTitle: widget.songTitle,
+                            concertName: widget.concertName,
                           ),
                         ),
                       );
@@ -118,12 +133,12 @@ class SongDetailScreen extends ConsumerWidget {
         error: (error, stack) => _ErrorState(
           error: error.toString(),
           onRetry: () {
-            ref.invalidate(tracksBySongProvider(songId));
+            ref.invalidate(tracksBySongProvider(widget.songId));
           },
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddTrackDialog(context),
+        onPressed: () => _showAddTrackDialog(),
         icon: const Icon(Icons.add),
         label: const Text('Add Track'),
       ),

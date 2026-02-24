@@ -6,10 +6,12 @@ import 'package:repertoire_coach/data/datasources/local/database.dart' as db;
 import 'package:repertoire_coach/data/datasources/local/local_marker_data_source.dart';
 import 'package:repertoire_coach/data/repositories/marker_repository_impl.dart';
 import 'package:repertoire_coach/core/services/supabase_service.dart';
+import 'package:repertoire_coach/core/services/sync_service.dart';
 import 'package:repertoire_coach/domain/entities/marker.dart';
 import 'package:repertoire_coach/domain/entities/marker_set.dart';
 import 'package:repertoire_coach/presentation/providers/auth_provider.dart';
 import 'package:repertoire_coach/presentation/providers/marker_provider.dart';
+import 'package:repertoire_coach/presentation/providers/sync_provider.dart';
 import 'package:repertoire_coach/presentation/screens/marker_manager_screen.dart';
 
 class _FakeSupabaseService extends Fake implements SupabaseService {
@@ -53,6 +55,7 @@ void main() {
     }) {
       return ProviderScope(
         overrides: [
+          syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
           supabaseServiceProvider.overrideWithValue(_FakeSupabaseService(userId)),
           markerRepositoryProvider.overrideWithValue(repository),
           if (markerSetsFuture != null)
@@ -90,6 +93,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
+              syncControllerProvider.overrideWith(() => _ConfigurableSyncController(SyncState.initial)),
               supabaseServiceProvider
                   .overrideWithValue(_FakeSupabaseService(testUserId)),
               markerRepositoryProvider.overrideWithValue(repository),
@@ -737,5 +741,69 @@ void main() {
         expect(find.text('2:05.500'), findsNothing);
       });
     });
+
+    group('Sync On Enter', () {
+      Widget buildScreen(_ConfigurableSyncController controller) {
+        return ProviderScope(
+          overrides: [
+            syncControllerProvider.overrideWith(() => controller),
+            supabaseServiceProvider.overrideWithValue(_FakeSupabaseService(testUserId)),
+            markerRepositoryProvider.overrideWithValue(repository),
+            markerSetsByTrackProvider((testTrackId, testUserId))
+                .overrideWith((ref) => Future.value([])),
+          ],
+          child: const MaterialApp(
+            home: MarkerManagerScreen(
+              trackId: testTrackId,
+              trackName: testTrackName,
+              songTitle: testSongTitle,
+            ),
+          ),
+        );
+      }
+
+      testWidgets('triggers syncFromRemote when status is idle', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.initial);
+        await tester.pumpWidget(buildScreen(controller));
+        await tester.pump();
+        expect(controller.syncCallCount, 1);
+      });
+
+      testWidgets('triggers syncFromRemote when status is success', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.success());
+        await tester.pumpWidget(buildScreen(controller));
+        await tester.pump();
+        expect(controller.syncCallCount, 1);
+      });
+
+      testWidgets('does not trigger syncFromRemote when status is syncing', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.syncing());
+        await tester.pumpWidget(buildScreen(controller));
+        await tester.pump();
+        expect(controller.syncCallCount, 0);
+      });
+
+      testWidgets('does not trigger syncFromRemote when status is error', (tester) async {
+        final controller = _ConfigurableSyncController(SyncState.error('network error'));
+        await tester.pumpWidget(buildScreen(controller));
+        await tester.pump();
+        expect(controller.syncCallCount, 0);
+      });
+    });
   });
+}
+
+class _ConfigurableSyncController extends SyncController {
+  final SyncState initialState;
+  int syncCallCount = 0;
+
+  _ConfigurableSyncController(this.initialState);
+
+  @override
+  SyncState build() => initialState;
+
+  @override
+  Future<void> syncFromRemote() async {
+    syncCallCount++;
+  }
 }
