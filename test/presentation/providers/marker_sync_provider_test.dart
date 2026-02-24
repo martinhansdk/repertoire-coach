@@ -263,18 +263,60 @@ void main() {
         expect(notifier.state, stateBefore);
       });
 
-      test('should invalidate later markers when syncing from earlier index', () {
+      test('jump back and re-sync within bounds preserves all later markers', () {
+        // intro=1000, verse=2000, chorus=3000
+        notifier.syncNextMarker(1000);
+        notifier.syncNextMarker(2000);
+        notifier.syncNextMarker(3000);
+
+        // Jump back to intro, re-sync verse at 1500 (fits between 1000 and 3000)
+        notifier.jumpToMarker(0);
+        notifier.syncNextMarker(1500);
+
+        expect(notifier.state.currentIndex, 1);
+        expect(notifier.state.syncedPositions[0], 1000);
+        expect(notifier.state.syncedPositions[1], 1500);
+        expect(notifier.state.syncedPositions[2], 3000); // chorus preserved
+      });
+
+      test('jump back and re-sync overtaking some followers cascades only those', () {
+        // Set up: intro=0 outro=1000, verse=2000, chorus=3000, outro=4000
+        notifier = MarkerSyncNotifier(
+          markerRepository: mockRepository,
+          trackId: 'track-1',
+          markerSetId: 'set-1',
+        );
+        notifier.setLabels('intro\nverse\nchorus\noutro');
         notifier.syncNextMarker(1000); // intro
         notifier.syncNextMarker(2000); // verse
         notifier.syncNextMarker(3000); // chorus
+        notifier.syncNextMarker(4000); // outro
 
-        notifier.jumpToMarker(0); // back to intro
-        notifier.syncNextMarker(1500); // resync from earlier point
+        // Jump back to intro, re-sync verse at 3500
+        // 3500 > verse(2000) and > chorus(3000) but < outro(4000)
+        // → verse gets 3500, chorus invalidated, outro preserved
+        notifier.jumpToMarker(0);
+        notifier.syncNextMarker(3500);
 
-        expect(notifier.state.currentIndex, 1); // verse synced next
-        expect(notifier.state.syncedPositions[0], 1000);
-        expect(notifier.state.syncedPositions[1], 1500);
-        expect(notifier.state.syncedPositions[2], null);
+        expect(notifier.state.currentIndex, 1);
+        expect(notifier.state.syncedPositions[0], 1000); // intro unchanged
+        expect(notifier.state.syncedPositions[1], 3500); // verse re-synced
+        expect(notifier.state.syncedPositions[2], isNull); // chorus invalidated
+        expect(notifier.state.syncedPositions[3], 4000); // outro preserved
+      });
+
+      test('jump back and re-sync below preceding marker is rejected', () {
+        // intro=1000, verse=2000, chorus=3000
+        notifier.syncNextMarker(1000);
+        notifier.syncNextMarker(2000);
+        notifier.syncNextMarker(3000);
+
+        // Jump back to intro, try to sync verse at 500 (< intro=1000) → rejected
+        notifier.jumpToMarker(0);
+        final stateBefore = notifier.state;
+        notifier.syncNextMarker(500);
+
+        expect(notifier.state, stateBefore);
       });
     });
 

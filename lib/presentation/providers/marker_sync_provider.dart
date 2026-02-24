@@ -250,18 +250,6 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       return;
     }
 
-    // If user jumped back and is resyncing, clear later timestamps only when syncing.
-    final newPositions = {...state.syncedPositions};
-    int lastSyncedIndex = -1;
-    for (final entry in newPositions.entries) {
-      if (entry.key >= 0 && entry.key > lastSyncedIndex) {
-        lastSyncedIndex = entry.key;
-      }
-    }
-    if (state.currentIndex < lastSyncedIndex) {
-      newPositions.removeWhere((key, _) => key > state.currentIndex);
-    }
-
     // Determine which marker to sync: next non-empty after current.
     int syncIndex = state.currentIndex + 1;
     if (syncIndex < 0) syncIndex = 0;
@@ -275,19 +263,22 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       return; // No more markers
     }
 
-    // Verify monotonic invariant (should be prevented by UI, but double-check)
-    int lastSyncedPosition = 0;
-    for (final entry in newPositions.entries) {
-      if (entry.value > lastSyncedPosition) {
-        lastSyncedPosition = entry.value;
+    // Verify preceding monotonic invariant: new position must be >= the highest
+    // synced position among all markers that come before syncIndex.
+    int prevPosition = 0;
+    for (final entry in state.syncedPositions.entries) {
+      if (entry.key < syncIndex && entry.value > prevPosition) {
+        prevPosition = entry.value;
       }
     }
-    if (positionMs < lastSyncedPosition) {
-      debugPrint('[MarkerSync] ERROR: Position $positionMs < last synced $lastSyncedPosition (should be prevented by UI)');
-      return; // Don't apply sync - this should never happen
+    if (positionMs < prevPosition) {
+      debugPrint('[MarkerSync] Rejected: $positionMs < preceding synced $prevPosition');
+      return;
     }
 
     debugPrint('[MarkerSync] Syncing marker at index $syncIndex ("${state.labels[syncIndex]}") to position $positionMs ms');
+
+    final newPositions = {...state.syncedPositions};
 
     // Apply position to the synced marker and any empty lines we skipped over.
     final startIndex = state.currentIndex == -1 ? 0 : state.currentIndex + 1;
@@ -295,6 +286,20 @@ class MarkerSyncNotifier extends StateNotifier<MarkerSyncState> {
       newPositions[i] = positionMs;
       if (state.labels[i].isEmpty) {
         debugPrint('[MarkerSync] Syncing skipped empty line at index $i to position $positionMs ms');
+      }
+    }
+
+    // Cascade-invalidate: remove synced positions immediately after syncIndex
+    // that are now less than positionMs (they would violate monotonicity).
+    // Stop as soon as a position >= positionMs is found — it and everything
+    // after it are already consistent.
+    for (int i = syncIndex + 1; i < state.labels.length; i++) {
+      final pos = newPositions[i];
+      if (pos == null) continue; // already unsynced, skip
+      if (pos < positionMs) {
+        newPositions.remove(i);
+      } else {
+        break;
       }
     }
 
