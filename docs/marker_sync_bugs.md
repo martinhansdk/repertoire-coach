@@ -4,7 +4,7 @@ Identified in session 2026-02-24. Work through in order: write failing test → 
 
 ---
 
-## 1. Jump-back + re-sync wipes too much [ ]
+## 1. Jump-back + re-sync wipes too much [x]
 
 **File:** `lib/presentation/providers/marker_sync_provider.dart` — `syncNextMarker()`
 
