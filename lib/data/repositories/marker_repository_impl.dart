@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../core/services/error_reporter.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/errors/marker_invariant_exception.dart';
@@ -196,8 +198,33 @@ class MarkerRepositoryImpl implements MarkerRepository {
       return;
     }
 
+    // Compute isTimeSynced from the fresh markers_json payload rather than
+    // trusting the stale DB column, which may not have been updated yet.
+    // This prevents violating the Supabase check constraint
+    // marker_sets_is_time_synced_matches_payload.
+    // Rule: true iff every non-empty label has a non-null position_ms.
+    final payload = jsonDecode(updatedSet.markersJson) as List<dynamic>;
+    final computedIsTimeSynced = payload.every((e) {
+      final entry = e as Map<String, dynamic>;
+      final label = entry['label'] as String? ?? '';
+      return label.isEmpty || entry['position_ms'] != null;
+    });
+
+    final modelToSync = MarkerSetModel(
+      id: updatedSet.id,
+      trackId: updatedSet.trackId,
+      name: updatedSet.name,
+      isShared: updatedSet.isShared,
+      isTimeSynced: computedIsTimeSynced,
+      createdByUserId: updatedSet.createdByUserId,
+      createdAt: updatedSet.createdAt,
+      updatedAt: updatedSet.updatedAt,
+      deleted: updatedSet.deleted,
+      markersJson: updatedSet.markersJson,
+    );
+
     try {
-      await _remoteDataSource!.updateMarkerSet(updatedSet);
+      await _remoteDataSource!.updateMarkerSet(modelToSync);
     } catch (e, st) {
       ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
     }
