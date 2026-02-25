@@ -140,6 +140,89 @@ void main() {
       });
     });
 
+    group('updateMarkerSet — remote isTimeSynced reflects payload', () {
+      // Regression: updateMarkerSet was copying isTimeSynced from the entity
+      // (loaded from the local DB, which may be stale) while using the fresh
+      // markersJson from the DB. These can disagree after _syncMarkerSetPayload
+      // corrects isTimeSynced remotely without updating the local column.
+
+      setUp(() {
+        when(mockRemoteDS.updateMarkerSet(any)).thenAnswer((_) async {});
+      });
+
+      test(
+          'sends isTimeSynced=true when entity has isTimeSynced=false '
+          'but all markers in local DB have positions', () async {
+        // Seed with isTimeSynced=false but fully-positioned markers_json
+        await localDS.insertMarkerSet(MarkerSetModel(
+          id: 'set-u',
+          trackId: 'track-1',
+          name: 'My Set',
+          isShared: false,
+          isTimeSynced: false, // stale local value
+          createdByUserId: 'user-1',
+          createdAt: now,
+          updatedAt: now,
+          markersJson:
+              '[{"label":"intro","position_ms":1000},{"label":"verse","position_ms":2000}]',
+        ));
+
+        // Entity loaded from DB carries the stale isTimeSynced=false
+        final entity = MarkerSet(
+          id: 'set-u',
+          trackId: 'track-1',
+          name: 'My Set (renamed)',
+          isShared: false,
+          isTimeSynced: false, // stale
+          createdByUserId: 'user-1',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await repository.updateMarkerSet(entity);
+
+        final captured =
+            verify(mockRemoteDS.updateMarkerSet(captureAny)).captured;
+        final sent = captured.last as MarkerSetModel;
+        expect(sent.isTimeSynced, true);
+      });
+
+      test(
+          'sends isTimeSynced=false when some markers lack positions, '
+          'even when entity has isTimeSynced=true', () async {
+        await localDS.insertMarkerSet(MarkerSetModel(
+          id: 'set-u',
+          trackId: 'track-1',
+          name: 'My Set',
+          isShared: false,
+          isTimeSynced: true, // stale local value
+          createdByUserId: 'user-1',
+          createdAt: now,
+          updatedAt: now,
+          markersJson:
+              '[{"label":"intro","position_ms":1000},{"label":"verse","position_ms":null}]',
+        ));
+
+        final entity = MarkerSet(
+          id: 'set-u',
+          trackId: 'track-1',
+          name: 'My Set (renamed)',
+          isShared: false,
+          isTimeSynced: true, // stale
+          createdByUserId: 'user-1',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await repository.updateMarkerSet(entity);
+
+        final captured =
+            verify(mockRemoteDS.updateMarkerSet(captureAny)).captured;
+        final sent = captured.last as MarkerSetModel;
+        expect(sent.isTimeSynced, false);
+      });
+    });
+
     group('replaceMarkersByMarkerSet — remote isTimeSynced reflects payload', () {
       // Regression: _syncMarkerSetPayload was sending the stale is_time_synced
       // from the local DB instead of computing it from the just-updated
