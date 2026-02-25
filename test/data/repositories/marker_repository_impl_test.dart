@@ -9,6 +9,7 @@ import 'package:repertoire_coach/data/datasources/remote/remote_marker_data_sour
 import 'package:repertoire_coach/data/models/marker_set_model.dart';
 import 'package:repertoire_coach/data/repositories/marker_repository_impl.dart';
 import 'package:repertoire_coach/domain/entities/marker.dart';
+import 'package:repertoire_coach/domain/entities/marker_set.dart';
 
 @GenerateMocks([RemoteMarkerDataSource, SupabaseService])
 import 'marker_repository_impl_test.mocks.dart';
@@ -93,6 +94,51 @@ void main() {
             updatedAt: now,
           ),
         ];
+
+    group('createMarkerSet — remote isTimeSynced reflects payload', () {
+      // Regression: createMarkerSet was copying isTimeSynced from the entity
+      // (e.g. the source of a copy) but always sending markers_json: [] because
+      // fromEntity() hard-codes it. An empty array is vacuously time-synced
+      // (true), so sending is_time_synced: false violates the Supabase check
+      // constraint marker_sets_is_time_synced_matches_payload.
+
+      MarkerSet makeSet({required bool isTimeSynced, String id = 'new-set'}) =>
+          MarkerSet(
+            id: id,
+            trackId: 'track-1',
+            name: 'New Set',
+            isShared: false,
+            isTimeSynced: isTimeSynced,
+            createdByUserId: 'user-1',
+            createdAt: now,
+            updatedAt: now,
+          );
+
+      setUp(() {
+        when(mockRemoteDS.createMarkerSet(any)).thenAnswer((_) async {});
+      });
+
+      test(
+          'sends isTimeSynced=true when entity has isTimeSynced=false '
+          'but markers_json is empty (vacuously synced)', () async {
+        await repository.createMarkerSet(makeSet(isTimeSynced: false));
+
+        final captured =
+            verify(mockRemoteDS.createMarkerSet(captureAny)).captured;
+        final sent = captured.last as MarkerSetModel;
+        expect(sent.isTimeSynced, true);
+      });
+
+      test('sends isTimeSynced=true when entity has isTimeSynced=true and markers_json is empty',
+          () async {
+        await repository.createMarkerSet(makeSet(isTimeSynced: true));
+
+        final captured =
+            verify(mockRemoteDS.createMarkerSet(captureAny)).captured;
+        final sent = captured.last as MarkerSetModel;
+        expect(sent.isTimeSynced, true);
+      });
+    });
 
     group('replaceMarkersByMarkerSet — remote isTimeSynced reflects payload', () {
       // Regression: _syncMarkerSetPayload was sending the stale is_time_synced

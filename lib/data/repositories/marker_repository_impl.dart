@@ -67,7 +67,11 @@ class MarkerRepositoryImpl implements MarkerRepository {
     // Sync to Supabase if authenticated
     if (_canSyncToRemote) {
       try {
-        await _remoteDataSource!.createMarkerSet(markerSetModel);
+        // Compute isTimeSynced from the actual markersJson rather than trusting
+        // the entity field, which can disagree (e.g. copying a non-time-synced
+        // set produces markers_json: [] which is vacuously time-synced).
+        await _remoteDataSource!
+            .createMarkerSet(_withComputedIsTimeSynced(markerSetModel));
       } catch (e, st) {
         ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
       }
@@ -96,7 +100,8 @@ class MarkerRepositoryImpl implements MarkerRepository {
     // Sync to Supabase if authenticated
     if (success && _canSyncToRemote) {
       try {
-        await _remoteDataSource!.updateMarkerSet(markerSetModel);
+        await _remoteDataSource!
+            .updateMarkerSet(_withComputedIsTimeSynced(markerSetModel));
       } catch (e, st) {
         ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
       }
@@ -198,36 +203,39 @@ class MarkerRepositoryImpl implements MarkerRepository {
       return;
     }
 
-    // Compute isTimeSynced from the fresh markers_json payload rather than
-    // trusting the stale DB column, which may not have been updated yet.
-    // This prevents violating the Supabase check constraint
-    // marker_sets_is_time_synced_matches_payload.
-    // Rule: true iff every non-empty label has a non-null position_ms.
-    final payload = jsonDecode(updatedSet.markersJson) as List<dynamic>;
+    try {
+      await _remoteDataSource!
+          .updateMarkerSet(_withComputedIsTimeSynced(updatedSet));
+    } catch (e, st) {
+      ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
+    }
+  }
+
+  /// Returns a copy of [model] with isTimeSynced computed from its markersJson.
+  ///
+  /// Rule: true iff every non-empty label has a non-null position_ms.
+  /// This prevents violating the Supabase check constraint
+  /// marker_sets_is_time_synced_matches_payload when the field on the entity or
+  /// local DB is stale.
+  MarkerSetModel _withComputedIsTimeSynced(MarkerSetModel model) {
+    final payload = jsonDecode(model.markersJson) as List<dynamic>;
     final computedIsTimeSynced = payload.every((e) {
       final entry = e as Map<String, dynamic>;
       final label = entry['label'] as String? ?? '';
       return label.isEmpty || entry['position_ms'] != null;
     });
-
-    final modelToSync = MarkerSetModel(
-      id: updatedSet.id,
-      trackId: updatedSet.trackId,
-      name: updatedSet.name,
-      isShared: updatedSet.isShared,
+    return MarkerSetModel(
+      id: model.id,
+      trackId: model.trackId,
+      name: model.name,
+      isShared: model.isShared,
       isTimeSynced: computedIsTimeSynced,
-      createdByUserId: updatedSet.createdByUserId,
-      createdAt: updatedSet.createdAt,
-      updatedAt: updatedSet.updatedAt,
-      deleted: updatedSet.deleted,
-      markersJson: updatedSet.markersJson,
+      createdByUserId: model.createdByUserId,
+      createdAt: model.createdAt,
+      updatedAt: model.updatedAt,
+      deleted: model.deleted,
+      markersJson: model.markersJson,
     );
-
-    try {
-      await _remoteDataSource!.updateMarkerSet(modelToSync);
-    } catch (e, st) {
-      ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
-    }
   }
 
   void _assertMonotonicMarkers(List<Marker> markers) {
