@@ -12,45 +12,49 @@ import 'presentation/providers/sync_provider.dart';
 import 'presentation/screens/auth/auth_wrapper.dart';
 import 'presentation/screens/home_screen.dart';
 
-void main() async {
-  // Ensure Flutter binding is initialized
-  WidgetsFlutterBinding.ensureInitialized();
-  developer.log('Flutter bindings initialized', name: 'main');
-
-  // Initialize Supabase if credentials are configured
-  if (Environment.isSupabaseConfigured) {
-    try {
-      developer.log('Starting Supabase initialization...', name: 'main');
-      await SupabaseService.initialize(
-        url: Environment.supabaseUrl,
-        anonKey: Environment.supabaseAnonKey,
-      );
-      developer.log('Supabase initialized successfully', name: 'main');
-    } catch (e) {
-      developer.log('Failed to initialize Supabase: $e', name: 'main', error: e);
-      developer.log('App will run in offline-only mode', name: 'main');
-    }
-  } else {
-    developer.log('Supabase credentials not configured - running in offline-only mode', name: 'main');
-  }
-
-  // Report uncaught Flutter framework errors (widget tree, layout, …)
-  FlutterError.onError = (details) {
-    ErrorReporter.report(
-      details.exception,
-      stackTrace: details.stack,
-      screen: 'flutter_framework',
-    );
-  };
-
-  developer.log('About to run app...', name: 'main');
-  // Wrap in runZonedGuarded so uncaught async errors are reported too.
+void main() {
+  // Wrap everything in runZonedGuarded so that:
+  // 1. ensureInitialized and runApp are called from the same zone (required by Flutter)
+  // 2. Uncaught async errors anywhere in startup or the app are reported
   runZonedGuarded(
-    () => runApp(
-      const ProviderScope(
-        child: RepertoireCoachApp(),
-      ),
-    ),
+    () async {
+      // Ensure Flutter binding is initialized inside the zone
+      WidgetsFlutterBinding.ensureInitialized();
+      developer.log('Flutter bindings initialized', name: 'main');
+
+      // Initialize Supabase if credentials are configured
+      if (Environment.isSupabaseConfigured) {
+        try {
+          developer.log('Starting Supabase initialization...', name: 'main');
+          await SupabaseService.initialize(
+            url: Environment.supabaseUrl,
+            anonKey: Environment.supabaseAnonKey,
+          );
+          developer.log('Supabase initialized successfully', name: 'main');
+        } catch (e) {
+          developer.log('Failed to initialize Supabase: $e', name: 'main', error: e);
+          developer.log('App will run in offline-only mode', name: 'main');
+        }
+      } else {
+        developer.log('Supabase credentials not configured - running in offline-only mode', name: 'main');
+      }
+
+      // Report uncaught Flutter framework errors (widget tree, layout, …)
+      FlutterError.onError = (details) {
+        ErrorReporter.report(
+          details.exception,
+          stackTrace: details.stack,
+          screen: 'flutter_framework',
+        );
+      };
+
+      developer.log('About to run app...', name: 'main');
+      runApp(
+        const ProviderScope(
+          child: RepertoireCoachApp(),
+        ),
+      );
+    },
     (error, stackTrace) {
       ErrorReporter.report(error, stackTrace: stackTrace, screen: 'async_zone');
     },
