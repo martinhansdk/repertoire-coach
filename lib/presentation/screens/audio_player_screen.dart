@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,8 +21,15 @@ class AudioPlayerScreen extends ConsumerStatefulWidget {
   final Track track;
   final String songTitle;
   final String concertName;
+  final bool? forceIncludeMediaShortcuts;
 
-  const AudioPlayerScreen({super.key, required this.track, required this.songTitle, required this.concertName});
+  const AudioPlayerScreen({
+    super.key,
+    required this.track,
+    required this.songTitle,
+    required this.concertName,
+    this.forceIncludeMediaShortcuts,
+  });
 
   @override
   ConsumerState<AudioPlayerScreen> createState() => _AudioPlayerScreenState();
@@ -102,21 +110,29 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   }
 
   Widget _buildKeyboardShortcuts(PlaybackInfo playbackInfo, Widget child) {
-    return Shortcuts(
-      shortcuts: {
-        LogicalKeySet(LogicalKeyboardKey.space): const _TogglePlayPauseIntent(),
-        LogicalKeySet(LogicalKeyboardKey.keyK): const _TogglePlayPauseIntent(),
+    final includeMediaKeys = widget.forceIncludeMediaShortcuts ??
+        (kIsWeb ||
+            !{TargetPlatform.android, TargetPlatform.iOS}.contains(defaultTargetPlatform));
+    final shortcuts = <LogicalKeySet, Intent>{
+      LogicalKeySet(LogicalKeyboardKey.space): const _TogglePlayPauseIntent(),
+      LogicalKeySet(LogicalKeyboardKey.keyK): const _TogglePlayPauseIntent(),
+      LogicalKeySet(LogicalKeyboardKey.arrowLeft): const _SeekBackwardIntent(),
+      LogicalKeySet(LogicalKeyboardKey.keyJ): const _SeekBackwardIntent(),
+      LogicalKeySet(LogicalKeyboardKey.arrowRight): const _SeekForwardIntent(),
+      LogicalKeySet(LogicalKeyboardKey.keyL): const _SeekForwardIntent(),
+      LogicalKeySet(LogicalKeyboardKey.keyR): const _ToggleLoopIntent(),
+    };
+    if (includeMediaKeys) {
+      shortcuts.addAll({
         LogicalKeySet(LogicalKeyboardKey.mediaPlayPause): const _TogglePlayPauseIntent(),
-        LogicalKeySet(LogicalKeyboardKey.arrowLeft): const _SeekBackwardIntent(),
-        LogicalKeySet(LogicalKeyboardKey.keyJ): const _SeekBackwardIntent(),
         LogicalKeySet(LogicalKeyboardKey.mediaTrackPrevious): const _SeekBackwardIntent(),
         LogicalKeySet(LogicalKeyboardKey.mediaRewind): const _SeekBackwardIntent(),
-        LogicalKeySet(LogicalKeyboardKey.arrowRight): const _SeekForwardIntent(),
-        LogicalKeySet(LogicalKeyboardKey.keyL): const _SeekForwardIntent(),
         LogicalKeySet(LogicalKeyboardKey.mediaTrackNext): const _SeekForwardIntent(),
         LogicalKeySet(LogicalKeyboardKey.mediaFastForward): const _SeekForwardIntent(),
-        LogicalKeySet(LogicalKeyboardKey.keyR): const _ToggleLoopIntent(),
-      },
+      });
+    }
+    return Shortcuts(
+      shortcuts: shortcuts,
       child: Actions(
         actions: {
           _TogglePlayPauseIntent: CallbackAction<_TogglePlayPauseIntent>(

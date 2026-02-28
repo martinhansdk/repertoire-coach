@@ -81,8 +81,13 @@ void main() {
                 .overrideWith((ref) => Future.value(entry.value)),
           ),
       ],
-      child: MaterialApp(
-        home: AudioPlayerScreen(track: tTrack1, songTitle: 'Test Song', concertName: 'Test Concert'),
+    child: MaterialApp(
+        home: AudioPlayerScreen(
+          track: tTrack1,
+          songTitle: 'Test Song',
+          concertName: 'Test Concert',
+          forceIncludeMediaShortcuts: true,
+        ),
       ),
     );
   }
