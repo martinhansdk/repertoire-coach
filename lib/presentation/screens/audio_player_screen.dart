@@ -46,9 +46,12 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     super.initState();
     _audioControls = ref.read(audioPlayerControlsProvider);
     final playbackInfo = ref.read(currentPlaybackProvider);
-    if (playbackInfo.currentTrack?.id != null &&
-        playbackInfo.currentTrack?.id != widget.track.id) {
-      _audioControls.stop();
+    if (playbackInfo.currentTrack?.id != widget.track.id) {
+      _audioControls.prepareTrack(
+        widget.track,
+        songName: widget.songTitle,
+        albumName: widget.concertName,
+      );
     }
   }
 
@@ -56,7 +59,11 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   void didUpdateWidget(covariant AudioPlayerScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.track.id != widget.track.id) {
-      _audioControls.stop();
+      _audioControls.prepareTrack(
+        widget.track,
+        songName: widget.songTitle,
+        albumName: widget.concertName,
+      );
     }
   }
 
@@ -92,13 +99,18 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     await _audioControls.seek(seekPosition);
   }
 
-  Future<void> _togglePlayPause(PlaybackInfo playbackInfo) async {
+  Future<void> _togglePlayPause() async {
+    // Always read the real repository state for control decisions, not the
+    // display-adjusted state that may have been substituted for the stale-state
+    // window while prepareTrack() is still running.
+    final playbackInfo = ref.read(currentPlaybackProvider);
     final isDifferentTrack = playbackInfo.currentTrack?.id != widget.track.id;
     if (playbackInfo.isPlaying) {
       await _audioControls.pause();
       return;
     }
     if (isDifferentTrack || playbackInfo.state == AudioPlayerState.idle) {
+      // prepareTrack() hasn't completed yet — fall back to a full playTrack.
       await _audioControls.playTrack(
         widget.track,
         songName: widget.songTitle,
@@ -137,7 +149,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
         actions: {
           _TogglePlayPauseIntent: CallbackAction<_TogglePlayPauseIntent>(
             onInvoke: (_) {
-              _togglePlayPause(playbackInfo);
+              _togglePlayPause();
               return null;
             },
           ),
@@ -243,11 +255,25 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       ),
       body: playbackInfoAsync.when(
         data: (playbackInfo) {
+          // Guard against the async window while prepareTrack() is still running:
+          // if the stream still reflects a different track, substitute clean
+          // defaults so we never show another track's position or markers.
+          final isThisTrackActive = playbackInfo.currentTrack?.id == widget.track.id;
+          final displayInfo = isThisTrackActive
+              ? playbackInfo
+              : playbackInfo.copyWith(
+                  currentTrack: widget.track,
+                  position: Duration.zero,
+                  duration: widget.track.durationMs != null
+                      ? Duration(milliseconds: widget.track.durationMs!)
+                      : Duration.zero,
+                  state: AudioPlayerState.paused,
+                );
           return _buildKeyboardShortcuts(
-            playbackInfo,
+            displayInfo,
             SafeArea(
               top: false,
-              child: _buildPlaybackControls(playbackInfo),
+              child: _buildPlaybackControls(displayInfo),
             ),
           );
         },
@@ -260,7 +286,10 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   }
 
   Widget _buildPlaybackControls(PlaybackInfo playbackInfo) {
-    final currentTrack = playbackInfo.currentTrack ?? widget.track;
+    // Always use widget.track: prepareTrack() sets it as the active track, and
+    // the displayInfo substitution above ensures playbackInfo.currentTrack is
+    // already widget.track by the time this is called.
+    final currentTrack = widget.track;
     final userId = ref.read(supabaseServiceProvider).currentUserId;
     if (userId == null) {
       return const Center(child: Text('Please sign in to view marker sets.'));
@@ -291,9 +320,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                       playbackInfo.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
                     ),
                     iconSize: 48,
-                    onPressed: () {
-                      _togglePlayPause(playbackInfo);
-                    },
+                    onPressed: _togglePlayPause,
                   ),
                   IconButton(
                     icon: const Icon(Icons.forward_10),

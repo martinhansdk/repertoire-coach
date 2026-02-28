@@ -111,6 +111,27 @@ class MockAudioPlayerRepository extends _i1.Mock
       ) as _i4.Future<void>);
 
   @override
+  _i4.Future<void> prepareTrack(
+    _i5.Track? track, {
+    String? audioUrl,
+    String? songName,
+    String? albumName,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #prepareTrack,
+          [track],
+          {
+            #audioUrl: audioUrl,
+            #songName: songName,
+            #albumName: albumName,
+          },
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
   _i4.Future<void> resume() => (super.noSuchMethod(
         Invocation.method(
           #resume,

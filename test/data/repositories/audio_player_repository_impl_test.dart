@@ -168,6 +168,62 @@ void main() {
       expect(info.state, AudioPlayerState.idle);
     });
 
+    group('prepareTrack', () {
+      test('should throw when track has no audio file', () {
+        final track = Track(
+          id: 'track-1',
+          songId: 'song-1',
+          name: 'Test Track',
+          filePath: null,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime(2024, 1, 1),
+        );
+
+        expect(
+          () => repository.prepareTrack(track),
+          throwsException,
+        );
+      });
+
+      test('should immediately emit PlaybackInfo with new track at position zero', () async {
+        final track = Track(
+          id: 'track-b',
+          songId: 'song-1',
+          name: 'Track B',
+          filePath: '/nonexistent/file.mp3', // will fail to load, but emit comes first
+          durationMs: 120000,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        final emittedInfos = <PlaybackInfo>[];
+        final subscription = repository.playbackStream.listen((info) {
+          emittedInfos.add(info);
+        });
+
+        // Ignore the load error — we're testing the early emit, not load success
+        await repository.prepareTrack(track).catchError((_) {});
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        expect(
+          emittedInfos.any((info) => info.currentTrack?.id == 'track-b'),
+          isTrue,
+          reason: 'prepareTrack should emit a PlaybackInfo with the new track before audio loads',
+        );
+        final emitForTrackB = emittedInfos.lastWhere(
+          (info) => info.currentTrack?.id == 'track-b',
+          orElse: () => const PlaybackInfo.idle(),
+        );
+        expect(
+          emitForTrackB.position,
+          Duration.zero,
+          reason: 'Initial emit from prepareTrack should have position=0',
+        );
+
+        await subscription.cancel();
+      });
+    });
+
     test('should play valid audio file', () async {
       // Requires a valid audio file format — integration test only
     }, skip: 'Requires valid audio file and audio system');

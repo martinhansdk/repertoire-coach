@@ -101,6 +101,35 @@ class AudioPlayerControls {
     await _repository.stop();
   }
 
+  /// Load a track without starting playback.
+  ///
+  /// Fetches a signed URL if required, then delegates to the repository.
+  /// The repository immediately emits a clean PlaybackInfo (currentTrack=track,
+  /// position=0) so the UI reflects the new track before audio finishes loading.
+  Future<void> prepareTrack(
+    Track track, {
+    String? songName,
+    String? albumName,
+  }) async {
+    String? signedUrl;
+
+    if (track.storagePath != null) {
+      try {
+        final signerClient = _ref.read(r2SignerClientProvider);
+        signedUrl = await signerClient.getPlayUrl(track.id);
+      } catch (e) {
+        // Log error but continue — will fall back to local file if available
+      }
+    }
+
+    await _repository.prepareTrack(
+      track,
+      audioUrl: signedUrl,
+      songName: songName,
+      albumName: albumName,
+    );
+  }
+
   /// Seek to a specific position
   Future<void> seek(Duration position) async {
     await _repository.seek(position);

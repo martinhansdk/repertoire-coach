@@ -316,6 +316,77 @@ class AudioPlayerRepositoryImpl implements AudioPlayerRepository {
   }
 
   @override
+  Future<void> prepareTrack(
+    Track track, {
+    String? audioUrl,
+    String? songName,
+    String? albumName,
+  }) async {
+    await _ensureInitialized();
+
+    final effectiveAudioUrl = audioUrl ?? track.audioUrl;
+
+    if (kIsWeb && effectiveAudioUrl == null) {
+      final errorInfo = PlaybackInfo.error(
+        'Track has no cloud URL. Please upload the audio file to Supabase storage.',
+      );
+      _currentPlaybackInfo = errorInfo;
+      _playbackController.add(errorInfo);
+      throw Exception('Track has no cloud URL (required for web playback)');
+    }
+
+    if (effectiveAudioUrl == null && track.filePath == null) {
+      final errorInfo = PlaybackInfo.error('Track has no audio file');
+      _currentPlaybackInfo = errorInfo;
+      _playbackController.add(errorInfo);
+      throw Exception('Track has no audio file');
+    }
+
+    // Immediately emit a clean state for the new track so the UI stops showing
+    // the previous track's position/markers before audio finishes loading.
+    _currentTrack = track;
+    _currentSongName = songName;
+    _currentAlbumName = albumName;
+    _currentPlaybackInfo = PlaybackInfo(
+      currentTrack: track,
+      state: AudioPlayerState.loading,
+      position: Duration.zero,
+      duration: track.durationMs != null
+          ? Duration(milliseconds: track.durationMs!)
+          : Duration.zero,
+      loopRange: _loopRange,
+      isTrackLooping: _isLooping,
+      speed: _player.speed,
+    );
+    _playbackController.add(_currentPlaybackInfo);
+
+    try {
+      if (effectiveAudioUrl != null) {
+        await _player.setUrl(effectiveAudioUrl);
+      } else if (!kIsWeb && track.filePath != null) {
+        final file = File(track.filePath!);
+        if (!await file.exists()) {
+          final errorInfo = PlaybackInfo.error('Audio file not found: ${track.filePath}');
+          _currentPlaybackInfo = errorInfo;
+          _playbackController.add(errorInfo);
+          throw Exception('Audio file not found');
+        }
+        await _player.setFilePath(track.filePath!);
+      }
+
+      await _player.seek(Duration.zero);
+      await _updateMediaItem();
+      _updatePlaybackInfo();
+    } catch (e, stackTrace) {
+      ErrorReporter.report(e, stackTrace: stackTrace, screen: 'audio_player');
+      final errorInfo = PlaybackInfo.error('Failed to prepare track: $e');
+      _currentPlaybackInfo = errorInfo;
+      _playbackController.add(errorInfo);
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> resume() async {
     await _ensureInitialized(); // ensure audio_service & audio_session are ready
 

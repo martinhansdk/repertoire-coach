@@ -39,6 +39,13 @@ void main() {
     when(mockAudioPlayerRepository.seek(any)).thenAnswer((_) async => Duration.zero);
     when(mockAudioPlayerRepository.dispose()).thenAnswer((_) async {});
     when(mockAudioPlayerRepository.playTrack(any)).thenAnswer((_) async {});
+    when(
+      mockAudioPlayerRepository.prepareTrack(
+        any,
+        songName: anyNamed('songName'),
+        albumName: anyNamed('albumName'),
+      ),
+    ).thenAnswer((_) async {});
     when(mockAudioPlayerRepository.isLooping).thenReturn(false);
     when(mockAudioPlayerRepository.setLoopMode(any)).thenAnswer((_) async {});
 
@@ -243,7 +250,7 @@ void main() {
     verify(mockAudioPlayerRepository.stop()).called(1);
   });
 
-  testWidgets('stops playback if different track is already playing', (tester) async {
+  testWidgets('prepares this track when a different track is already playing', (tester) async {
     final playbackInfo = PlaybackInfo.idle().copyWith(
       currentTrack: tTrack2,
       state: AudioPlayerState.playing,
@@ -252,13 +259,27 @@ void main() {
     when(mockAudioPlayerRepository.playbackStream).thenAnswer(
       (_) => Stream.value(playbackInfo),
     );
+    when(
+      mockAudioPlayerRepository.prepareTrack(
+        any,
+        songName: anyNamed('songName'),
+        albumName: anyNamed('albumName'),
+      ),
+    ).thenAnswer((_) async {});
 
     await tester.pumpWidget(createWidgetUnderTest(
       playbackInfoStream: Stream.value(playbackInfo),
     ));
     await tester.pump(const Duration(milliseconds: 100));
 
-    verify(mockAudioPlayerRepository.stop()).called(1);
+    verify(
+      mockAudioPlayerRepository.prepareTrack(
+        captureAny,
+        songName: anyNamed('songName'),
+        albumName: anyNamed('albumName'),
+      ),
+    ).called(1);
+    verifyNever(mockAudioPlayerRepository.stop());
   });
 
   testWidgets('shows pause button when playing', (tester) async {
@@ -280,6 +301,9 @@ void main() {
       currentTrack: tTrack1,
       state: AudioPlayerState.playing,
     );
+    // currentPlaybackProvider reads the repository directly; ensure it agrees
+    // with the stream so _togglePlayPause sees the playing state.
+    when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
     await tester.pumpWidget(createWidgetUnderTest(
       playbackInfoStream: Stream.value(playbackInfo),
     ));
@@ -379,7 +403,7 @@ void main() {
     verify(mockAudioPlayerRepository.seek(const Duration(seconds: 15))).called(1);
   });
 
-  testWidgets('clears markers when switching to track with no marker sets', (tester) async {
+  testWidgets('keeps showing this track markers when a different track becomes active in the stream', (tester) async {
     final controller = StreamController<PlaybackInfo>();
     final markerSet1 = MarkerSet(
       id: 'set-1',
@@ -430,11 +454,81 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Intro'), findsNothing);
-    expect(find.byType(MarkerProgressBar), findsNothing);
-    expect(find.text('Markers'), findsOneWidget);
+    // The screen is always for tTrack1, so its markers stay visible even
+    // when the stream briefly reflects a different active track.
+    expect(find.text('Intro'), findsOneWidget);
+    expect(find.byType(MarkerProgressBar), findsOneWidget);
 
     await controller.close();
+  });
+
+  group('Track navigation', () {
+    testWidgets(
+      'shows 00:00 when stream emits a different active track at non-zero position',
+      (tester) async {
+        // Scenario: another track is playing at 1:00 in the background.
+        // This screen is for tTrack1 but the stream has tTrack2 at 1:00.
+        // The view-layer guard should show 00:00, not 01:00.
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          currentTrack: tTrack2,
+          state: AudioPlayerState.playing,
+          position: const Duration(minutes: 1),
+          duration: const Duration(minutes: 3),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          playbackInfoStream: Stream.value(playbackInfo),
+        ));
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(
+          find.text('01:00'),
+          findsNothing,
+          reason: 'Should not show position from a different active track',
+        );
+        // "00:00" appears for both position and duration (tTrack1 has no
+        // durationMs, so both format to 00:00).
+        expect(find.text('00:00'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'calls prepareTrack not stop when different track is active on init',
+      (tester) async {
+        // Scenario: tTrack2 is playing when we open the screen for tTrack1.
+        // Should call prepareTrack(tTrack1) to load it ready for seeking/playing,
+        // not stop() which leaves the player in an idle state.
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          currentTrack: tTrack2,
+          state: AudioPlayerState.playing,
+        );
+        when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
+        when(mockAudioPlayerRepository.playbackStream).thenAnswer(
+          (_) => Stream.value(playbackInfo),
+        );
+        when(
+          mockAudioPlayerRepository.prepareTrack(
+            any,
+            songName: anyNamed('songName'),
+            albumName: anyNamed('albumName'),
+          ),
+        ).thenAnswer((_) async {});
+
+        await tester.pumpWidget(createWidgetUnderTest(
+          playbackInfoStream: Stream.value(playbackInfo),
+        ));
+        await tester.pump(const Duration(milliseconds: 100));
+
+        verify(
+          mockAudioPlayerRepository.prepareTrack(
+            captureAny,
+            songName: anyNamed('songName'),
+            albumName: anyNamed('albumName'),
+          ),
+        ).called(1);
+        verifyNever(mockAudioPlayerRepository.stop());
+      },
+    );
   });
 
   group('Loop Button', () {

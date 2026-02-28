@@ -98,6 +98,14 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   }
 
   @override
+  Future<void> prepareTrack(
+    Track track, {
+    String? audioUrl,
+    String? songName,
+    String? albumName,
+  }) async {}
+
+  @override
   Future<void> stop() async {
     _currentPlayback = _currentPlayback.copyWith(
       clearTrack: true,

@@ -31,6 +31,18 @@ abstract class AudioPlayerRepository {
     String? albumName,
   });
 
+  /// Load a track without starting playback.
+  ///
+  /// Immediately emits a clean PlaybackInfo (currentTrack=track, position=0)
+  /// so the UI reflects the new track before audio finishes loading.
+  /// After this completes, [seek] and [resume] work without a full [playTrack].
+  Future<void> prepareTrack(
+    Track track, {
+    String? audioUrl,
+    String? songName,
+    String? albumName,
+  });
+
   /// Resume playback if paused
   Future<void> resume();
 

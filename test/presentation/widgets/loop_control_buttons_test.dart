@@ -42,6 +42,14 @@ class FakeAudioPlayerRepository implements AudioPlayerRepository {
   Future<void> pause() async {}
 
   @override
+  Future<void> prepareTrack(
+    Track track, {
+    String? audioUrl,
+    String? songName,
+    String? albumName,
+  }) async {}
+
+  @override
   Future<void> stop() async {}
 
   @override
