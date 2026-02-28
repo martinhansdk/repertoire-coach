@@ -583,7 +583,7 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 **Priority 3: AudioPlayerScreen**
 - [ ] Extract `AudioPlaybackNotifier` StateNotifier (improves testability)
 - [ ] Extract `TrackNavigationUseCase` (improves testability)
-- [ ] Write widget tests for AudioPlayerScreen (play/pause/seek/navigation)
+- [x] Write widget tests for AudioPlayerScreen (play/pause/seek/navigation) - Added 2026-02-28
 
 **Priority 4: Skipped Tests**
 - [ ] Investigate 21 skipped tests (complex async/dialog timing issues)
