@@ -45,7 +45,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   void initState() {
     super.initState();
     _audioControls = ref.read(audioPlayerControlsProvider);
-    final playbackInfo = ref.read(currentPlaybackProvider);
+    final playbackInfo = ref.read(audioPlayerRepositoryProvider).currentPlayback;
     if (playbackInfo.currentTrack?.id != widget.track.id) {
       _audioControls.prepareTrack(
         widget.track,
@@ -100,10 +100,12 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   }
 
   Future<void> _togglePlayPause() async {
-    // Always read the real repository state for control decisions, not the
-    // display-adjusted state that may have been substituted for the stale-state
-    // window while prepareTrack() is still running.
-    final playbackInfo = ref.read(currentPlaybackProvider);
+    // Read the repository's current playback state directly rather than via
+    // currentPlaybackProvider, which is a plain Provider that evaluates once and
+    // caches the result. Because audioPlayerRepositoryProvider never rebuilds,
+    // the cached provider stays stale after the track starts playing.
+    // Calling the getter directly always returns the live _currentPlaybackInfo.
+    final playbackInfo = ref.read(audioPlayerRepositoryProvider).currentPlayback;
     final isDifferentTrack = playbackInfo.currentTrack?.id != widget.track.id;
     if (playbackInfo.isPlaying) {
       await _audioControls.pause();

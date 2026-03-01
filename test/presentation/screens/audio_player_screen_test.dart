@@ -301,18 +301,33 @@ void main() {
       currentTrack: tTrack1,
       state: AudioPlayerState.playing,
     );
-    // currentPlaybackProvider reads the repository directly; ensure it agrees
-    // with the stream so _togglePlayPause sees the playing state.
-    when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
+    // currentPlayback is initially idle (setUp default). The widget is pumped
+    // while idle so the provider is evaluated and cached with the idle value.
+    // Then currentPlayback changes to playing (track started) and the stream
+    // emits the playing state so the pause button appears.
+    // _togglePlayPause must read the LIVE repository state, not the stale cache.
+    final streamController = StreamController<PlaybackInfo>();
     await tester.pumpWidget(createWidgetUnderTest(
-      playbackInfoStream: Stream.value(playbackInfo),
+      playbackInfoStream: streamController.stream,
     ));
+    await tester.pump();
+
+    // Now switch to playing — the provider was already cached with idle state.
+    when(mockAudioPlayerRepository.currentPlayback).thenReturn(playbackInfo);
+    streamController.add(playbackInfo);
     await tester.pump(const Duration(milliseconds: 100));
 
     await tester.tap(find.byIcon(Icons.pause_circle_filled));
     await tester.pump();
 
     verify(mockAudioPlayerRepository.pause()).called(1);
+    verifyNever(mockAudioPlayerRepository.playTrack(
+      captureAny,
+      songName: anyNamed('songName'),
+      albumName: anyNamed('albumName'),
+    ));
+
+    await streamController.close();
   });
 
   testWidgets('keyboard shortcut K toggles play/pause', (tester) async {
