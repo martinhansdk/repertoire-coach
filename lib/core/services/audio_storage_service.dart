@@ -37,10 +37,12 @@ class AudioStorageService {
   /// Upload an audio file from a local file path (mobile/desktop).
   ///
   /// Throws [ArgumentError] on web — use [uploadAudioFromBytes] instead.
+  /// [onProgress] is called with values from 0.0 to 1.0 as bytes are sent.
   Future<AudioUploadResult> uploadAudioFromFile({
     required String filePath,
     required String choirId,
     required String trackId,
+    void Function(double progress)? onProgress,
   }) async {
     if (kIsWeb) {
       throw ArgumentError(
@@ -62,17 +64,20 @@ class AudioStorageService {
       trackId: trackId,
       extension: extension,
       contentType: _contentTypeForExtension(extension),
+      onProgress: onProgress,
     );
   }
 
   /// Upload an audio file from bytes (web/mobile).
   ///
   /// Throws [ArgumentError] if [fileName] has no extension.
+  /// [onProgress] is called with values from 0.0 to 1.0 as bytes are sent.
   Future<AudioUploadResult> uploadAudioFromBytes({
     required Uint8List bytes,
     required String fileName,
     required String choirId,
     required String trackId,
+    void Function(double progress)? onProgress,
   }) async {
     final extension = path.extension(fileName).toLowerCase();
     if (extension.isEmpty) {
@@ -88,6 +93,7 @@ class AudioStorageService {
       trackId: trackId,
       extension: extension,
       contentType: _contentTypeForExtension(extension),
+      onProgress: onProgress,
     );
   }
 
@@ -97,6 +103,7 @@ class AudioStorageService {
     required String trackId,
     required String extension,
     required String contentType,
+    void Function(double progress)? onProgress,
   }) async {
     // 1. Get presigned PUT URL from the signer
     final target = await _signerClient.getUploadUrl(
@@ -106,16 +113,40 @@ class AudioStorageService {
       contentType: contentType,
     );
 
-    // 2. PUT bytes directly to R2
-    final uploadResponse = await _http.put(
-      Uri.parse(target.uploadUrl),
-      headers: {'Content-Type': contentType},
-      body: bytes,
-    );
+    // 2. PUT bytes directly to R2, streaming in chunks to report progress.
+    final uri = Uri.parse(target.uploadUrl);
+    final request = http.StreamedRequest('PUT', uri)
+      ..headers['Content-Type'] = contentType
+      ..headers['Content-Length'] = bytes.length.toString();
 
-    if (uploadResponse.statusCode != 200) {
+    // Feed bytes into the sink in 256 KB chunks, yielding between each chunk
+    // so that progress callbacks can update the UI and the HTTP stack can flush
+    // buffered data. This future is started before send() so the two run
+    // concurrently (producer / consumer).
+    const chunkSize = 256 * 1024; // 256 KB
+    Future<void> feedBytes() async {
+      int offset = 0;
+      while (offset < bytes.length) {
+        final end = (offset + chunkSize).clamp(0, bytes.length);
+        request.sink.add(bytes.sublist(offset, end));
+        offset = end;
+        onProgress?.call(offset / bytes.length);
+        await Future<void>.delayed(Duration.zero);
+      }
+      await request.sink.close();
+    }
+
+    // Start feeding and sending concurrently, then await both.
+    final feedFuture = feedBytes();
+    final streamedResponse = await _http.send(request);
+    // Drain the response body (required to release the connection).
+    await streamedResponse.stream.drain<void>();
+    // Wait for all bytes and callbacks to complete before checking status.
+    await feedFuture;
+
+    if (streamedResponse.statusCode != 200) {
       throw Exception(
-        'R2 upload failed: HTTP ${uploadResponse.statusCode}',
+        'R2 upload failed: HTTP ${streamedResponse.statusCode}',
       );
     }
 

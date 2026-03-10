@@ -39,6 +39,8 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
   String? _selectedFileName;
 
   bool _isCreating = false;
+  double? _uploadProgress; // null = not uploading; 0.0–1.0 = upload progress
+  String _uploadStatus = '';
 
   @override
   void dispose() {
@@ -106,6 +108,8 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
 
     setState(() {
       _isCreating = true;
+      _uploadProgress = 0.0;
+      _uploadStatus = 'Uploading audio file…';
     });
 
     try {
@@ -115,19 +119,33 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
       // Debug: Log upload parameters
       debugPrint('DEBUG - Uploading audio: choirId=${widget.choirId}, trackId=$trackId');
 
-      // Upload audio file to Supabase Storage
+      void onProgress(double progress) {
+        if (mounted) setState(() => _uploadProgress = progress);
+      }
+
+      // Upload audio file to R2 storage. The track record is only created
+      // in the database after a successful upload.
       final uploadResult = kIsWeb
           ? await audioStorageService.uploadAudioFromBytes(
               bytes: _selectedFileBytes!,
               fileName: _selectedFileName!,
               choirId: widget.choirId,
               trackId: trackId,
+              onProgress: onProgress,
             )
           : await audioStorageService.uploadAudioFromFile(
               filePath: _selectedFilePath!,
               choirId: widget.choirId,
               trackId: trackId,
+              onProgress: onProgress,
             );
+
+      // Upload succeeded — now save the track record to the database.
+      if (!mounted) return;
+      setState(() {
+        _uploadStatus = 'Saving track…';
+        _uploadProgress = 1.0;
+      });
 
       // Create track with uploaded audio URL
       final repository = ref.read(trackRepositoryProvider);
@@ -166,6 +184,8 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
       if (mounted) {
         setState(() {
           _isCreating = false;
+          _uploadProgress = null;
+          _uploadStatus = '';
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -248,6 +268,23 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
                   return null;
                 },
               ),
+
+              // Upload progress indicator
+              if (_isCreating) ...[
+                const SizedBox(height: 20),
+                LinearProgressIndicator(
+                  value: (_uploadProgress != null && _uploadProgress! > 0)
+                      ? _uploadProgress
+                      : null,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _uploadStatus,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -259,13 +296,7 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
         ),
         FilledButton(
           onPressed: _isCreating ? null : _createTrack,
-          child: _isCreating
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Add'),
+          child: const Text('Add'),
         ),
       ],
     );

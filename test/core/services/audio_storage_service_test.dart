@@ -149,6 +149,91 @@ void main() {
           throwsException,
         );
       });
+
+      test('calls onProgress with 1.0 for small file (single chunk)', () async {
+        when(mockSigner.getUploadUrl(
+          choirId: anyNamed('choirId'),
+          trackId: anyNamed('trackId'),
+          extension: anyNamed('extension'),
+          contentType: anyNamed('contentType'),
+        )).thenAnswer((_) async => fakeTarget);
+
+        final service200 = AudioStorageService(
+          mockSigner,
+          httpClient: _fakeHttp(statusCode: 200),
+        );
+
+        final progressValues = <double>[];
+        await service200.uploadAudioFromBytes(
+          bytes: fakeBytes,
+          fileName: 'song.mp3',
+          choirId: 'c1',
+          trackId: 't1',
+          onProgress: progressValues.add,
+        );
+
+        expect(progressValues, isNotEmpty);
+        expect(progressValues.last, 1.0);
+      });
+
+      test('calls onProgress multiple times for large file', () async {
+        when(mockSigner.getUploadUrl(
+          choirId: anyNamed('choirId'),
+          trackId: anyNamed('trackId'),
+          extension: anyNamed('extension'),
+          contentType: anyNamed('contentType'),
+        )).thenAnswer((_) async => fakeTarget);
+
+        final service200 = AudioStorageService(
+          mockSigner,
+          httpClient: _fakeHttp(statusCode: 200),
+        );
+
+        // 3 chunks worth of data (3 * 256 KB = 768 KB)
+        final largeBytes = Uint8List(3 * 256 * 1024);
+
+        final progressValues = <double>[];
+        await service200.uploadAudioFromBytes(
+          bytes: largeBytes,
+          fileName: 'song.mp3',
+          choirId: 'c1',
+          trackId: 't1',
+          onProgress: progressValues.add,
+        );
+
+        // Should have exactly 3 progress updates (one per chunk)
+        expect(progressValues.length, 3);
+        // Progress should be monotonically increasing
+        for (int i = 1; i < progressValues.length; i++) {
+          expect(progressValues[i], greaterThan(progressValues[i - 1]));
+        }
+        // Final progress should be 1.0
+        expect(progressValues.last, 1.0);
+      });
+
+      test('succeeds without onProgress callback', () async {
+        when(mockSigner.getUploadUrl(
+          choirId: anyNamed('choirId'),
+          trackId: anyNamed('trackId'),
+          extension: anyNamed('extension'),
+          contentType: anyNamed('contentType'),
+        )).thenAnswer((_) async => fakeTarget);
+
+        final service200 = AudioStorageService(
+          mockSigner,
+          httpClient: _fakeHttp(statusCode: 200),
+        );
+
+        // Should not throw when onProgress is null
+        final result = await service200.uploadAudioFromBytes(
+          bytes: fakeBytes,
+          fileName: 'song.mp3',
+          choirId: 'c1',
+          trackId: 't1',
+        );
+
+        expect(result.storagePath, isNotEmpty);
+      });
     });
 
     // -----------------------------------------------------------------------
