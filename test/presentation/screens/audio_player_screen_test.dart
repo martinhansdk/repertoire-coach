@@ -546,6 +546,43 @@ void main() {
     );
   });
 
+  group('Duration display', () {
+    testWidgets('shows MM:SS format for tracks under one hour', (tester) async {
+      final playbackInfo = PlaybackInfo.idle().copyWith(
+        currentTrack: tTrack1,
+        state: AudioPlayerState.paused,
+        position: const Duration(minutes: 3, seconds: 45),
+        duration: const Duration(minutes: 59, seconds: 59),
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('03:45'), findsOneWidget);
+      expect(find.text('59:59'), findsOneWidget);
+    });
+
+    testWidgets('shows H:MM:SS format for tracks one hour or longer', (tester) async {
+      final playbackInfo = PlaybackInfo.idle().copyWith(
+        currentTrack: tTrack1,
+        state: AudioPlayerState.paused,
+        position: const Duration(hours: 1, minutes: 23, seconds: 0),
+        duration: const Duration(hours: 1, minutes: 23, seconds: 0),
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(
+        playbackInfoStream: Stream.value(playbackInfo),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('1:23:00'), findsWidgets);
+      // Ensure the broken format (just minutes, no hours) is not shown
+      expect(find.text('83:00'), findsNothing);
+    });
+  });
+
   group('Loop Button', () {
     testWidgets('tapping loop button toggles track loop', (tester) async {
       final playbackInfo = PlaybackInfo.idle().copyWith(

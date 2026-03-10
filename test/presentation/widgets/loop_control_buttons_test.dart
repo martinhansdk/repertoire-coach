@@ -257,6 +257,22 @@ void main() {
 
         expect(find.text('Loop: 1:05 → 2:30'), findsOneWidget);
       });
+
+      testWidgets('should show H:MM:SS format for loop points in tracks over one hour', (tester) async {
+        final playbackInfo = PlaybackInfo.idle().copyWith(
+          loopRange: LoopRange(
+            startPosition: const Duration(hours: 1, minutes: 5, seconds: 30),
+            endPosition: const Duration(hours: 1, minutes: 23, seconds: 0),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(playbackInfo: playbackInfo));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Loop: 1:05:30 → 1:23:00'), findsOneWidget);
+        // Ensure the broken format without hours is not shown
+        expect(find.text('Loop: 65:30 → 83:00'), findsNothing);
+      });
     });
 
     group('Setting Loop Points', () {

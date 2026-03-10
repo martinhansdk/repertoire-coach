@@ -58,6 +58,23 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
       if (result != null) {
         final file = result.files.single;
 
+        // Validate file size before proceeding (limit: 200 MB)
+        const maxFileSizeBytes = 200 * 1024 * 1024;
+        if (file.size > maxFileSizeBytes) {
+          if (mounted) {
+            final sizeMb = (file.size / (1024 * 1024)).toStringAsFixed(1);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'File is too large ($sizeMb MB). Maximum allowed size is 200 MB.',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
         setState(() {
           if (kIsWeb) {
             // On web, use bytes
@@ -236,7 +253,7 @@ class _AddTrackDialogState extends ConsumerState<AddTrackDialog> {
                     onPressed: _isCreating ? null : _pickAudioFile,
                     tooltip: 'Browse for audio file',
                   ),
-                  helperText: 'Required - Works on all platforms including web',
+                  helperText: 'Required - Maximum size 200 MB',
                 ),
                 enabled: !_isCreating,
                 readOnly: true,
