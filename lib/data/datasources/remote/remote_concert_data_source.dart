@@ -21,7 +21,8 @@ class RemoteConcertDataSource {
       final memberResponse = await _supabase
           .from('choir_members')
           .select('choir_id')
-          .eq('user_id', userId) as List;
+          .eq('user_id', userId)
+          .eq('deleted', false) as List;
 
       if (memberResponse.isEmpty) {
         return [];
@@ -41,6 +42,7 @@ class RemoteConcertDataSource {
             concert_date,
             created_at,
             updated_at,
+            deleted,
             choirs!inner(name)
           ''')
           .inFilter('choir_id', choirIds)
@@ -74,6 +76,7 @@ class RemoteConcertDataSource {
             concert_date,
             created_at,
             updated_at,
+            deleted,
             choirs!inner(name)
           ''')
           .eq('id', id)
@@ -114,7 +117,8 @@ class RemoteConcertDataSource {
           .update({
             'name': concert.name,
             'concert_date': concert.concertDate.toIso8601String(),
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
+            'deleted': concert.deleted,
+            'updated_at': concert.updatedAt.toUtc().toIso8601String(),
           })
           .eq('id', concert.id);
     } on PostgrestException catch (e) {
@@ -125,9 +129,14 @@ class RemoteConcertDataSource {
   }
 
   /// Delete a concert from Supabase
-  Future<void> deleteConcert(String id) async {
+  Future<void> deleteConcert(String id, DateTime deletedAt) async {
     try {
-      await _supabase.from('concerts').delete().eq('id', id);
+      // Soft delete: tombstones sync like edits (newest wins) and deletion is
+      // never inferred from row absence.
+      await _supabase.from('concerts').update({
+        'deleted': true,
+        'updated_at': deletedAt.toUtc().toIso8601String(),
+      }).eq('id', id);
     } on PostgrestException catch (e) {
       throw Exception('Failed to delete concert from Supabase: ${e.message}');
     } catch (e) {

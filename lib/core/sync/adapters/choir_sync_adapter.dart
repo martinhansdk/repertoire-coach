@@ -15,6 +15,9 @@ class SyncableChoir with Syncable {
 
   @override
   DateTime get syncTimestamp => model.updatedAt;
+
+  @override
+  bool get isDeleted => model.deleted;
 }
 
 /// Sync adapter for Choir entities
@@ -46,11 +49,6 @@ class ChoirSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  bool isLocallyDeleted(covariant SyncableChoir item) {
-    return item.model.deleted;
-  }
-
-  @override
   Future<void> createOnRemote(covariant SyncableChoir item) async {
     await _remote.createChoir(item.model, _userId);
   }
@@ -61,23 +59,18 @@ class ChoirSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  Future<void> deleteOnRemote(String id) async {
-    await _remote.deleteChoir(id);
+  Future<void> deleteOnRemote(String id, DateTime deletedAt) async {
+    await _remote.deleteChoir(id, deletedAt);
   }
 
   @override
-  Future<void> markSynced(String id) async {
-    await _local.markChoirAsSynced(id);
+  Future<void> markSynced(String id, DateTime expectedUpdatedAt) async {
+    await _local.markChoirAsSynced(id, expectedUpdatedAt);
   }
 
   @override
   Future<void> upsertLocal(covariant SyncableChoir item) async {
     await _local.upsertChoir(item.model, markForSync: false);
-  }
-
-  @override
-  Future<void> hardDeleteSyncedNotIn(Set<String> keepIds) async {
-    await _local.hardDeleteSyncedChoirsNotIn(keepIds);
   }
 
   @override

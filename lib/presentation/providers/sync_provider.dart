@@ -90,7 +90,35 @@ class SyncController extends Notifier<SyncState> {
   /// Pulls all data accessible to the current user and upserts
   /// it into the local database. After sync, invalidates providers
   /// to refresh UI with new data.
+  /// True while a sync run is in flight (see [syncFromRemote]).
+  bool _syncInProgress = false;
+
+  /// True if a sync was requested while one was already running.
+  bool _syncQueued = false;
+
   Future<void> syncFromRemote() async {
+    // Sync is triggered from many places (sign-in, screen loads, manual
+    // refresh). Overlapping runs raced each other on stale snapshots —
+    // duplicate remote creates and, worse, cleanup steps operating on
+    // out-of-date state. Coalesce: run one sync at a time and fold any
+    // requests that arrive mid-run into a single follow-up run.
+    if (_syncInProgress) {
+      _syncQueued = true;
+      return;
+    }
+    _syncInProgress = true;
+    try {
+      await _syncFromRemoteInner();
+    } finally {
+      _syncInProgress = false;
+      if (_syncQueued) {
+        _syncQueued = false;
+        await syncFromRemote();
+      }
+    }
+  }
+
+  Future<void> _syncFromRemoteInner() async {
     final syncService = ref.read(syncServiceProvider);
     final userId = ref.read(supabaseServiceProvider).currentUserId;
 

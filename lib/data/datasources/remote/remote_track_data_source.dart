@@ -23,7 +23,9 @@ class RemoteTrackDataSource {
             audio_url,
             storage_path,
             duration_ms,
-            created_at
+            created_at,
+            updated_at,
+            deleted
           ''')
           .eq('song_id', songId)
           .order('name', ascending: true) as List;
@@ -57,7 +59,9 @@ class RemoteTrackDataSource {
             audio_url,
             storage_path,
             duration_ms,
-            created_at
+            created_at,
+            updated_at,
+            deleted
           ''')
           .eq('id', id)
           .maybeSingle();
@@ -85,10 +89,9 @@ class RemoteTrackDataSource {
   /// Create a new track in Supabase
   Future<void> createTrack(TrackModel track) async {
     try {
-      // Don't send file_path or updated_at to Supabase
+      // Don't send file_path to Supabase (local-only column)
       final json = track.toJson();
       json.remove('file_path');
-      json.remove('updated_at');
 
       await _supabase.from('tracks').insert(json);
     } on PostgrestException catch (e) {
@@ -108,6 +111,8 @@ class RemoteTrackDataSource {
             'audio_url': track.audioUrl,
             'storage_path': track.storagePath,
             'duration_ms': track.durationMs,
+            'deleted': track.deleted,
+            'updated_at': track.updatedAt.toUtc().toIso8601String(),
           })
           .eq('id', track.id);
     } on PostgrestException catch (e) {
@@ -118,9 +123,14 @@ class RemoteTrackDataSource {
   }
 
   /// Delete a track from Supabase
-  Future<void> deleteTrack(String id) async {
+  Future<void> deleteTrack(String id, DateTime deletedAt) async {
     try {
-      await _supabase.from('tracks').delete().eq('id', id);
+      // Soft delete: tombstones sync like edits (newest wins) and deletion is
+      // never inferred from row absence.
+      await _supabase.from('tracks').update({
+        'deleted': true,
+        'updated_at': deletedAt.toUtc().toIso8601String(),
+      }).eq('id', id);
     } on PostgrestException catch (e) {
       throw Exception('Failed to delete track from Supabase: ${e.message}');
     } catch (e) {
@@ -139,7 +149,8 @@ class RemoteTrackDataSource {
       final memberResponse = await _supabase
           .from('choir_members')
           .select('choir_id')
-          .eq('user_id', userId) as List;
+          .eq('user_id', userId)
+          .eq('deleted', false) as List;
 
       if (memberResponse.isEmpty) {
         return [];
@@ -187,7 +198,9 @@ class RemoteTrackDataSource {
             audio_url,
             storage_path,
             duration_ms,
-            created_at
+            created_at,
+            updated_at,
+            deleted
           ''')
           .inFilter('song_id', songIds)
           .order('name', ascending: true) as List;

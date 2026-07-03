@@ -65,12 +65,6 @@ abstract class SyncAdapter<T extends Syncable> {
   /// whether they exist locally.
   Future<List<T>> getAllRemote();
 
-  /// Returns true if the given item is soft-deleted locally.
-  ///
-  /// Soft-deleted items should be pushed as deletes to remote, then
-  /// hard-deleted locally once synced.
-  bool isLocallyDeleted(T item);
-
   /// Creates the item on remote storage.
   ///
   /// Called during push phase for items that exist locally but not remotely.
@@ -81,38 +75,38 @@ abstract class SyncAdapter<T extends Syncable> {
   /// Called during push phase when local version is newer than remote.
   Future<void> updateOnRemote(T item);
 
-  /// Deletes the item from remote storage.
+  /// Soft-deletes the item on remote storage (sets deleted=true).
   ///
-  /// Called during push phase for soft-deleted local items.
-  Future<void> deleteOnRemote(String id);
+  /// Called during push phase for soft-deleted local items. [deletedAt] is the
+  /// local deletion timestamp and must be written to the remote row's
+  /// updated_at so the tombstone participates in newest-wins like any edit.
+  Future<void> deleteOnRemote(String id, DateTime deletedAt);
 
-  /// Marks the local item as synced.
+  /// Marks the local item as synced, but only if it has not been modified
+  /// since the sync run snapshotted it.
   ///
-  /// Called after successful push operations to indicate the item is now
-  /// in sync with remote.
-  Future<void> markSynced(String id);
+  /// Implementations must make the write conditional
+  /// (`WHERE id = ? AND updated_at = expectedUpdatedAt`). If the user edited
+  /// the item mid-sync, the condition fails, the row stays unsynced, and the
+  /// new edit is pushed on the next run instead of being silently dropped.
+  Future<void> markSynced(String id, DateTime expectedUpdatedAt);
 
   /// Upserts the item into local storage.
   ///
   /// Called during pull phase for remote items. Should insert if the item
   /// doesn't exist locally, or update if it does.
   ///
-  /// **Important**: If the local item exists and has an unsynced soft-delete
-  /// (deleted=true, synced=false), the upsert should be skipped to avoid
-  /// resurrecting a deleted item.
+  /// **Important**: If the local item exists and is unsynced with a timestamp
+  /// equal to or newer than [item] (including unsynced soft-deletes), the
+  /// upsert must be skipped: the local change wins locally and will be
+  /// resolved against remote during the next push phase.
   Future<void> upsertLocal(T item);
-
-  /// Hard-deletes all synced local items whose IDs are NOT in [keepIds].
-  ///
-  /// Called after pull phase to clean up items that exist locally but were
-  /// deleted remotely. Only synced items should be deleted; unsynced items
-  /// stay for the next sync attempt.
-  Future<void> hardDeleteSyncedNotIn(Set<String> keepIds);
 
   /// Hard-deletes all synced items that are soft-deleted locally.
   ///
-  /// Called after push phase to clean up items that were successfully deleted
-  /// on remote. Only synced+deleted items are removed; unsynced deleted items
-  /// stay for retry.
+  /// Called at the end of a sync run to purge fully-applied tombstones
+  /// (both locally-initiated deletions that were pushed, and remote tombstones
+  /// that were pulled). Only synced+deleted rows are removed; unsynced deleted
+  /// rows stay for retry.
   Future<void> hardDeleteSyncedDeleted();
 }

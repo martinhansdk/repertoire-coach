@@ -121,9 +121,27 @@ class LocalFavoriteTrackDataSource {
     FavoriteTrackModel favorite, {
     bool markForSync = true,
   }) async {
+    if (!markForSync) {
+      final existing = await (_database.select(_database.favoriteTracks)
+            ..where((f) => f.userId.equals(userId))
+            ..where((f) => f.trackId.equals(favorite.trackId)))
+          .getSingleOrNull();
+      // An unsynced local change (edit or soft-delete) that is not older than
+      // the incoming row wins locally; it is resolved against remote on the
+      // next push phase instead of being overwritten here.
+      if (existing != null &&
+          !existing.synced &&
+          !existing.updatedAt.isBefore(favorite.updatedAt)) {
+        return;
+      }
+    }
+
     final companion = favorite.toDriftCompanion(userId).copyWith(
-          synced: Value(!markForSync), // If markForSync=true, synced=false
-          deleted: const Value(false), // Ensure not deleted
+          synced: Value(!markForSync),
+          // User-initiated adds (markForSync=true) are live rows; sync pulls
+          // (markForSync=false) must carry the remote deleted flag so
+          // tombstones can be applied locally.
+          deleted: markForSync ? const Value(false) : Value(favorite.deleted),
         );
 
     await _database.into(_database.favoriteTracks).insertOnConflictUpdate(
@@ -139,9 +157,12 @@ class LocalFavoriteTrackDataSource {
     await (_database.update(_database.favoriteTracks)
           ..where((f) => f.userId.equals(userId))
           ..where((f) => f.trackId.equals(trackId)))
-        .write(const db.FavoriteTracksCompanion(
-      deleted: Value(true),
-      synced: Value(false),
+        .write(db.FavoriteTracksCompanion(
+      deleted: const Value(true),
+      // The tombstone carries its deletion time so it participates in
+      // newest-wins conflict resolution like any other change.
+      updatedAt: Value(DateTime.now().toUtc()),
+      synced: const Value(false),
     ));
   }
 
@@ -221,11 +242,14 @@ class LocalFavoriteTrackDataSource {
   /// Mark favorites as synced
   ///
   /// Called after successfully syncing to cloud.
-  Future<void> markAsSynced(List<String> trackIds, String userId) async {
+  Future<void> markAsSynced(
+      List<String> trackIds, String userId, DateTime expectedUpdatedAt) async {
     for (final trackId in trackIds) {
+      // Conditional: no-op if the row was modified after the sync snapshot.
       await (_database.update(_database.favoriteTracks)
             ..where((f) => f.userId.equals(userId))
-            ..where((f) => f.trackId.equals(trackId)))
+            ..where((f) => f.trackId.equals(trackId))
+            ..where((f) => f.updatedAt.equals(expectedUpdatedAt)))
           .write(const db.FavoriteTracksCompanion(synced: Value(true)));
     }
   }
@@ -264,27 +288,6 @@ class LocalFavoriteTrackDataSource {
         .go();
   }
 
-  /// Hard-delete synced favorites not in the given set of track IDs
-  ///
-  /// Used during sync to remove favorites that were deleted on remote.
-  /// Only deletes favorites that are already synced (came from remote).
-  Future<void> hardDeleteSyncedNotIn(
-      String userId, Set<String> keepTrackIds) async {
-    if (keepTrackIds.isEmpty) {
-      // Delete all synced favorites for this user
-      await (_database.delete(_database.favoriteTracks)
-            ..where((f) => f.userId.equals(userId))
-            ..where((f) => f.synced.equals(true)))
-          .go();
-      return;
-    }
-    await (_database.delete(_database.favoriteTracks)
-          ..where((f) => f.userId.equals(userId))
-          ..where((f) => f.trackId.isNotIn(keepTrackIds))
-          ..where((f) => f.synced.equals(true))
-          ..where((f) => f.deleted.equals(false)))
-        .go();
-  }
 
   /// Get all synced favorites as a map (trackId -> FavoriteTrackModel)
   ///

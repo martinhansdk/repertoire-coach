@@ -15,6 +15,9 @@ class SyncableTrack with Syncable {
 
   @override
   DateTime get syncTimestamp => model.updatedAt;
+
+  @override
+  bool get isDeleted => model.deleted;
 }
 
 /// Sync adapter for Track entities
@@ -46,11 +49,6 @@ class TrackSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  bool isLocallyDeleted(covariant SyncableTrack item) {
-    return item.model.deleted;
-  }
-
-  @override
   Future<void> createOnRemote(covariant SyncableTrack item) async {
     await _remote.createTrack(item.model);
   }
@@ -61,23 +59,18 @@ class TrackSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  Future<void> deleteOnRemote(String id) async {
-    await _remote.deleteTrack(id);
+  Future<void> deleteOnRemote(String id, DateTime deletedAt) async {
+    await _remote.deleteTrack(id, deletedAt);
   }
 
   @override
-  Future<void> markSynced(String id) async {
-    await _local.markAsSynced(id);
+  Future<void> markSynced(String id, DateTime expectedUpdatedAt) async {
+    await _local.markAsSynced(id, expectedUpdatedAt);
   }
 
   @override
   Future<void> upsertLocal(covariant SyncableTrack item) async {
     await _local.upsertTrack(item.model, markForSync: false);
-  }
-
-  @override
-  Future<void> hardDeleteSyncedNotIn(Set<String> keepIds) async {
-    await _local.hardDeleteTracksNotIn(keepIds);
   }
 
   @override

@@ -1,9 +1,6 @@
-import '../../core/services/error_reporter.dart';
-import '../../core/services/supabase_service.dart';
 import '../../domain/entities/concert.dart';
 import '../../domain/repositories/concert_repository.dart';
 import '../datasources/local/local_concert_data_source.dart';
-import '../datasources/remote/remote_concert_data_source.dart';
 import '../models/concert_model.dart';
 
 /// Concert repository implementation with offline-first sync
@@ -14,13 +11,9 @@ import '../models/concert_model.dart';
 /// - Background sync ensures data consistency
 class ConcertRepositoryImpl implements ConcertRepository {
   final LocalConcertDataSource _localDataSource;
-  final RemoteConcertDataSource? _remoteDataSource;
-  final SupabaseService _supabaseService;
 
   ConcertRepositoryImpl(
     this._localDataSource,
-    this._remoteDataSource,
-    this._supabaseService,
   );
 
   @override
@@ -54,15 +47,6 @@ class ConcertRepositoryImpl implements ConcertRepository {
     // Save to local database
     await _localDataSource.insertConcert(concertModel);
 
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.createConcert(concertModel);
-        await _localDataSource.markAsSynced(concert.id);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'concert_repository');
-      }
-    }
   }
 
   @override
@@ -72,15 +56,6 @@ class ConcertRepositoryImpl implements ConcertRepository {
     // Update in local database
     final result = await _localDataSource.updateConcert(concertModel);
 
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.updateConcert(concertModel);
-        await _localDataSource.markAsSynced(concert.id);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'concert_repository');
-      }
-    }
 
     return result;
   }
@@ -90,13 +65,5 @@ class ConcertRepositoryImpl implements ConcertRepository {
     // Delete from local database
     await _localDataSource.deleteConcert(concertId);
 
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.deleteConcert(concertId);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'concert_repository');
-      }
-    }
   }
 }

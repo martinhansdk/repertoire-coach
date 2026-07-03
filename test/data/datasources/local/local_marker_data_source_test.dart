@@ -180,7 +180,7 @@ void main() {
 
     test('markMarkerSetAsSynced clears unsynced flag', () async {
       await dataSource.insertMarkerSet(testMarkerSet, markForSync: true);
-      await dataSource.markMarkerSetAsSynced('ms1');
+      await dataSource.markMarkerSetAsSynced('ms1', testMarkerSet.updatedAt);
 
       final unsynced = await dataSource.getUnsyncedMarkerSets();
       expect(unsynced, isEmpty);
@@ -189,7 +189,12 @@ void main() {
     test('hardDeleteSyncedDeletedMarkerSets removes synced+deleted rows', () async {
       await dataSource.insertMarkerSet(testMarkerSet);
       await dataSource.deleteMarkerSet('ms1');
-      await dataSource.markMarkerSetAsSynced('ms1');
+      // The soft-delete stamped a fresh deletion time; conditional markSynced
+      // needs the row's current updatedAt.
+      final deletedRow = await (database.select(database.markerSets)
+            ..where((ms) => ms.id.equals('ms1')))
+          .getSingle();
+      await dataSource.markMarkerSetAsSynced('ms1', deletedRow.updatedAt);
 
       await dataSource.hardDeleteSyncedDeletedMarkerSets();
 
@@ -199,22 +204,7 @@ void main() {
       expect(raw, isNull);
     });
 
-    // Regression test for Bug 2 (2026-02-22): hardDeleteMarkerSetsNotIn()
-    // had an early-return guard `if (keepIds.isEmpty) return;` that prevented
-    // cleanup when the user was removed from all choirs (legitimate empty set).
-    // Pre-fix: ms1 would survive the call. Post-fix: it is hard-deleted.
-    test('regression: hardDeleteMarkerSetsNotIn with empty set deletes all synced records',
-        () async {
-      await dataSource.insertMarkerSet(testMarkerSet);
-      await dataSource.markMarkerSetAsSynced('ms1');
-
-      await dataSource.hardDeleteMarkerSetsNotIn({});
-
-      final raw = await (database.select(database.markerSets)
-            ..where((ms) => ms.id.equals('ms1')))
-          .getSingleOrNull();
-      expect(raw, isNull);
-    });
+);
   });
 
   // -----------------------------------------------------------------------
@@ -460,4 +450,135 @@ void main() {
       expect(results, isEmpty);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Sync regressions (tombstone/conditional semantics, migration 013)
+  //
+  // These exercise the real Drift SQL behind the failure modes where changes
+  // vanished from the device that made them or never reached other devices.
+  // -----------------------------------------------------------------------
+
+  group('Sync regressions', () {
+    MarkerSetModel variantOf(
+      MarkerSetModel base, {
+      required DateTime updatedAt,
+      String? name,
+      bool deleted = false,
+    }) {
+      return MarkerSetModel(
+        id: base.id,
+        trackId: base.trackId,
+        name: name ?? base.name,
+        isShared: base.isShared,
+        isTimeSynced: base.isTimeSynced,
+        createdByUserId: base.createdByUserId,
+        createdAt: base.createdAt,
+        updatedAt: updatedAt,
+        markersJson: base.markersJson,
+        deleted: deleted,
+      );
+    }
+
+    test(
+        'REGRESSION: conditional markSynced — a row edited after the sync '
+        'snapshot must stay unsynced', () async {
+      await dataSource.insertMarkerSet(testMarkerSet, markForSync: true);
+
+      // The user edits the set while the sync run (which snapshotted
+      // updatedAt == now) has its push in flight.
+      final edited = variantOf(testMarkerSet,
+          updatedAt: now.add(const Duration(minutes: 5)), name: 'Chorus');
+      await dataSource.upsertMarkerSet(edited, markForSync: true);
+
+      // Sync tries to mark synced with the STALE snapshot timestamp.
+      await dataSource.markMarkerSetAsSynced('ms1', testMarkerSet.updatedAt);
+
+      final unsynced = await dataSource.getUnsyncedMarkerSets();
+      expect(unsynced.length, 1,
+          reason: 'the mid-sync edit must remain unsynced so the next run '
+              'pushes it; the old unconditional markSynced silently dropped '
+              'such edits and they never reached other devices');
+      expect(unsynced.first.name, 'Chorus');
+    });
+
+    test(
+        'REGRESSION: pull upsert must not overwrite a newer unsynced local '
+        'change', () async {
+      final localEdit = variantOf(testMarkerSet,
+          updatedAt: now.add(const Duration(minutes: 10)), name: 'Local edit');
+      await dataSource.insertMarkerSet(localEdit, markForSync: true);
+
+      // A pull arrives carrying an OLDER remote version.
+      final staleRemote =
+          variantOf(testMarkerSet, updatedAt: now, name: 'Stale remote');
+      await dataSource.upsertMarkerSet(staleRemote, markForSync: false);
+
+      final row = await (database.select(database.markerSets)
+            ..where((ms) => ms.id.equals('ms1')))
+          .getSingle();
+      expect(row.name, 'Local edit',
+          reason: 'the newer unsynced local change wins locally');
+      expect(row.synced, false,
+          reason: 'it stays unsynced and is pushed on the next run');
+    });
+
+    test(
+        'REGRESSION: pull upsert applies a newer remote version over an '
+        'older synced row', () async {
+      await dataSource.insertMarkerSet(testMarkerSet, markForSync: false);
+
+      final newerRemote = variantOf(testMarkerSet,
+          updatedAt: now.add(const Duration(minutes: 5)),
+          name: 'Remote newer');
+      await dataSource.upsertMarkerSet(newerRemote, markForSync: false);
+
+      final row = await (database.select(database.markerSets)
+            ..where((ms) => ms.id.equals('ms1')))
+          .getSingle();
+      expect(row.name, 'Remote newer');
+      expect(row.synced, true);
+    });
+
+    test(
+        'REGRESSION: a pulled tombstone lands as synced+deleted and is then '
+        'purged — deletion syncs as data, not absence', () async {
+      await dataSource.insertMarkerSet(testMarkerSet, markForSync: false);
+
+      final tombstone = variantOf(testMarkerSet,
+          updatedAt: now.add(const Duration(minutes: 5)), deleted: true);
+      await dataSource.upsertMarkerSet(tombstone, markForSync: false);
+
+      final row = await (database.select(database.markerSets)
+            ..where((ms) => ms.id.equals('ms1')))
+          .getSingle();
+      expect(row.deleted, true);
+      expect(row.synced, true);
+
+      await dataSource.hardDeleteSyncedDeletedMarkerSets();
+
+      final purged = await (database.select(database.markerSets)
+            ..where((ms) => ms.id.equals('ms1')))
+          .getSingleOrNull();
+      expect(purged, isNull);
+    });
+
+    test(
+        'REGRESSION: a locally soft-deleted row is NOT resurrected by an '
+        'older pulled version', () async {
+      await dataSource.insertMarkerSet(testMarkerSet, markForSync: false);
+      await dataSource.deleteMarkerSet('ms1'); // stamps a fresh deletion time
+
+      final staleRemote =
+          variantOf(testMarkerSet, updatedAt: now, name: 'Stale remote');
+      await dataSource.upsertMarkerSet(staleRemote, markForSync: false);
+
+      final row = await (database.select(database.markerSets)
+            ..where((ms) => ms.id.equals('ms1')))
+          .getSingle();
+      expect(row.deleted, true,
+          reason: 'the newer local deletion wins until the push resolves it');
+      expect(row.synced, false);
+    });
+  });
+
 }

@@ -38,17 +38,11 @@ final audioStorageServiceProvider = Provider<AudioStorageService>((ref) {
 
 /// Provider for the track repository
 ///
-/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
-/// Implements offline-first pattern: reads from local, writes to both.
+/// Offline-first: reads and writes go to the local (Drift/SQLite) database;
+/// the sync service owns all remote (Supabase) I/O.
 final trackRepositoryProvider = Provider<TrackRepository>((ref) {
   final localDataSource = ref.watch(localTrackDataSourceProvider);
-  final remoteDataSource = ref.watch(remoteTrackDataSourceProvider);
-  final supabaseService = ref.watch(supabaseServiceProvider);
-  return TrackRepositoryImpl(
-    localDataSource,
-    remoteDataSource,
-    supabaseService,
-  );
+  return TrackRepositoryImpl(localDataSource);
 });
 
 /// Provider for tracks filtered by a specific song

@@ -37,7 +37,8 @@ class RemoteMarkerDataSource {
             created_by_user_id,
             created_at,
             updated_at,
-            markers_json
+            markers_json,
+            deleted
           ''')
           .eq('track_id', trackId)
           .or('is_shared.eq.true,created_by_user_id.eq.$userId')
@@ -69,7 +70,8 @@ class RemoteMarkerDataSource {
             created_by_user_id,
             created_at,
             updated_at,
-            markers_json
+            markers_json,
+            deleted
           ''')
           .eq('id', id)
           .maybeSingle();
@@ -89,7 +91,14 @@ class RemoteMarkerDataSource {
   /// Create a new marker set in Supabase
   Future<void> createMarkerSet(MarkerSetModel markerSet) async {
     try {
-      await _supabase.from('marker_sets').insert(markerSet.toJson());
+      final body = markerSet.toJson();
+      // Recompute so the payload always satisfies the
+      // marker_sets_is_time_synced_matches_payload CHECK constraint even when
+      // the stored flag is stale (e.g. after copying a set). This previously
+      // only happened on the repository's inline push path, so the sync
+      // adapter's pushes could fail permanently.
+      body['is_time_synced'] = _computedIsTimeSynced(markerSet.markersJson);
+      await _supabase.from('marker_sets').insert(body);
     } on PostgrestException catch (e) {
       throw Exception('Failed to create marker set in Supabase: ${e.message}');
     } catch (e) {
@@ -105,14 +114,15 @@ class RemoteMarkerDataSource {
           .update({
             'name': markerSet.name,
             'is_shared': markerSet.isShared,
-            'is_time_synced': markerSet.isTimeSynced,
+            'is_time_synced': _computedIsTimeSynced(markerSet.markersJson),
             // Decode markersJson string to a Dart object so the Supabase client
             // serialises it as a JSON array, not a JSON string scalar.  Sending
             // the raw String causes PostgREST to store it as a JSONB scalar, which
             // makes the marker_set_payload_is_time_synced CHECK constraint throw
             // "cannot extract elements from a scalar".
             'markers_json': jsonDecode(markerSet.markersJson),
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
+            'deleted': markerSet.deleted,
+            'updated_at': markerSet.updatedAt.toUtc().toIso8601String(),
           })
           .eq('id', markerSet.id);
     } on PostgrestException catch (e) {
@@ -123,9 +133,14 @@ class RemoteMarkerDataSource {
   }
 
   /// Delete a marker set from Supabase
-  Future<void> deleteMarkerSet(String id) async {
+  Future<void> deleteMarkerSet(String id, DateTime deletedAt) async {
     try {
-      await _supabase.from('marker_sets').delete().eq('id', id);
+      // Soft delete: tombstones sync like edits (newest wins) and deletion is
+      // never inferred from row absence.
+      await _supabase.from('marker_sets').update({
+        'deleted': true,
+        'updated_at': deletedAt.toUtc().toIso8601String(),
+      }).eq('id', id);
     } on PostgrestException catch (e) {
       throw Exception('Failed to delete marker set from Supabase: ${e.message}');
     } catch (e) {
@@ -263,7 +278,8 @@ class RemoteMarkerDataSource {
       final memberResponse = await _supabase
           .from('choir_members')
           .select('choir_id')
-          .eq('user_id', userId) as List;
+          .eq('user_id', userId)
+          .eq('deleted', false) as List;
 
       if (memberResponse.isEmpty) {
         return [];
@@ -327,7 +343,8 @@ class RemoteMarkerDataSource {
             created_by_user_id,
             created_at,
             updated_at,
-            markers_json
+            markers_json,
+            deleted
           ''')
           .inFilter('track_id', trackIds)
           .or('is_shared.eq.true,created_by_user_id.eq.$userId') as List;
@@ -350,5 +367,16 @@ class RemoteMarkerDataSource {
   /// Used for sync operations to pull all accessible markers at once.
   Future<List<MarkerModel>> getMarkersForUser(String userId) async {
     return const [];
+  }
+
+  /// True iff every non-empty label in the payload has a non-null position_ms.
+  /// Mirrors the marker_sets_is_time_synced_matches_payload CHECK constraint.
+  bool _computedIsTimeSynced(String markersJson) {
+    final payload = jsonDecode(markersJson) as List<dynamic>;
+    return payload.every((e) {
+      final entry = e as Map<String, dynamic>;
+      final label = entry['label'] as String? ?? '';
+      return label.isEmpty || entry['position_ms'] != null;
+    });
   }
 }

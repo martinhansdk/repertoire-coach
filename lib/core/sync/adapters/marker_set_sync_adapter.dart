@@ -15,6 +15,9 @@ class SyncableMarkerSet with Syncable {
 
   @override
   DateTime get syncTimestamp => model.updatedAt;
+
+  @override
+  bool get isDeleted => model.deleted;
 }
 
 /// Sync adapter for MarkerSet entities
@@ -46,11 +49,6 @@ class MarkerSetSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  bool isLocallyDeleted(covariant SyncableMarkerSet item) {
-    return item.model.deleted;
-  }
-
-  @override
   Future<void> createOnRemote(covariant SyncableMarkerSet item) async {
     await _remote.createMarkerSet(item.model);
   }
@@ -61,23 +59,18 @@ class MarkerSetSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  Future<void> deleteOnRemote(String id) async {
-    await _remote.deleteMarkerSet(id);
+  Future<void> deleteOnRemote(String id, DateTime deletedAt) async {
+    await _remote.deleteMarkerSet(id, deletedAt);
   }
 
   @override
-  Future<void> markSynced(String id) async {
-    await _local.markMarkerSetAsSynced(id);
+  Future<void> markSynced(String id, DateTime expectedUpdatedAt) async {
+    await _local.markMarkerSetAsSynced(id, expectedUpdatedAt);
   }
 
   @override
   Future<void> upsertLocal(covariant SyncableMarkerSet item) async {
     await _local.upsertMarkerSet(item.model, markForSync: false);
-  }
-
-  @override
-  Future<void> hardDeleteSyncedNotIn(Set<String> keepIds) async {
-    await _local.hardDeleteMarkerSetsNotIn(keepIds);
   }
 
   @override

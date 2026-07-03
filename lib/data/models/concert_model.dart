@@ -36,6 +36,7 @@ class ConcertModel extends Concert {
       concertDate: concert.concertDate,
       createdAt: concert.createdAt,
       updatedAt: updatedAt ?? concert.createdAt,
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 
@@ -101,7 +102,8 @@ class ConcertModel extends Concert {
       // Note: choir_name is NOT included - it's derived from joining with choirs table
       'name': name,
       'concert_date': concertDate.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'deleted': deleted,
     };
   }
 }

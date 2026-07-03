@@ -77,10 +77,14 @@ class LocalMarkerDataSource {
   }) async {
     if (!markForSync) {
       final existing = await (_database.select(_database.markerSets)
-            ..where((ms) => ms.id.equals(markerSet.id)))
+            ..where((t) => t.id.equals(markerSet.id)))
           .getSingleOrNull();
-
-      if (existing != null && existing.deleted && !existing.synced) {
+      // An unsynced local change (edit or soft-delete) that is not older than
+      // the incoming row wins locally; it is resolved against remote on the
+      // next push phase instead of being overwritten here.
+      if (existing != null &&
+          !existing.synced &&
+          !existing.updatedAt.isBefore(markerSet.updatedAt)) {
         return;
       }
     }
@@ -130,15 +134,15 @@ class LocalMarkerDataSource {
     return sets.map((s) => MarkerSetModel.fromDrift(s)).toList();
   }
 
-  Future<void> markMarkerSetAsSynced(String id) async {
+  Future<void> markMarkerSetAsSynced(String id, DateTime expectedUpdatedAt) async {
+    // Conditional: no-op if the row was modified after the sync snapshot, so a
+    // mid-sync edit stays unsynced and is pushed on the next run.
     await (_database.update(_database.markerSets)
-          ..where((ms) => ms.id.equals(id)))
+          ..where((ms) => ms.id.equals(id))
+          ..where((ms) => ms.updatedAt.equals(expectedUpdatedAt)))
         .write(const db.MarkerSetsCompanion(synced: Value(true)));
   }
 
-  Future<void> hardDeleteMarkerSetsNotIn(Set<String> keepIds) async {
-    await _database.hardDeleteMarkerSetsNotIn(keepIds);
-  }
 
   Future<void> hardDeleteSyncedDeletedMarkerSets() async {
     await (_database.delete(_database.markerSets)
@@ -305,7 +309,6 @@ class LocalMarkerDataSource {
   // as part of marker_sets payload.
   Future<List<MarkerModel>> getUnsyncedMarkers() async => const [];
 
-  Future<void> hardDeleteMarkersNotIn(Set<String> keepIds) async {}
 
   Future<void> markMarkerAsSynced(String id) async {}
 

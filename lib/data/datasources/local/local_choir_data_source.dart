@@ -128,6 +128,19 @@ class LocalChoirDataSource {
     ChoirModel choir, {
     bool markForSync = true,
   }) async {
+    if (!markForSync) {
+      final existing = await (_database.select(_database.choirs)
+            ..where((t) => t.id.equals(choir.id)))
+          .getSingleOrNull();
+      // An unsynced local change (edit or soft-delete) that is not older than
+      // the incoming row wins locally; it is resolved against remote on the
+      // next push phase instead of being overwritten here.
+      if (existing != null &&
+          !existing.synced &&
+          !existing.updatedAt.isBefore(choir.updatedAt)) {
+        return;
+      }
+    }
     await _database.into(_database.choirs).insertOnConflictUpdate(
           choir.toDriftCompanion(markForSync: markForSync),
         );
@@ -143,6 +156,20 @@ class LocalChoirDataSource {
     ChoirMemberModel member, {
     bool markForSync = true,
   }) async {
+    if (!markForSync) {
+      final existing = await (_database.select(_database.choirMembers)
+            ..where((m) => m.choirId.equals(member.choirId))
+            ..where((m) => m.userId.equals(member.userId)))
+          .getSingleOrNull();
+      // An unsynced local change (edit or soft-delete) that is not older than
+      // the incoming row wins locally; it is resolved against remote on the
+      // next push phase instead of being overwritten here.
+      if (existing != null &&
+          !existing.synced &&
+          !existing.updatedAt.isBefore(member.updatedAt)) {
+        return;
+      }
+    }
     await _database.into(_database.choirMembers).insertOnConflictUpdate(
           member.toDriftCompanion(markForSync: markForSync),
         );
@@ -188,14 +215,20 @@ class LocalChoirDataSource {
         );
   }
 
-  /// Remove a member from a choir
+  /// Remove a member from a choir (soft delete)
   ///
+  /// Marks the membership as a tombstone so the removal syncs to remote;
+  /// a hard local delete would silently vanish without ever being pushed.
   /// Returns true if member was removed, false if member wasn't found.
   Future<bool> removeMember(String choirId, String userId) async {
-    final rowsAffected = await (_database.delete(_database.choirMembers)
+    final rowsAffected = await (_database.update(_database.choirMembers)
           ..where((m) => m.choirId.equals(choirId))
           ..where((m) => m.userId.equals(userId)))
-        .go();
+        .write(db.ChoirMembersCompanion(
+      deleted: const Value(true),
+      updatedAt: Value(DateTime.now().toUtc()),
+      synced: const Value(false), // Mark for sync
+    ));
 
     return rowsAffected > 0;
   }
@@ -205,7 +238,8 @@ class LocalChoirDataSource {
   /// Returns list of user IDs who are members of the choir.
   Future<List<String>> getChoirMembers(String choirId) async {
     final members = await (_database.select(_database.choirMembers)
-          ..where((m) => m.choirId.equals(choirId)))
+          ..where((m) => m.choirId.equals(choirId))
+          ..where((m) => m.deleted.equals(false)))
         .get();
 
     return members.map((m) => m.userId).toList();
@@ -256,8 +290,11 @@ class LocalChoirDataSource {
   /// Mark choir as synced to cloud
   ///
   /// Called by sync service after successfully uploading to Supabase.
-  Future<void> markChoirAsSynced(String id) async {
-    await (_database.update(_database.choirs)..where((c) => c.id.equals(id)))
+  Future<void> markChoirAsSynced(String id, DateTime expectedUpdatedAt) async {
+    // Conditional: no-op if the row was modified after the sync snapshot.
+    await (_database.update(_database.choirs)
+          ..where((c) => c.id.equals(id))
+          ..where((c) => c.updatedAt.equals(expectedUpdatedAt)))
         .write(const db.ChoirsCompanion(synced: Value(true)));
   }
 
@@ -275,31 +312,16 @@ class LocalChoirDataSource {
   /// Mark choir member as synced to cloud
   ///
   /// Called by sync service after successfully uploading to Supabase.
-  Future<void> markMemberAsSynced(String choirId, String userId) async {
+  Future<void> markMemberAsSynced(
+      String choirId, String userId, DateTime expectedUpdatedAt) async {
+    // Conditional: no-op if the row was modified after the sync snapshot.
     await (_database.update(_database.choirMembers)
           ..where((m) => m.choirId.equals(choirId))
-          ..where((m) => m.userId.equals(userId)))
+          ..where((m) => m.userId.equals(userId))
+          ..where((m) => m.updatedAt.equals(expectedUpdatedAt)))
         .write(const db.ChoirMembersCompanion(synced: Value(true)));
   }
 
-  /// Hard-delete synced choirs whose IDs are NOT in the provided set
-  ///
-  /// Called after pull phase to remove choirs that exist locally but were
-  /// deleted remotely. Only synced choirs are deleted to avoid losing unsynced changes.
-  Future<void> hardDeleteSyncedChoirsNotIn(Set<String> keepIds) async {
-    if (keepIds.isEmpty) {
-      // Delete all synced choirs
-      await (_database.delete(_database.choirs)
-            ..where((c) => c.synced.equals(true)))
-          .go();
-    } else {
-      // Delete synced choirs not in the keep set
-      await (_database.delete(_database.choirs)
-            ..where((c) => c.synced.equals(true))
-            ..where((c) => c.id.isNotIn(keepIds)))
-          .go();
-    }
-  }
 
   /// Hard-delete synced choirs that are soft-deleted
   ///
@@ -312,28 +334,6 @@ class LocalChoirDataSource {
         .go();
   }
 
-  /// Hard-delete synced choir members whose composite keys are NOT in the provided set
-  ///
-  /// Called after pull phase to remove memberships that exist locally but were
-  /// deleted remotely. Only synced members are deleted.
-  /// [keepIds] should contain strings in format "choirId:userId"
-  Future<void> hardDeleteSyncedMembersNotIn(Set<String> keepIds) async {
-    // Get all synced members
-    final syncedMembers = await (_database.select(_database.choirMembers)
-          ..where((m) => m.synced.equals(true)))
-        .get();
-
-    // Delete those not in keep set
-    for (final member in syncedMembers) {
-      final compositeId = '${member.choirId}:${member.userId}';
-      if (!keepIds.contains(compositeId)) {
-        await (_database.delete(_database.choirMembers)
-              ..where((m) => m.choirId.equals(member.choirId))
-              ..where((m) => m.userId.equals(member.userId)))
-            .go();
-      }
-    }
-  }
 
   /// Hard-delete synced choir members that are soft-deleted
   ///

@@ -47,6 +47,19 @@ class LocalTrackDataSource {
     TrackModel track, {
     bool markForSync = true,
   }) async {
+    if (!markForSync) {
+      final existing = await (_database.select(_database.tracks)
+            ..where((t) => t.id.equals(track.id)))
+          .getSingleOrNull();
+      // An unsynced local change (edit or soft-delete) that is not older than
+      // the incoming row wins locally; it is resolved against remote on the
+      // next push phase instead of being overwritten here.
+      if (existing != null &&
+          !existing.synced &&
+          !existing.updatedAt.isBefore(track.updatedAt)) {
+        return;
+      }
+    }
     await _database.into(_database.tracks).insertOnConflictUpdate(
           track.toDriftCompanion(markForSync: markForSync),
         );
@@ -88,13 +101,6 @@ class LocalTrackDataSource {
     await _database.softDeleteTrack(id);
   }
 
-  /// Hard delete tracks not in the given set of IDs
-  ///
-  /// Used during sync to remove tracks that were deleted on remote.
-  /// Only deletes already-synced tracks to avoid losing local-only data.
-  Future<void> hardDeleteTracksNotIn(Set<String> keepIds) async {
-    await _database.hardDeleteTracksNotIn(keepIds);
-  }
 
   /// Get all unsynced tracks
   ///
@@ -107,8 +113,8 @@ class LocalTrackDataSource {
   /// Mark track as synced to cloud
   ///
   /// Called by sync service after successfully uploading to Supabase.
-  Future<void> markAsSynced(String id) async {
-    await _database.markTrackAsSynced(id);
+  Future<void> markAsSynced(String id, DateTime expectedUpdatedAt) async {
+    await _database.markTrackAsSynced(id, expectedUpdatedAt);
   }
 
   /// Hard-delete synced tracks that are soft-deleted

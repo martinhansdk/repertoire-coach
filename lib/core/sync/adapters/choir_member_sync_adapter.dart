@@ -15,6 +15,9 @@ class SyncableChoirMember with Syncable {
 
   @override
   DateTime get syncTimestamp => model.updatedAt;
+
+  @override
+  bool get isDeleted => model.deleted;
 }
 
 /// Sync adapter for ChoirMember entities
@@ -48,24 +51,21 @@ class ChoirMemberSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  bool isLocallyDeleted(covariant SyncableChoirMember item) {
-    return item.model.deleted;
-  }
-
-  @override
   Future<void> createOnRemote(covariant SyncableChoirMember item) async {
-    await _remote.addMember(item.model.choirId, item.model.userId);
+    await _remote.addMember(
+        item.model.choirId, item.model.userId, item.syncTimestamp);
   }
 
   @override
   Future<void> updateOnRemote(covariant SyncableChoirMember item) async {
     // Choir members don't really have "update" - they're just membership records
     // If we need to update, we can treat it as re-adding (upsert on remote)
-    await _remote.addMember(item.model.choirId, item.model.userId);
+    await _remote.addMember(
+        item.model.choirId, item.model.userId, item.syncTimestamp);
   }
 
   @override
-  Future<void> deleteOnRemote(String compositeId) async {
+  Future<void> deleteOnRemote(String compositeId, DateTime deletedAt) async {
     // Parse composite ID "choirId:userId"
     final parts = compositeId.split(':');
     if (parts.length != 2) {
@@ -73,11 +73,11 @@ class ChoirMemberSyncAdapter implements SyncAdapter<Syncable> {
     }
     final choirId = parts[0];
     final userId = parts[1];
-    await _remote.removeMember(choirId, userId);
+    await _remote.removeMember(choirId, userId, deletedAt);
   }
 
   @override
-  Future<void> markSynced(String compositeId) async {
+  Future<void> markSynced(String compositeId, DateTime expectedUpdatedAt) async {
     // Parse composite ID "choirId:userId"
     final parts = compositeId.split(':');
     if (parts.length != 2) {
@@ -85,17 +85,12 @@ class ChoirMemberSyncAdapter implements SyncAdapter<Syncable> {
     }
     final choirId = parts[0];
     final userId = parts[1];
-    await _local.markMemberAsSynced(choirId, userId);
+    await _local.markMemberAsSynced(choirId, userId, expectedUpdatedAt);
   }
 
   @override
   Future<void> upsertLocal(covariant SyncableChoirMember item) async {
     await _local.upsertMember(item.model, markForSync: false);
-  }
-
-  @override
-  Future<void> hardDeleteSyncedNotIn(Set<String> keepCompositeIds) async {
-    await _local.hardDeleteSyncedMembersNotIn(keepCompositeIds);
   }
 
   @override

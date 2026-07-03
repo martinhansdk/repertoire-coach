@@ -21,7 +21,8 @@ class RemoteSongDataSource {
             concert_id,
             title,
             created_at,
-            updated_at
+            updated_at,
+            deleted
           ''')
           .eq('concert_id', concertId)
           .order('title', ascending: true) as List;
@@ -46,7 +47,8 @@ class RemoteSongDataSource {
             concert_id,
             title,
             created_at,
-            updated_at
+            updated_at,
+            deleted
           ''')
           .eq('id', id)
           .maybeSingle();
@@ -81,7 +83,8 @@ class RemoteSongDataSource {
           .from('songs')
           .update({
             'title': song.title,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
+            'deleted': song.deleted,
+            'updated_at': song.updatedAt.toUtc().toIso8601String(),
           })
           .eq('id', song.id);
     } on PostgrestException catch (e) {
@@ -92,9 +95,14 @@ class RemoteSongDataSource {
   }
 
   /// Delete a song from Supabase
-  Future<void> deleteSong(String id) async {
+  Future<void> deleteSong(String id, DateTime deletedAt) async {
     try {
-      await _supabase.from('songs').delete().eq('id', id);
+      // Soft delete: tombstones sync like edits (newest wins) and deletion is
+      // never inferred from row absence.
+      await _supabase.from('songs').update({
+        'deleted': true,
+        'updated_at': deletedAt.toUtc().toIso8601String(),
+      }).eq('id', id);
     } on PostgrestException catch (e) {
       throw Exception('Failed to delete song from Supabase: ${e.message}');
     } catch (e) {
@@ -112,7 +120,8 @@ class RemoteSongDataSource {
       final memberResponse = await _supabase
           .from('choir_members')
           .select('choir_id')
-          .eq('user_id', userId) as List;
+          .eq('user_id', userId)
+          .eq('deleted', false) as List;
 
       if (memberResponse.isEmpty) {
         return [];
@@ -144,7 +153,8 @@ class RemoteSongDataSource {
             concert_id,
             title,
             created_at,
-            updated_at
+            updated_at,
+            deleted
           ''')
           .inFilter('concert_id', concertIds)
           .order('title', ascending: true) as List;

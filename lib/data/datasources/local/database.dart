@@ -552,8 +552,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Mark concert as synced
-  Future<void> markConcertAsSynced(String id) {
-    return (update(concerts)..where((c) => c.id.equals(id)))
+  Future<void> markConcertAsSynced(String id, DateTime expectedUpdatedAt) {
+    // Conditional: no-op if the row was modified after the sync snapshot.
+    return (update(concerts)
+          ..where((c) => c.id.equals(id))
+          ..where((c) => c.updatedAt.equals(expectedUpdatedAt)))
         .write(const ConcertsCompanion(synced: Value(true)));
   }
 
@@ -602,8 +605,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Mark song as synced
-  Future<void> markSongAsSynced(String id) {
-    return (update(songs)..where((s) => s.id.equals(id)))
+  Future<void> markSongAsSynced(String id, DateTime expectedUpdatedAt) {
+    // Conditional: no-op if the row was modified after the sync snapshot.
+    return (update(songs)
+          ..where((s) => s.id.equals(id))
+          ..where((s) => s.updatedAt.equals(expectedUpdatedAt)))
         .write(const SongsCompanion(synced: Value(true)));
   }
 
@@ -652,65 +658,18 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Mark track as synced
-  Future<void> markTrackAsSynced(String id) {
-    return (update(tracks)..where((t) => t.id.equals(id)))
+  Future<void> markTrackAsSynced(String id, DateTime expectedUpdatedAt) {
+    // Conditional: no-op if the row was modified after the sync snapshot.
+    return (update(tracks)
+          ..where((t) => t.id.equals(id))
+          ..where((t) => t.updatedAt.equals(expectedUpdatedAt)))
         .write(const TracksCompanion(synced: Value(true)));
   }
 
-  /// Hard delete tracks that are not in the given set of IDs
-  ///
-  /// Used during sync to remove tracks that were deleted on remote.
-  /// Only deletes tracks that are already synced (came from remote).
-  Future<void> hardDeleteTracksNotIn(Set<String> keepIds) async {
-    await (delete(tracks)
-          ..where((t) => t.id.isNotIn(keepIds))
-          ..where((t) => t.synced.equals(true)))
-        .go();
-  }
 
-  /// Hard delete concerts that are not in the given set of IDs
-  ///
-  /// Used during sync to remove concerts deleted on remote.
-  /// Only deletes concerts that are already synced.
-  Future<void> hardDeleteConcertsNotIn(Set<String> keepIds) async {
-    await (delete(concerts)
-          ..where((c) => c.id.isNotIn(keepIds))
-          ..where((c) => c.synced.equals(true)))
-        .go();
-  }
 
-  /// Hard delete songs that are not in the given set of IDs
-  ///
-  /// Used during sync to remove songs deleted on remote.
-  /// Only deletes songs that are already synced.
-  Future<void> hardDeleteSongsNotIn(Set<String> keepIds) async {
-    await (delete(songs)
-          ..where((s) => s.id.isNotIn(keepIds))
-          ..where((s) => s.synced.equals(true)))
-        .go();
-  }
 
-  /// Hard delete marker sets that are not in the given set of IDs
-  ///
-  /// Used during sync to remove marker sets deleted on remote.
-  /// Only deletes marker sets that are already synced.
-  Future<void> hardDeleteMarkerSetsNotIn(Set<String> keepIds) async {
-    await (delete(markerSets)
-          ..where((ms) => ms.id.isNotIn(keepIds))
-          ..where((ms) => ms.synced.equals(true)))
-        .go();
-  }
 
-  /// Hard delete markers that are not in the given set of IDs
-  ///
-  /// Used during sync to remove markers deleted on remote.
-  /// Only deletes markers that are already synced.
-  Future<void> hardDeleteMarkersNotIn(Set<String> keepIds) async {
-    await (delete(markers)
-          ..where((m) => m.id.isNotIn(keepIds))
-          ..where((m) => m.synced.equals(true)))
-        .go();
-  }
 
   /// Soft delete track
   Future<void> softDeleteTrack(String id) {

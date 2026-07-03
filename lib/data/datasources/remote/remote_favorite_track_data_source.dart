@@ -24,6 +24,7 @@ class RemoteFavoriteTrackDataSource {
             song_id,
             added_at,
             updated_at,
+            deleted,
             tracks!inner(
               name,
               audio_url,
@@ -72,14 +73,18 @@ class RemoteFavoriteTrackDataSource {
     String userId,
     String trackId,
     String songId,
+    DateTime updatedAt,
   ) async {
     try {
+      // Upsert clears any tombstone when a favorite is re-added.
       await _supabase.from('favorite_tracks').upsert({
         'user_id': userId,
         'track_id': trackId,
         'song_id': songId,
-        'added_at': DateTime.now().toIso8601String(),
-      });
+        'added_at': updatedAt.toUtc().toIso8601String(),
+        'updated_at': updatedAt.toUtc().toIso8601String(),
+        'deleted': false,
+      }, onConflict: 'user_id,track_id');
     } on PostgrestException catch (e) {
       throw Exception('Failed to add favorite to Supabase: ${e.message}');
     } catch (e) {
@@ -90,11 +95,16 @@ class RemoteFavoriteTrackDataSource {
   /// Remove a track from user's favorites in Supabase
   ///
   /// Deletes the favorite relationship. Idempotent - no error if not favorited.
-  Future<void> removeFavorite(String userId, String trackId) async {
+  Future<void> removeFavorite(
+      String userId, String trackId, DateTime deletedAt) async {
     try {
+      // Soft delete: tombstones sync like edits (newest wins).
       await _supabase
           .from('favorite_tracks')
-          .delete()
+          .update({
+            'deleted': true,
+            'updated_at': deletedAt.toUtc().toIso8601String(),
+          })
           .eq('user_id', userId)
           .eq('track_id', trackId);
     } on PostgrestException catch (e) {

@@ -1,11 +1,8 @@
-import '../../core/services/error_reporter.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/services/supabase_service.dart';
 import '../../domain/entities/choir.dart';
 import '../../domain/repositories/choir_repository.dart';
 import '../datasources/local/local_choir_data_source.dart';
-import '../datasources/remote/remote_choir_data_source.dart';
 import '../models/choir_model.dart';
 
 /// Choir repository implementation with offline-first sync
@@ -16,14 +13,10 @@ import '../models/choir_model.dart';
 /// - Background sync ensures data consistency
 class ChoirRepositoryImpl implements ChoirRepository {
   final LocalChoirDataSource _localDataSource;
-  final RemoteChoirDataSource? _remoteDataSource;
-  final SupabaseService _supabaseService;
   final Uuid _uuid = const Uuid();
 
   ChoirRepositoryImpl(
     this._localDataSource,
-    this._remoteDataSource,
-    this._supabaseService,
   );
 
   // ============================================================================
@@ -63,17 +56,6 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Save to local database (this also adds the owner as a member)
     await _localDataSource.createChoir(choirModel, ownerId);
 
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.createChoir(choirModel, ownerId);
-        // Mark as synced in local DB
-        await _localDataSource.markChoirAsSynced(id);
-        await _localDataSource.markMemberAsSynced(id, ownerId);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'choir_repository');
-      }
-    }
 
     return id;
   }
@@ -85,16 +67,6 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Update in local database
     await _localDataSource.updateChoir(choirModel);
 
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.updateChoir(choirModel);
-        // Mark as synced in local DB
-        await _localDataSource.markChoirAsSynced(choir.id);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'choir_repository');
-      }
-    }
   }
 
   @override
@@ -102,16 +74,6 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Delete from local database (soft delete)
     await _localDataSource.deleteChoir(id);
 
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.deleteChoir(id);
-        // Mark as synced in local DB
-        await _localDataSource.markChoirAsSynced(id);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'choir_repository');
-      }
-    }
   }
 
   // ============================================================================
@@ -123,16 +85,6 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Add to local database
     await _localDataSource.addMember(choirId, userId);
 
-    // Sync to remote if authenticated
-    if (_supabaseService.isAuthenticated && _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.addMember(choirId, userId);
-        // Mark as synced in local DB
-        await _localDataSource.markMemberAsSynced(choirId, userId);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'choir_repository');
-      }
-    }
   }
 
   @override
@@ -146,16 +98,6 @@ class ChoirRepositoryImpl implements ChoirRepository {
     // Remove from local database
     final removed = await _localDataSource.removeMember(choirId, userId);
 
-    // Sync to remote if authenticated and member was actually removed
-    if (removed &&
-        _supabaseService.isAuthenticated &&
-        _remoteDataSource != null) {
-      try {
-        await _remoteDataSource.removeMember(choirId, userId);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'choir_repository');
-      }
-    }
 
     return removed;
   }

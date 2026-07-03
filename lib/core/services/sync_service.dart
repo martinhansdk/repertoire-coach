@@ -167,6 +167,7 @@ class SyncService {
     ];
 
     try {
+      var pushFailures = 0;
       for (var i = 0; i < steps.length; i++) {
         final (entityName, adapter) = steps[i];
 
@@ -175,10 +176,19 @@ class SyncService {
           progress: i / steps.length,
         ));
 
-        await SyncAlgorithm(adapter).sync();
+        final result = await SyncAlgorithm(adapter).sync();
+        pushFailures += result.pushFailures;
       }
 
-      onProgress?.call(SyncState.success(message: 'Sync complete'));
+      // Per-item push failures don't abort the sync, but silently reporting
+      // success hid items that were stuck unsynced forever (e.g. rejected by a
+      // remote CHECK constraint). Surface them so the user can tell.
+      onProgress?.call(SyncState.success(
+        message: pushFailures == 0
+            ? 'Sync complete'
+            : 'Sync complete — $pushFailures change(s) could not be uploaded '
+                'and will be retried',
+      ));
     } catch (e) {
       onProgress?.call(SyncState.error('Sync failed: $e'));
       rethrow;

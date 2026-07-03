@@ -47,6 +47,19 @@ class LocalSongDataSource {
     SongModel song, {
     bool markForSync = true,
   }) async {
+    if (!markForSync) {
+      final existing = await (_database.select(_database.songs)
+            ..where((t) => t.id.equals(song.id)))
+          .getSingleOrNull();
+      // An unsynced local change (edit or soft-delete) that is not older than
+      // the incoming row wins locally; it is resolved against remote on the
+      // next push phase instead of being overwritten here.
+      if (existing != null &&
+          !existing.synced &&
+          !existing.updatedAt.isBefore(song.updatedAt)) {
+        return;
+      }
+    }
     await _database.into(_database.songs).insertOnConflictUpdate(
           song.toDriftCompanion(markForSync: markForSync),
         );
@@ -99,16 +112,10 @@ class LocalSongDataSource {
   /// Mark song as synced to cloud
   ///
   /// Called by sync service after successfully uploading to Supabase.
-  Future<void> markAsSynced(String id) async {
-    await _database.markSongAsSynced(id);
+  Future<void> markAsSynced(String id, DateTime expectedUpdatedAt) async {
+    await _database.markSongAsSynced(id, expectedUpdatedAt);
   }
 
-  /// Hard delete synced songs not in the given set of IDs
-  ///
-  /// Used during sync to remove songs deleted on remote.
-  Future<void> hardDeleteSongsNotIn(Set<String> keepIds) async {
-    await _database.hardDeleteSongsNotIn(keepIds);
-  }
 
   /// Hard-delete synced songs that are soft-deleted
   ///

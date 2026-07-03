@@ -26,7 +26,8 @@ class RemoteChoirDataSource {
       final memberResponse = await _supabase
           .from('choir_members')
           .select('choir_id')
-          .eq('user_id', userId) as List;
+          .eq('user_id', userId)
+          .eq('deleted', false) as List;
 
       if (memberResponse.isEmpty) {
         return [];
@@ -44,7 +45,8 @@ class RemoteChoirDataSource {
             name,
             owner_id,
             created_at,
-            updated_at
+            updated_at,
+            deleted
           ''')
           .inFilter('id', choirIds) as List;
 
@@ -73,7 +75,8 @@ class RemoteChoirDataSource {
             name,
             owner_id,
             created_at,
-            updated_at
+            updated_at,
+            deleted
           ''')
           .eq('id', id)
           .maybeSingle();
@@ -124,7 +127,8 @@ class RemoteChoirDataSource {
           .from('choirs')
           .update({
             'name': choir.name,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
+            'deleted': choir.deleted,
+            'updated_at': choir.updatedAt.toUtc().toIso8601String(),
           })
           .eq('id', choir.id);
     } on PostgrestException catch (e) {
@@ -138,9 +142,14 @@ class RemoteChoirDataSource {
   ///
   /// Only choir owners can delete (enforced by RLS policies).
   /// Cascade deletes will remove all related data (concerts, songs, etc.).
-  Future<void> deleteChoir(String id) async {
+  Future<void> deleteChoir(String id, DateTime deletedAt) async {
     try {
-      await _supabase.from('choirs').delete().eq('id', id);
+      // Soft delete: tombstones sync like edits (newest wins) and deletion is
+      // never inferred from row absence.
+      await _supabase.from('choirs').update({
+        'deleted': true,
+        'updated_at': deletedAt.toUtc().toIso8601String(),
+      }).eq('id', id);
     } on PostgrestException catch (e) {
       throw Exception('Failed to delete choir from Supabase: ${e.message}');
     } catch (e) {
@@ -155,16 +164,17 @@ class RemoteChoirDataSource {
   /// Add a member to a choir in Supabase
   ///
   /// Only choir owners can add members (enforced by RLS policies).
-  Future<void> addMember(String choirId, String userId) async {
+  Future<void> addMember(
+      String choirId, String userId, DateTime updatedAt) async {
     try {
-      final member = ChoirMemberModel(
-        choirId: choirId,
-        userId: userId,
-        joinedAt: DateTime.now().toUtc(),
-        updatedAt: DateTime.now().toUtc(),
-      );
-
-      await _supabase.from('choir_members').insert(member.toJson());
+      // Upsert (not insert): re-adding a previously removed member must clear
+      // the tombstone instead of failing with a duplicate-key error.
+      await _supabase.from('choir_members').upsert({
+        'choir_id': choirId,
+        'user_id': userId,
+        'updated_at': updatedAt.toUtc().toIso8601String(),
+        'deleted': false,
+      }, onConflict: 'choir_id,user_id');
     } on PostgrestException catch (e) {
       throw Exception('Failed to add member in Supabase: ${e.message}');
     } catch (e) {
@@ -175,11 +185,16 @@ class RemoteChoirDataSource {
   /// Remove a member from a choir in Supabase
   ///
   /// Only choir owners can remove members (enforced by RLS policies).
-  Future<void> removeMember(String choirId, String userId) async {
+  Future<void> removeMember(
+      String choirId, String userId, DateTime deletedAt) async {
     try {
+      // Soft delete: tombstones sync like edits (newest wins).
       await _supabase
           .from('choir_members')
-          .delete()
+          .update({
+            'deleted': true,
+            'updated_at': deletedAt.toUtc().toIso8601String(),
+          })
           .eq('choir_id', choirId)
           .eq('user_id', userId);
     } on PostgrestException catch (e) {
@@ -283,7 +298,8 @@ class RemoteChoirDataSource {
       final memberResponse = await _supabase
           .from('choir_members')
           .select('choir_id')
-          .eq('user_id', userId) as List;
+          .eq('user_id', userId)
+          .eq('deleted', false) as List;
 
       if (memberResponse.isEmpty) {
         return [];
@@ -300,7 +316,8 @@ class RemoteChoirDataSource {
             choir_id,
             user_id,
             joined_at,
-            updated_at
+            updated_at,
+            deleted
           ''')
           .inFilter('choir_id', choirIds) as List;
 

@@ -133,9 +133,12 @@ void main() {
           }
 
           if (localRecord.synced) {
-            // Synced local items should exist on remote
+            // Synced local items should exist on remote — live, not tombstoned
             expect(adapter.remote.containsKey(id), true,
                 reason: 'seed=$seed: synced local item $id missing from remote');
+            expect(adapter.remote[id]!.deleted, false,
+                reason: 'seed=$seed: synced local item $id is tombstoned '
+                    'on remote');
 
             // Data should match
             expect(adapter.remote[id]!.data, localRecord.item.data,
@@ -147,7 +150,15 @@ void main() {
           final id = remoteEntry.key;
           final remoteItem = remoteEntry.value;
 
-          // All remote items should exist locally
+          if (remoteItem.deleted) {
+            // Tombstones are purged locally, never mirrored.
+            expect(adapter.local.containsKey(id), false,
+                reason: 'seed=$seed: remote tombstone $id still exists '
+                    'locally');
+            continue;
+          }
+
+          // All live remote items should exist locally
           expect(adapter.local.containsKey(id), true,
               reason: 'seed=$seed: remote item $id missing from local');
 
@@ -192,10 +203,14 @@ void _applyRandomOperation(Random random, FakeSyncAdapter adapter, int opNum) {
         adapter.addLocal(updated, synced: false);
       }
     } else {
-      // Soft-delete local
+      // Soft-delete local (deletions are stamped with their own time,
+      // like _writePayload does in the real datasources)
       final existing = adapter.local[id];
       if (existing != null) {
-        final deleted = existing.item.copyWith(deleted: true);
+        final deleted = existing.item.copyWith(
+          deleted: true,
+          syncTimestamp: timestamp,
+        );
         adapter.addLocal(deleted, synced: false);
       }
     }
@@ -212,8 +227,12 @@ void _applyRandomOperation(Random random, FakeSyncAdapter adapter, int opNum) {
       );
       adapter.addRemote(item);
     } else {
-      // Delete remote
-      adapter.remote.remove(id);
+      // Delete remote: rows are never removed — a tombstone is written,
+      // exactly like the soft-deleting remote datasources since migration 013
+      final existing = adapter.remote[id];
+      adapter.remote[id] = (existing ??
+              adapter.createItem(id: id, timestamp: timestamp))
+          .copyWith(deleted: true, syncTimestamp: timestamp);
     }
   }
 }
@@ -226,17 +245,29 @@ void _checkInvariants(
   Map<String, ({FakeItem item, bool synced})> localBefore,
   Map<String, FakeItem> remoteBefore,
 ) {
-  // Invariant 1: Every non-deleted remote item exists in local with matching data
+  // Invariant 1: Every live remote item exists in local with matching data;
+  // remote tombstones must have been purged locally (or, if the push that
+  // would have resolved them failed, left as an unsynced local change).
   for (final remoteEntry in adapter.remote.entries) {
     final id = remoteEntry.key;
     final remoteItem = remoteEntry.value;
 
+    if (remoteItem.deleted) {
+      final localRecord = adapter.local[id];
+      expect(localRecord == null || !localRecord.synced, true,
+          reason: 'seed=$seed: remote tombstone $id still mirrored as a '
+              'synced local row');
+      continue;
+    }
+
     expect(adapter.local.containsKey(id), true,
         reason: 'seed=$seed: remote item $id missing from local');
 
-    final localItem = adapter.local[id]!.item;
-    expect(localItem.data, remoteItem.data,
-        reason: 'seed=$seed: data mismatch for $id');
+    final localRecord = adapter.local[id]!;
+    if (localRecord.synced) {
+      expect(localRecord.item.data, remoteItem.data,
+          reason: 'seed=$seed: data mismatch for $id');
+    }
   }
 
   // Invariant 2: Every synced non-deleted local item exists in remote
@@ -263,14 +294,19 @@ void _checkInvariants(
     }
   }
 
-  // Invariant 4: Items with push failures remain unsynced
+  // Invariant 4: An item marked as failing may only end up synced if no push
+  // was attempted for it — i.e. the remote copy won on timestamp and was
+  // pulled, in which case local must match remote exactly.
   for (final failedId in adapter.failingIds) {
     final localRecord = adapter.local[failedId];
 
-    if (localRecord != null && localBefore.containsKey(failedId)) {
-      // Item existed before sync and failed to push
-      expect(localRecord.synced, false,
-          reason: 'seed=$seed: failed item $failedId was marked synced');
+    if (localRecord != null &&
+        localBefore.containsKey(failedId) &&
+        localRecord.synced) {
+      final remoteItem = adapter.remote[failedId];
+      expect(remoteItem != null && remoteItem == localRecord.item, true,
+          reason: 'seed=$seed: failed item $failedId was marked synced '
+              'without matching remote');
     }
   }
 

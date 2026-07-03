@@ -15,6 +15,9 @@ class SyncableSong with Syncable {
 
   @override
   DateTime get syncTimestamp => model.updatedAt;
+
+  @override
+  bool get isDeleted => model.deleted;
 }
 
 /// Sync adapter for Song entities
@@ -46,11 +49,6 @@ class SongSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  bool isLocallyDeleted(covariant SyncableSong item) {
-    return item.model.deleted;
-  }
-
-  @override
   Future<void> createOnRemote(covariant SyncableSong item) async {
     await _remote.createSong(item.model);
   }
@@ -61,23 +59,18 @@ class SongSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  Future<void> deleteOnRemote(String id) async {
-    await _remote.deleteSong(id);
+  Future<void> deleteOnRemote(String id, DateTime deletedAt) async {
+    await _remote.deleteSong(id, deletedAt);
   }
 
   @override
-  Future<void> markSynced(String id) async {
-    await _local.markAsSynced(id);
+  Future<void> markSynced(String id, DateTime expectedUpdatedAt) async {
+    await _local.markAsSynced(id, expectedUpdatedAt);
   }
 
   @override
   Future<void> upsertLocal(covariant SyncableSong item) async {
     await _local.upsertSong(item.model, markForSync: false);
-  }
-
-  @override
-  Future<void> hardDeleteSyncedNotIn(Set<String> keepIds) async {
-    await _local.hardDeleteSongsNotIn(keepIds);
   }
 
   @override

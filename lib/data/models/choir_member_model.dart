@@ -27,6 +27,7 @@ class ChoirMemberModel extends ChoirMember {
       userId: choirMember.userId,
       joinedAt: choirMember.joinedAt,
       updatedAt: choirMember.updatedAt,
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 
@@ -79,8 +80,9 @@ class ChoirMemberModel extends ChoirMember {
     return {
       'choir_id': choirId,
       'user_id': userId,
-      'joined_at': joinedAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'joined_at': joinedAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+      'deleted': deleted,
     };
   }
 }

@@ -29,17 +29,11 @@ final remoteChoirDataSourceProvider = Provider<RemoteChoirDataSource?>((ref) {
 
 /// Provider for the choir repository
 ///
-/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
-/// Implements offline-first pattern: reads from local, writes to both.
+/// Offline-first: reads and writes go to the local (Drift/SQLite) database;
+/// the sync service owns all remote (Supabase) I/O.
 final choirRepositoryProvider = Provider<ChoirRepository>((ref) {
   final localDataSource = ref.watch(localChoirDataSourceProvider);
-  final remoteDataSource = ref.watch(remoteChoirDataSourceProvider);
-  final supabaseService = ref.watch(supabaseServiceProvider);
-  return ChoirRepositoryImpl(
-    localDataSource,
-    remoteDataSource,
-    supabaseService,
-  );
+  return ChoirRepositoryImpl(localDataSource);
 });
 
 /// Provider for the current user ID

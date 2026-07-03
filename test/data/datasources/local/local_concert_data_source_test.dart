@@ -174,7 +174,7 @@ void main() {
     expect(unsynced.length, 1);
     expect(unsynced.first.id, 'c1');
 
-    await dataSource.markAsSynced('c1');
+    await dataSource.markAsSynced('c1', testConcert.updatedAt);
     unsynced = await dataSource.getUnsyncedConcerts();
     expect(unsynced, isEmpty);
   });

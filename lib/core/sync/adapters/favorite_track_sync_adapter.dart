@@ -15,6 +15,9 @@ class SyncableFavoriteTrack with Syncable {
 
   @override
   DateTime get syncTimestamp => model.updatedAt;
+
+  @override
+  bool get isDeleted => model.deleted;
 }
 
 /// Sync adapter for FavoriteTrack entities
@@ -48,16 +51,12 @@ class FavoriteTrackSyncAdapter implements SyncAdapter<Syncable> {
   }
 
   @override
-  bool isLocallyDeleted(covariant SyncableFavoriteTrack item) {
-    return item.model.deleted;
-  }
-
-  @override
   Future<void> createOnRemote(covariant SyncableFavoriteTrack item) async {
     await _remote.addFavorite(
       _userId,
       item.model.track.id,
       item.model.track.songId,
+      item.syncTimestamp,
     );
   }
 
@@ -68,27 +67,23 @@ class FavoriteTrackSyncAdapter implements SyncAdapter<Syncable> {
       _userId,
       item.model.track.id,
       item.model.track.songId,
+      item.syncTimestamp,
     );
   }
 
   @override
-  Future<void> deleteOnRemote(String trackId) async {
-    await _remote.removeFavorite(_userId, trackId);
+  Future<void> deleteOnRemote(String trackId, DateTime deletedAt) async {
+    await _remote.removeFavorite(_userId, trackId, deletedAt);
   }
 
   @override
-  Future<void> markSynced(String trackId) async {
-    await _local.markAsSynced([trackId], _userId);
+  Future<void> markSynced(String trackId, DateTime expectedUpdatedAt) async {
+    await _local.markAsSynced([trackId], _userId, expectedUpdatedAt);
   }
 
   @override
   Future<void> upsertLocal(covariant SyncableFavoriteTrack item) async {
     await _local.addFavorite(_userId, item.model, markForSync: false);
-  }
-
-  @override
-  Future<void> hardDeleteSyncedNotIn(Set<String> keepTrackIds) async {
-    await _local.hardDeleteSyncedNotIn(_userId, keepTrackIds);
   }
 
   @override

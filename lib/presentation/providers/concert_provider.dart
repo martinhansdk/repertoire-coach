@@ -37,17 +37,11 @@ final remoteConcertDataSourceProvider = Provider<RemoteConcertDataSource?>((ref)
 
 /// Provider for the concert repository
 ///
-/// Uses both local (Drift/SQLite) and remote (Supabase) data sources.
-/// Implements offline-first pattern: reads from local, writes to both.
+/// Offline-first: reads and writes go to the local (Drift/SQLite) database;
+/// the sync service owns all remote (Supabase) I/O.
 final concertRepositoryProvider = Provider<ConcertRepository>((ref) {
   final localDataSource = ref.watch(localConcertDataSourceProvider);
-  final remoteDataSource = ref.watch(remoteConcertDataSourceProvider);
-  final supabaseService = ref.watch(supabaseServiceProvider);
-  return ConcertRepositoryImpl(
-    localDataSource,
-    remoteDataSource,
-    supabaseService,
-  );
+  return ConcertRepositoryImpl(localDataSource);
 });
 
 /// Provider for the list of concerts

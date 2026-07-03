@@ -1,13 +1,9 @@
-import 'dart:convert';
-
 import '../../core/services/error_reporter.dart';
-import '../../core/services/supabase_service.dart';
 import '../../core/errors/marker_invariant_exception.dart';
 import '../../domain/entities/marker.dart';
 import '../../domain/entities/marker_set.dart';
 import '../../domain/repositories/marker_repository.dart';
 import '../datasources/local/local_marker_data_source.dart';
-import '../datasources/remote/remote_marker_data_source.dart';
 import '../models/marker_model.dart';
 import '../models/marker_set_model.dart';
 
@@ -19,18 +15,10 @@ import '../models/marker_set_model.dart';
 /// - Background sync keeps data updated
 class MarkerRepositoryImpl implements MarkerRepository {
   final LocalMarkerDataSource _localDataSource;
-  final RemoteMarkerDataSource? _remoteDataSource;
-  final SupabaseService _supabaseService;
 
   MarkerRepositoryImpl(
     this._localDataSource,
-    this._remoteDataSource,
-    this._supabaseService,
   );
-
-  /// Check if user is authenticated and remote operations are available
-  bool get _canSyncToRemote =>
-      _supabaseService.isAuthenticated && _remoteDataSource != null;
 
   // ==================== MarkerSet Operations ====================
 
@@ -64,18 +52,6 @@ class MarkerRepositoryImpl implements MarkerRepository {
     // Always save to local database first (offline-first)
     await _localDataSource.insertMarkerSet(markerSetModel);
 
-    // Sync to Supabase if authenticated
-    if (_canSyncToRemote) {
-      try {
-        // Compute isTimeSynced from the actual markersJson rather than trusting
-        // the entity field, which can disagree (e.g. copying a non-time-synced
-        // set produces markers_json: [] which is vacuously time-synced).
-        await _remoteDataSource!
-            .createMarkerSet(_withComputedIsTimeSynced(markerSetModel));
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
-      }
-    }
   }
 
   @override
@@ -97,15 +73,6 @@ class MarkerRepositoryImpl implements MarkerRepository {
     // Update local database first
     final success = await _localDataSource.updateMarkerSet(markerSetModel);
 
-    // Sync to Supabase if authenticated
-    if (success && _canSyncToRemote) {
-      try {
-        await _remoteDataSource!
-            .updateMarkerSet(_withComputedIsTimeSynced(markerSetModel));
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
-      }
-    }
 
     return success;
   }
@@ -115,14 +82,6 @@ class MarkerRepositoryImpl implements MarkerRepository {
     // Delete from local database first
     await _localDataSource.deleteMarkerSet(markerSetId);
 
-    // Sync deletion to Supabase if authenticated
-    if (_canSyncToRemote) {
-      try {
-        await _remoteDataSource!.deleteMarkerSet(markerSetId);
-      } catch (e, st) {
-        ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
-      }
-    }
   }
 
   // ==================== Marker Operations ====================
@@ -150,20 +109,15 @@ class MarkerRepositoryImpl implements MarkerRepository {
 
     // Save marker payload to local marker_set first (offline-first)
     await _localDataSource.insertMarker(markerModel);
-    await _syncMarkerSetPayload(marker.markerSetId);
   }
 
   @override
   Future<bool> updateMarker(Marker marker) async {
     final markerModel = MarkerModel.fromEntity(marker);
 
-    // Update marker payload in local marker_set first
-    final success = await _localDataSource.updateMarker(markerModel);
-    if (success) {
-      await _syncMarkerSetPayload(marker.markerSetId);
-    }
-
-    return success;
+    // Update marker payload in the local marker_set (offline-first);
+    // the sync service pushes the change to remote.
+    return _localDataSource.updateMarker(markerModel);
   }
 
   @override
@@ -173,13 +127,11 @@ class MarkerRepositoryImpl implements MarkerRepository {
       return;
     }
     await _localDataSource.deleteMarker(markerId);
-    await _syncMarkerSetPayload(marker.markerSetId);
   }
 
   @override
   Future<void> deleteMarkersByMarkerSet(String markerSetId) async {
     await _localDataSource.deleteMarkersByMarkerSet(markerSetId);
-    await _syncMarkerSetPayload(markerSetId);
   }
 
   @override
@@ -190,53 +142,9 @@ class MarkerRepositoryImpl implements MarkerRepository {
     _assertMonotonicMarkers(markers);
     final models = markers.map(MarkerModel.fromEntity).toList(growable: false);
     await _localDataSource.replaceMarkersByMarkerSet(markerSetId, models);
-    await _syncMarkerSetPayload(markerSetId);
   }
 
-  Future<void> _syncMarkerSetPayload(String markerSetId) async {
-    if (!_canSyncToRemote) {
-      return;
-    }
 
-    final updatedSet = await _localDataSource.getMarkerSetById(markerSetId);
-    if (updatedSet == null) {
-      return;
-    }
-
-    try {
-      await _remoteDataSource!
-          .updateMarkerSet(_withComputedIsTimeSynced(updatedSet));
-    } catch (e, st) {
-      ErrorReporter.report(e, stackTrace: st, screen: 'marker_repository');
-    }
-  }
-
-  /// Returns a copy of [model] with isTimeSynced computed from its markersJson.
-  ///
-  /// Rule: true iff every non-empty label has a non-null position_ms.
-  /// This prevents violating the Supabase check constraint
-  /// marker_sets_is_time_synced_matches_payload when the field on the entity or
-  /// local DB is stale.
-  MarkerSetModel _withComputedIsTimeSynced(MarkerSetModel model) {
-    final payload = jsonDecode(model.markersJson) as List<dynamic>;
-    final computedIsTimeSynced = payload.every((e) {
-      final entry = e as Map<String, dynamic>;
-      final label = entry['label'] as String? ?? '';
-      return label.isEmpty || entry['position_ms'] != null;
-    });
-    return MarkerSetModel(
-      id: model.id,
-      trackId: model.trackId,
-      name: model.name,
-      isShared: model.isShared,
-      isTimeSynced: computedIsTimeSynced,
-      createdByUserId: model.createdByUserId,
-      createdAt: model.createdAt,
-      updatedAt: model.updatedAt,
-      deleted: model.deleted,
-      markersJson: model.markersJson,
-    );
-  }
 
   void _assertMonotonicMarkers(List<Marker> markers) {
     int? previousPosition;

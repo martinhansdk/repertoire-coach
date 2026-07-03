@@ -168,7 +168,7 @@ void main() {
     test('getUnsyncedFavorites returns empty after markAsSynced', () async {
       await seedTrack(testTrack);
       await dataSource.addFavorite(userId, testFavorite, markForSync: true);
-      await dataSource.markAsSynced(['t1'], userId);
+      await dataSource.markAsSynced(['t1'], userId, testFavorite.updatedAt);
 
       final unsynced = await dataSource.getUnsyncedFavorites(userId);
       expect(unsynced, isEmpty);
@@ -203,7 +203,13 @@ void main() {
       await seedTrack(testTrack);
       await dataSource.addFavorite(userId, testFavorite);
       await dataSource.removeFavorite(userId, 't1');
-      await dataSource.markAsSynced(['t1'], userId);
+      // The soft-delete stamped a fresh deletion time; conditional markSynced
+      // needs the row's current updatedAt.
+      final deletedRow = await (database.select(database.favoriteTracks)
+            ..where((f) => f.userId.equals(userId))
+            ..where((f) => f.trackId.equals('t1')))
+          .getSingle();
+      await dataSource.markAsSynced(['t1'], userId, deletedRow.updatedAt);
 
       await dataSource.hardDeleteSyncedDeleted(userId);
 
@@ -214,34 +220,7 @@ void main() {
       expect(raw, isNull);
     });
 
-    test('hardDeleteSyncedNotIn removes synced favorites not in keep set', () async {
-      final track2 = Track(
-        id: 't2',
-        songId: 's1',
-        name: 'Alto',
-        createdAt: now,
-        updatedAt: now,
-      );
-      await seedTrack(testTrack);
-      await seedTrack(track2);
-
-      // Add both as synced
-      await dataSource.upsertFavoriteRecord(
-        userId: userId, trackId: 't1', songId: 's1', addedAt: now,
-      );
-      await dataSource.upsertFavoriteRecord(
-        userId: userId, trackId: 't2', songId: 's1', addedAt: now,
-      );
-      // Mark both synced
-      await dataSource.markAsSynced(['t1', 't2'], userId);
-
-      // Keep only t1 → t2 should be hard-deleted
-      await dataSource.hardDeleteSyncedNotIn(userId, {'t1'});
-
-      final remaining = await dataSource.getFavorites(userId);
-      expect(remaining.length, 1);
-      expect(remaining.first.track.id, 't1');
-    });
+);
 
     test('getSyncedFavorites returns map of synced favorites', () async {
       await seedTrack(testTrack);

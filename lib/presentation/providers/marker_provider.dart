@@ -30,14 +30,13 @@ final remoteMarkerDataSourceProvider = Provider<RemoteMarkerDataSource?>((ref) {
 
 /// Provider for the marker repository
 ///
-/// Provides offline-first data persistence with automatic cloud sync.
-/// - Writes go to both local database and Supabase (when authenticated)
+/// Provides offline-first data persistence.
+/// - Writes go to the local database (marked unsynced); the sync service owns
+///   all remote Supabase I/O
 /// - Reads always come from local database for fast access
 final markerRepositoryProvider = Provider<MarkerRepository>((ref) {
   final localDataSource = ref.watch(localMarkerDataSourceProvider);
-  final remoteDataSource = ref.watch(remoteMarkerDataSourceProvider);
-  final supabaseService = ref.watch(supabaseServiceProvider);
-  return MarkerRepositoryImpl(localDataSource, remoteDataSource, supabaseService);
+  return MarkerRepositoryImpl(localDataSource);
 });
 
 /// Provider for marker sets filtered by a specific track

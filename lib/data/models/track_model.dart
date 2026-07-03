@@ -37,6 +37,7 @@ class TrackModel extends Track {
       filePath: track.filePath,
       createdAt: track.createdAt,
       updatedAt: track.updatedAt,
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 
@@ -99,7 +100,8 @@ class TrackModel extends Track {
       durationMs: json['duration_ms'],
       filePath: json['file_path'],
       createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      updatedAt:
+          DateTime.parse((json['updated_at'] ?? json['created_at']) as String),
     );
   }
 
@@ -113,8 +115,9 @@ class TrackModel extends Track {
       'storage_path': storagePath,
       'duration_ms': durationMs,
       'file_path': filePath,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+      'deleted': deleted,
     };
   }
 }

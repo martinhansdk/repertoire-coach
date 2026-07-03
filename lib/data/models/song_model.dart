@@ -29,6 +29,7 @@ class SongModel extends Song {
       title: song.title,
       createdAt: song.createdAt,
       updatedAt: song.updatedAt,
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 
@@ -85,8 +86,9 @@ class SongModel extends Song {
       'id': id,
       'concert_id': concertId,
       'title': title,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+      'deleted': deleted,
     };
   }
 }

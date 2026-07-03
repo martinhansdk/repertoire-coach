@@ -3,8 +3,10 @@ import 'package:repertoire_coach/core/sync/syncable.dart';
 
 /// A fake item for testing the sync algorithm.
 ///
-/// Contains the minimum required fields (id, timestamp, data) plus
-/// local-only metadata (synced, deleted).
+/// Contains the minimum required fields (id, timestamp, data) plus the
+/// deleted flag, which — like in the real schema since migration 013 —
+/// exists on BOTH sides: locally as the soft-delete marker and remotely as
+/// the tombstone.
 class FakeItem with Syncable {
   @override
   final String syncId;
@@ -18,8 +20,11 @@ class FakeItem with Syncable {
   /// not just IDs and timestamps.
   final String data;
 
-  /// Whether this item is soft-deleted locally (local-only field).
+  /// Whether this item is soft-deleted (a tombstone).
   final bool deleted;
+
+  @override
+  bool get isDeleted => deleted;
 
   const FakeItem({
     required this.syncId,
@@ -71,21 +76,43 @@ class FakeItem with Syncable {
 /// Local storage record with sync metadata.
 typedef LocalRecord = ({FakeItem item, bool synced});
 
-/// In-memory fake adapter for testing sync algorithm.
+/// In-memory fake adapter for testing the sync algorithm.
 ///
-/// Simulates both local and remote storage using in-memory maps.
-/// Supports injecting push failures for specific IDs.
+/// Simulates both local and remote storage using in-memory maps, mirroring
+/// the semantics of the real Drift/Supabase datasources:
+///  - the remote holds tombstones (rows with deleted=true), never removes rows
+///  - [markSynced] is CONDITIONAL on the snapshotted timestamp
+///  - [upsertLocal] refuses to overwrite an unsynced local row that is not
+///    older than the incoming one
+///
+/// Supports injecting push failures for specific IDs and mutation hooks to
+/// simulate user edits that land in the middle of a sync run.
 class FakeSyncAdapter implements SyncAdapter<FakeItem> {
   /// Local storage: ID -> (item, synced flag)
   final Map<String, LocalRecord> local = {};
 
-  /// Remote storage: ID -> item
+  /// Remote storage: ID -> item (including tombstones).
   final Map<String, FakeItem> remote = {};
 
   /// IDs that should fail when pushed to remote.
   ///
   /// Useful for testing error handling and retry logic.
   final Set<String> failingIds = {};
+
+  /// When true, [getAllRemote] returns an empty list regardless of [remote].
+  ///
+  /// Simulates a partial/failed remote read (empty membership chain, RLS
+  /// hiccup, PostgREST row limit) that used to be indistinguishable from
+  /// "everything was deleted remotely".
+  bool remoteReadReturnsEmpty = false;
+
+  /// Invoked just before [markSynced] applies; lets tests mutate [local] to
+  /// simulate a user edit racing the sync run.
+  void Function(String id)? onBeforeMarkSynced;
+
+  /// Invoked just before [upsertLocal] applies; lets tests mutate [local] to
+  /// simulate a user edit racing the pull phase.
+  void Function(FakeItem incoming)? onBeforeUpsertLocal;
 
   @override
   Future<List<FakeItem>> getUnsyncedLocal() async {
@@ -106,12 +133,8 @@ class FakeSyncAdapter implements SyncAdapter<FakeItem> {
 
   @override
   Future<List<FakeItem>> getAllRemote() async {
+    if (remoteReadReturnsEmpty) return [];
     return remote.values.toList();
-  }
-
-  @override
-  bool isLocallyDeleted(FakeItem item) {
-    return item.deleted;
   }
 
   @override
@@ -119,8 +142,7 @@ class FakeSyncAdapter implements SyncAdapter<FakeItem> {
     if (failingIds.contains(item.syncId)) {
       throw Exception('Simulated push failure for ${item.syncId}');
     }
-    // Create on remote (without deleted flag - remote doesn't track this)
-    remote[item.syncId] = item.copyWith(deleted: false);
+    remote[item.syncId] = item;
   }
 
   @override
@@ -128,54 +150,51 @@ class FakeSyncAdapter implements SyncAdapter<FakeItem> {
     if (failingIds.contains(item.syncId)) {
       throw Exception('Simulated push failure for ${item.syncId}');
     }
-    // Update on remote (without deleted flag)
-    remote[item.syncId] = item.copyWith(deleted: false);
+    // Like the real datasources, an update writes deleted (false here, since
+    // the algorithm only pushes updates for live items) — a newer edit
+    // deliberately clears a remote tombstone.
+    remote[item.syncId] = item;
   }
 
   @override
-  Future<void> deleteOnRemote(String id) async {
+  Future<void> deleteOnRemote(String id, DateTime deletedAt) async {
     if (failingIds.contains(id)) {
       throw Exception('Simulated push failure for $id');
     }
-    remote.remove(id);
+    // Soft delete: the remote row becomes a tombstone stamped with the local
+    // deletion time. Rows are never removed.
+    final existing = remote[id];
+    remote[id] = (existing ??
+            FakeItem(syncId: id, syncTimestamp: deletedAt, data: ''))
+        .copyWith(deleted: true, syncTimestamp: deletedAt);
   }
 
   @override
-  Future<void> markSynced(String id) async {
+  Future<void> markSynced(String id, DateTime expectedUpdatedAt) async {
+    onBeforeMarkSynced?.call(id);
     final record = local[id];
-    if (record != null) {
+    // Conditional, like the real datasources: only mark synced if the row
+    // still carries the timestamp the sync run snapshotted.
+    if (record != null && record.item.syncTimestamp == expectedUpdatedAt) {
       local[id] = (item: record.item, synced: true);
     }
   }
 
   @override
   Future<void> upsertLocal(FakeItem item) async {
+    onBeforeUpsertLocal?.call(item);
     final existing = local[item.syncId];
 
-    // Critical behavior: Don't resurrect items with pending soft-deletes
+    // An unsynced local change (edit or soft-delete) that is not older than
+    // the incoming row wins locally; it is resolved against remote on the
+    // next push phase instead of being overwritten here.
     if (existing != null &&
-        existing.item.deleted &&
-        !existing.synced) {
-      // Item has unsynced soft-delete - skip upsert
+        !existing.synced &&
+        !existing.item.syncTimestamp.isBefore(item.syncTimestamp)) {
       return;
     }
 
-    // Upsert the item (mark as synced since it came from remote)
-    local[item.syncId] = (
-      item: item.copyWith(deleted: false),
-      synced: true,
-    );
-  }
-
-  @override
-  Future<void> hardDeleteSyncedNotIn(Set<String> keepIds) async {
-    final idsToDelete = local.keys
-        .where((id) => local[id]!.synced && !keepIds.contains(id))
-        .toList();
-
-    for (final id in idsToDelete) {
-      local.remove(id);
-    }
+    local[item.syncId] = (item: item, synced: true);
   }
 
   @override
@@ -199,7 +218,7 @@ class FakeSyncAdapter implements SyncAdapter<FakeItem> {
 
   /// Adds an item to remote storage.
   void addRemote(FakeItem item) {
-    remote[item.syncId] = item.copyWith(deleted: false);
+    remote[item.syncId] = item;
   }
 
   /// Creates a FakeItem with default values.

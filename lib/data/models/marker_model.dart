@@ -33,6 +33,7 @@ class MarkerModel extends Marker {
       order: marker.order,
       createdAt: marker.createdAt,
       updatedAt: marker.updatedAt,
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 
@@ -102,8 +103,9 @@ class MarkerModel extends Marker {
       'label': label,
       'position_ms': positionMs,
       'display_order': order,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+      'deleted': deleted,
     };
   }
 }

@@ -46,6 +46,19 @@ class LocalConcertDataSource {
     ConcertModel concert, {
     bool markForSync = true,
   }) async {
+    if (!markForSync) {
+      final existing = await (_database.select(_database.concerts)
+            ..where((t) => t.id.equals(concert.id)))
+          .getSingleOrNull();
+      // An unsynced local change (edit or soft-delete) that is not older than
+      // the incoming row wins locally; it is resolved against remote on the
+      // next push phase instead of being overwritten here.
+      if (existing != null &&
+          !existing.synced &&
+          !existing.updatedAt.isBefore(concert.updatedAt)) {
+        return;
+      }
+    }
     await _database.into(_database.concerts).insertOnConflictUpdate(
           concert.toDriftCompanion(markForSync: markForSync),
         );
@@ -98,16 +111,10 @@ class LocalConcertDataSource {
   /// Mark concert as synced to cloud
   ///
   /// Called by sync service after successfully uploading to Supabase.
-  Future<void> markAsSynced(String id) async {
-    await _database.markConcertAsSynced(id);
+  Future<void> markAsSynced(String id, DateTime expectedUpdatedAt) async {
+    await _database.markConcertAsSynced(id, expectedUpdatedAt);
   }
 
-  /// Hard delete synced concerts not in the given set of IDs
-  ///
-  /// Used during sync to remove concerts deleted on remote.
-  Future<void> hardDeleteConcertsNotIn(Set<String> keepIds) async {
-    await _database.hardDeleteConcertsNotIn(keepIds);
-  }
 
   /// Hard-delete synced concerts that are soft-deleted
   ///

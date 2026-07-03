@@ -39,6 +39,7 @@ class MarkerSetModel extends MarkerSet {
       createdByUserId: markerSet.createdByUserId,
       createdAt: markerSet.createdAt,
       updatedAt: markerSet.updatedAt,
+      deleted: json['deleted'] as bool? ?? false,
       markersJson: '[]',
     );
   }
@@ -122,9 +123,10 @@ class MarkerSetModel extends MarkerSet {
       'is_shared': isShared,
       'is_time_synced': isTimeSynced,
       'created_by_user_id': createdByUserId,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
       'markers_json': parsedMarkersJson,
+      'deleted': deleted,
     };
   }
 }

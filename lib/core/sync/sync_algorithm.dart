@@ -4,13 +4,19 @@ import 'syncable.dart';
 
 /// Generic bidirectional sync algorithm.
 ///
-/// Implements the "push-before-pull, newest-wins" sync strategy:
-/// 1. Push phase: Send local changes to remote (creates, updates, deletes)
-/// 2. Pull phase: Fetch remote items and upsert locally
-/// 3. Cleanup: Remove stale local items that were deleted remotely
+/// Implements "push-before-pull, newest edit wins":
+/// 1. Push phase: for each locally-unsynced item, compare edit timestamps with
+///    the remote copy and let the newest change win — including deletions,
+///    which are ordinary tombstone rows (deleted=true), not row absence.
+/// 2. Pull phase: upsert remote items (including tombstones) that are newer
+///    than the local copy.
+/// 3. Purge: hard-delete local rows that are synced AND soft-deleted; their
+///    tombstone has been fully applied on both sides.
 ///
-/// The algorithm is generic and works with any entity type that implements
-/// [Syncable] and has a corresponding [SyncAdapter].
+/// Deletion is NEVER inferred from absence. A row missing from
+/// [SyncAdapter.getAllRemote] (partial reads, row limits, RLS, empty
+/// membership chains) simply means "no information", so incomplete remote
+/// reads can no longer destroy local data.
 class SyncAlgorithm<T extends Syncable> {
   final SyncAdapter<T> adapter;
 
@@ -20,101 +26,93 @@ class SyncAlgorithm<T extends Syncable> {
   ///
   /// Returns a [SyncResult] containing counts of operations performed.
   Future<SyncResult> sync() async {
-    // Counters for result
     int pushedCreates = 0;
     int pushedUpdates = 0;
     int pushedDeletes = 0;
     int pulled = 0;
     int pushFailures = 0;
 
-    // Track which items were successfully pushed (to skip during pull)
-    final pushedIds = <String>{};
-    // Track items whose push failed — skip them during pull so a transient
-    // push failure doesn't cause the pull phase to overwrite local changes.
+    // Items handled during the push phase (skip during pull).
+    final handledIds = <String>{};
+    // Items whose push failed — also skipped during pull so a transient
+    // failure doesn't cause the pull phase to overwrite local changes.
     final failedPushIds = <String>{};
 
     try {
-      // Step 1: Fetch local items and all remote items
+      // Step 1: Snapshot local and remote state.
       final unsyncedLocal = await adapter.getUnsyncedLocal();
       final syncedLocal = await adapter.getSyncedLocal();
       final allRemote = await adapter.getAllRemote();
 
-      // Build a map of remote items by ID for quick lookup
-      final remoteById = <String, T>{};
-      for (final item in allRemote) {
-        remoteById[item.syncId] = item;
-      }
+      final remoteById = <String, T>{
+        for (final item in allRemote) item.syncId: item,
+      };
 
-      // Step 2: Push phase - send local changes to remote
+      // Step 2: Push phase — resolve every locally-unsynced item.
       for (final localItem in unsyncedLocal) {
         final id = localItem.syncId;
         final remoteItem = remoteById[id];
 
         try {
-          if (adapter.isLocallyDeleted(localItem)) {
-            // Local item is soft-deleted - delete on remote if it exists
-            if (remoteItem != null) {
-              await adapter.deleteOnRemote(id);
+          final remoteIsNewer = remoteItem != null &&
+              remoteItem.syncTimestamp.isAfter(localItem.syncTimestamp);
+
+          if (remoteIsNewer) {
+            // Remote change (edit or tombstone) is newer than the local one —
+            // remote wins, even over a local deletion. upsertLocal writes it
+            // with synced=true; if it is a tombstone the purge step removes it.
+            await adapter.upsertLocal(remoteItem);
+            pulled++;
+          } else if (localItem.isDeleted) {
+            // Local deletion wins (or remote never saw this item).
+            if (remoteItem != null && !remoteItem.isDeleted) {
+              await adapter.deleteOnRemote(id, localItem.syncTimestamp);
               pushedDeletes++;
-              // Remove from remoteById so it's not in cleanup check
-              remoteById.remove(id);
             }
-            // Mark as synced so it gets hard-deleted in cleanup
-            await adapter.markSynced(id);
-            pushedIds.add(id);
+            // Conditional: fails harmlessly if the row changed mid-sync.
+            await adapter.markSynced(id, localItem.syncTimestamp);
           } else if (remoteItem == null) {
-            // Item exists locally but not remotely - create
+            // Exists locally, never seen remotely — create. (If the item was
+            // tombstoned remotely, it IS in allRemote and handled above.)
             await adapter.createOnRemote(localItem);
-            await adapter.markSynced(id);
+            await adapter.markSynced(id, localItem.syncTimestamp);
             pushedCreates++;
-            pushedIds.add(id);
-            // Add to remoteById so cleanup doesn't delete it
-            remoteById[id] = localItem;
           } else {
-            // Item exists on both sides - check timestamps
-            if (localItem.syncTimestamp.isAfter(remoteItem.syncTimestamp)) {
-              // Local is newer - update remote
-              await adapter.updateOnRemote(localItem);
-              await adapter.markSynced(id);
-              pushedUpdates++;
-              pushedIds.add(id);
-              // Update remoteById with the new version
-              remoteById[id] = localItem;
-            } else {
-              // Remote is newer or equal - upsert immediately, mark synced, skip pull
-              await adapter.upsertLocal(remoteItem);
-              await adapter.markSynced(id);
-              pulled++;
-              pushedIds.add(id);
-            }
+            // Local edit is newer than (or as new as) remote — local wins.
+            // updateOnRemote writes deleted=false, so a newer local edit
+            // deliberately overrides an older remote tombstone.
+            await adapter.updateOnRemote(localItem);
+            await adapter.markSynced(id, localItem.syncTimestamp);
+            pushedUpdates++;
           }
+          handledIds.add(id);
         } catch (e, st) {
-          // Push failed for this item - log and continue with others.
+          // Push failed for this item — log and continue with others.
           // Item stays unsynced and will be retried on next sync.
-          // Record the failure so the pull phase doesn't overwrite local changes.
           ErrorReporter.report(e, stackTrace: st, screen: 'sync');
           failedPushIds.add(id);
           pushFailures++;
         }
       }
 
-      // Step 3: Hard-delete synced items that were soft-deleted locally
-      await adapter.hardDeleteSyncedDeleted();
-
-      // Step 4: Pull phase - upsert remote items that we didn't handle in push
+      // Step 3: Pull phase — apply remote items not handled above.
       for (final remoteItem in allRemote) {
         final id = remoteItem.syncId;
 
-        // Skip items we already handled in push phase, and items whose push
-        // failed (we don't want a transient failure to overwrite local changes).
-        if (pushedIds.contains(id) || failedPushIds.contains(id)) {
+        if (handledIds.contains(id) || failedPushIds.contains(id)) {
           continue;
         }
 
-        // Skip items that already exist locally with same or newer timestamp
+        // Skip items that already exist locally with same or newer timestamp.
         final syncedItem = syncedLocal[id];
         if (syncedItem != null &&
             !syncedItem.syncTimestamp.isBefore(remoteItem.syncTimestamp)) {
+          continue;
+        }
+
+        // Tombstones for items we've never had (or already purged): nothing
+        // to apply locally, and upserting would briefly resurrect the row.
+        if (remoteItem.isDeleted && syncedItem == null) {
           continue;
         }
 
@@ -122,9 +120,8 @@ class SyncAlgorithm<T extends Syncable> {
         pulled++;
       }
 
-      // Step 5: Hard-delete synced local items that don't exist remotely
-      final remoteIds = remoteById.keys.toSet();
-      await adapter.hardDeleteSyncedNotIn(remoteIds);
+      // Step 4: Purge fully-applied tombstones (synced AND deleted).
+      await adapter.hardDeleteSyncedDeleted();
 
       return SyncResult(
         pushedCreates: pushedCreates,
@@ -134,7 +131,7 @@ class SyncAlgorithm<T extends Syncable> {
         pushFailures: pushFailures,
       );
     } catch (e, st) {
-      // Fatal error during sync - log and rethrow.
+      // Fatal error during sync — log and rethrow.
       ErrorReporter.report(e, stackTrace: st, screen: 'sync');
       rethrow;
     }

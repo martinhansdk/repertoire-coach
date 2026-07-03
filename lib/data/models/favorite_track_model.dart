@@ -25,6 +25,7 @@ class FavoriteTrackModel extends FavoriteTrack {
     return FavoriteTrackModel(
       addedAt: favorite.addedAt,
       updatedAt: favorite.updatedAt,
+      deleted: json['deleted'] as bool? ?? false,
       track: favorite.track,
     );
   }
@@ -112,8 +113,9 @@ class FavoriteTrackModel extends FavoriteTrack {
       'user_id': userId,
       'track_id': track.id,
       'song_id': track.songId,
-      'added_at': addedAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'added_at': addedAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+      'deleted': deleted,
     };
   }
 }
