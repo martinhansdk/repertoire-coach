@@ -92,7 +92,14 @@ class FakeSyncAdapter implements SyncAdapter<FakeItem> {
   final Map<String, LocalRecord> local = {};
 
   /// Remote storage: ID -> item (including tombstones).
-  final Map<String, FakeItem> remote = {};
+  ///
+  /// Pass [sharedRemote] to make several adapters ("devices") operate on one
+  /// shared remote store, PostgREST-style. Remote writes go through
+  /// immediately, so another device syncing later observes them.
+  final Map<String, FakeItem> remote;
+
+  FakeSyncAdapter({Map<String, FakeItem>? sharedRemote})
+      : remote = sharedRemote ?? {};
 
   /// IDs that should fail when pushed to remote.
   ///
@@ -141,6 +148,13 @@ class FakeSyncAdapter implements SyncAdapter<FakeItem> {
   Future<void> createOnRemote(FakeItem item) async {
     if (failingIds.contains(item.syncId)) {
       throw Exception('Simulated push failure for ${item.syncId}');
+    }
+    // Faithful to Postgres: INSERT on an existing key fails. This matters
+    // when a partial remote read makes the algorithm believe an item is new:
+    // the create must fail (and be retried) rather than silently overwrite.
+    if (remote.containsKey(item.syncId)) {
+      throw Exception(
+          'duplicate key: ${item.syncId} already exists on remote');
     }
     remote[item.syncId] = item;
   }

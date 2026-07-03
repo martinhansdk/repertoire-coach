@@ -1,0 +1,27 @@
+# Minimal Supabase CLI config so `supabase start` works for local development
+# and CI integration tests. If your CLI version wants more fields, run
+# `supabase init` and let it regenerate this file — keep project_id and the
+# [db.seed] section, and keep supabase/migrations untouched.
+project_id = "repertoire-coach"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+enabled = true
+enable_signup = true
+
+[studio]
+enabled = false
+
+[storage]
+enabled = true

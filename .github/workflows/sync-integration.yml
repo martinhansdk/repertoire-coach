@@ -1,0 +1,66 @@
+# Runs the sync integration tests against a REAL local Supabase stack
+# (Postgres + PostgREST + Auth + RLS, with the repo's actual migrations),
+# plus the multi-device sync property tests.
+#
+# Rationale: every field bug in the sync feature lived in the gap between the
+# client's model of the remote and the real Postgres. Unit tests against
+# fakes cannot catch that class of bug; these can.
+name: Sync integration
+
+on:
+  push:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'supabase/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/sync-integration.yml'
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'supabase/**'
+      - 'pubspec.yaml'
+
+jobs:
+  sync-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Starts the full local stack and applies supabase/migrations + seed.sql.
+      # Skipping unneeded services keeps startup fast.
+      - name: Start Supabase
+        run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector
+
+      # Exposes API_URL, ANON_KEY, SERVICE_ROLE_KEY as env vars.
+      - name: Export Supabase credentials
+        run: supabase status -o env >> "$GITHUB_ENV"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Multi-device model checker (pure Dart, no stack needed, but cheap to
+      # run here where sync correctness is the topic).
+      - name: Sync property tests
+        run: flutter test test/core/sync
+
+      - name: Sync integration tests
+        env:
+          SUPABASE_TEST_URL: ${{ env.API_URL }}
+          SUPABASE_TEST_ANON_KEY: ${{ env.ANON_KEY }}
+          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ env.SERVICE_ROLE_KEY }}
+        run: flutter test test/integration --tags integration
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop

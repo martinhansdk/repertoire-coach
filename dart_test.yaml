@@ -1,0 +1,6 @@
+tags:
+  # Tests that need a running local Supabase stack (`supabase start`).
+  # Run with: flutter test test/integration --tags integration
+  # Excluded from the default run via the CI test commands, not here, so a
+  # plain `flutter test` on a machine with the stack running still works.
+  integration:
