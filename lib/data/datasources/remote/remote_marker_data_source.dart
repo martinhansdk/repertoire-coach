@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/marker_model.dart';
 import '../../models/marker_set_model.dart';
+import 'postgrest_pagination.dart';
 
 /// Remote data source for marker and marker set operations using Supabase
 ///
@@ -282,11 +283,13 @@ class RemoteMarkerDataSource {
   Future<List<MarkerSetModel>> getMarkerSetsForUser(String userId) async {
     try {
       // First get choir IDs where user is a member
-      final memberResponse = await _supabase
+      final memberResponse = await fetchAllRows((from, to) => _supabase
           .from('choir_members')
           .select('choir_id')
           .eq('user_id', userId)
-          .eq('deleted', false) as List;
+          .eq('deleted', false)
+          .order('choir_id', ascending: true)
+          .range(from, to));
 
       if (memberResponse.isEmpty) {
         return [];
@@ -297,10 +300,14 @@ class RemoteMarkerDataSource {
           .toList();
 
       // Get concert IDs for those choirs
-      final concertResponse = await _supabase
-          .from('concerts')
-          .select('id')
-          .inFilter('choir_id', choirIds) as List;
+      final concertResponse = await fetchAllRowsChunkedIn(
+          choirIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('concerts')
+              .select('id')
+              .inFilter('choir_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       if (concertResponse.isEmpty) {
         return [];
@@ -311,10 +318,14 @@ class RemoteMarkerDataSource {
           .toList();
 
       // Get song IDs for those concerts
-      final songResponse = await _supabase
-          .from('songs')
-          .select('id')
-          .inFilter('concert_id', concertIds) as List;
+      final songResponse = await fetchAllRowsChunkedIn(
+          concertIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('songs')
+              .select('id')
+              .inFilter('concert_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       if (songResponse.isEmpty) {
         return [];
@@ -325,10 +336,14 @@ class RemoteMarkerDataSource {
           .toList();
 
       // Get track IDs for those songs
-      final trackResponse = await _supabase
-          .from('tracks')
-          .select('id')
-          .inFilter('song_id', songIds) as List;
+      final trackResponse = await fetchAllRowsChunkedIn(
+          songIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('tracks')
+              .select('id')
+              .inFilter('song_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       if (trackResponse.isEmpty) {
         return [];
@@ -339,22 +354,26 @@ class RemoteMarkerDataSource {
           .toList();
 
       // Get marker sets for those tracks (shared OR created by user)
-      final markerSetResponse = await _supabase
-          .from('marker_sets')
-          .select('''
-            id,
-            track_id,
-            name,
-            is_shared,
-            is_time_synced,
-            created_by_user_id,
-            created_at,
-            updated_at,
-            markers_json,
-            deleted
-          ''')
-          .inFilter('track_id', trackIds)
-          .or('is_shared.eq.true,created_by_user_id.eq.$userId') as List;
+      final markerSetResponse = await fetchAllRowsChunkedIn(
+          trackIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('marker_sets')
+              .select('''
+                id,
+                track_id,
+                name,
+                is_shared,
+                is_time_synced,
+                created_by_user_id,
+                created_at,
+                updated_at,
+                markers_json,
+                deleted
+              ''')
+              .inFilter('track_id', chunk)
+              .or('is_shared.eq.true,created_by_user_id.eq.$userId')
+              .order('id', ascending: true)
+              .range(from, to)));
 
       return markerSetResponse
           .map((json) => MarkerSetModel.fromJson(json))

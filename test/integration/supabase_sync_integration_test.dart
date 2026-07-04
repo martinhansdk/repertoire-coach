@@ -296,13 +296,11 @@ void main() {
       // 6. Response caps: getAllRemote must return EVERYTHING.
       //    PostgREST caps responses at 1000 rows by default; a truncated
       //    read silently delays sync of the tail indefinitely.
-      //    KNOWN GAP: pagination is not yet implemented — unskip this test
-      //    when it is; it is the executable spec for that work.
+      //    Fixed by fetchAllRows/.range() paging in the remote datasources
+      //    (lib/data/datasources/remote/postgrest_pagination.dart).
       // ------------------------------------------------------------------
       test(
         'getMarkerSetsForUser returns more than 1000 rows',
-        skip: 'KNOWN GAP: getAllRemote pagination not yet implemented '
-            '(PostgREST 1000-row cap). Unskip when adding .range() paging.',
         () async {
           final rows = List.generate(
               1100,

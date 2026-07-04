@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/track_model.dart';
+import 'postgrest_pagination.dart';
 
 /// Remote data source for track operations using Supabase
 ///
@@ -153,11 +154,13 @@ class RemoteTrackDataSource {
   Future<List<TrackModel>> getTracksForUser(String userId) async {
     try {
       // First get choir IDs where user is a member
-      final memberResponse = await _supabase
+      final memberResponse = await fetchAllRows((from, to) => _supabase
           .from('choir_members')
           .select('choir_id')
           .eq('user_id', userId)
-          .eq('deleted', false) as List;
+          .eq('deleted', false)
+          .order('choir_id', ascending: true)
+          .range(from, to));
 
       if (memberResponse.isEmpty) {
         return [];
@@ -168,10 +171,14 @@ class RemoteTrackDataSource {
           .toList();
 
       // Get concert IDs for those choirs
-      final concertResponse = await _supabase
-          .from('concerts')
-          .select('id')
-          .inFilter('choir_id', choirIds) as List;
+      final concertResponse = await fetchAllRowsChunkedIn(
+          choirIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('concerts')
+              .select('id')
+              .inFilter('choir_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       if (concertResponse.isEmpty) {
         return [];
@@ -182,10 +189,14 @@ class RemoteTrackDataSource {
           .toList();
 
       // Get song IDs for those concerts
-      final songResponse = await _supabase
-          .from('songs')
-          .select('id')
-          .inFilter('concert_id', concertIds) as List;
+      final songResponse = await fetchAllRowsChunkedIn(
+          concertIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('songs')
+              .select('id')
+              .inFilter('concert_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       if (songResponse.isEmpty) {
         return [];
@@ -196,21 +207,26 @@ class RemoteTrackDataSource {
           .toList();
 
       // Get tracks for those songs
-      final trackResponse = await _supabase
-          .from('tracks')
-          .select('''
-            id,
-            song_id,
-            name,
-            audio_url,
-            storage_path,
-            duration_ms,
-            created_at,
-            updated_at,
-            deleted
-          ''')
-          .inFilter('song_id', songIds)
-          .order('name', ascending: true) as List;
+      // Ordered by unique id: pagination needs a total order, and sync
+      // consumers don't care about display order (the UI reads from local).
+      final trackResponse = await fetchAllRowsChunkedIn(
+          songIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('tracks')
+              .select('''
+                id,
+                song_id,
+                name,
+                audio_url,
+                storage_path,
+                duration_ms,
+                created_at,
+                updated_at,
+                deleted
+              ''')
+              .inFilter('song_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       return trackResponse.map((json) {
         final trackJson = Map<String, dynamic>.from(json);

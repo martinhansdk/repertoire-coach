@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/concert_model.dart';
+import 'postgrest_pagination.dart';
 
 /// Remote data source for concert operations using Supabase
 ///
@@ -18,11 +19,13 @@ class RemoteConcertDataSource {
   Future<List<ConcertModel>> getConcerts(String userId) async {
     try {
       // First get choir IDs where user is a member
-      final memberResponse = await _supabase
+      final memberResponse = await fetchAllRows((from, to) => _supabase
           .from('choir_members')
           .select('choir_id')
           .eq('user_id', userId)
-          .eq('deleted', false) as List;
+          .eq('deleted', false)
+          .order('choir_id', ascending: true)
+          .range(from, to));
 
       if (memberResponse.isEmpty) {
         return [];
@@ -33,20 +36,25 @@ class RemoteConcertDataSource {
           .toList();
 
       // Get concerts for those choirs with choir names
-      final concertResponse = await _supabase
-          .from('concerts')
-          .select('''
-            id,
-            choir_id,
-            name,
-            concert_date,
-            created_at,
-            updated_at,
-            deleted,
-            choirs!inner(name)
-          ''')
-          .inFilter('choir_id', choirIds)
-          .order('concert_date', ascending: true) as List;
+      // Ordered by unique id: pagination needs a total order, and sync
+      // consumers don't care about display order (the UI reads from local).
+      final concertResponse = await fetchAllRowsChunkedIn(
+          choirIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('concerts')
+              .select('''
+                id,
+                choir_id,
+                name,
+                concert_date,
+                created_at,
+                updated_at,
+                deleted,
+                choirs!inner(name)
+              ''')
+              .inFilter('choir_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       final concerts = concertResponse.map((json) {
         final concertJson = Map<String, dynamic>.from(json);

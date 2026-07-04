@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/choir_member_model.dart';
 import '../../models/choir_model.dart';
+import 'postgrest_pagination.dart';
 
 /// Remote data source for choir and membership operations using Supabase
 ///
@@ -23,11 +24,13 @@ class RemoteChoirDataSource {
   Future<List<ChoirModel>> getChoirs(String userId) async {
     try {
       // First get choir IDs where user is a member
-      final memberResponse = await _supabase
+      final memberResponse = await fetchAllRows((from, to) => _supabase
           .from('choir_members')
           .select('choir_id')
           .eq('user_id', userId)
-          .eq('deleted', false) as List;
+          .eq('deleted', false)
+          .order('choir_id', ascending: true)
+          .range(from, to));
 
       if (memberResponse.isEmpty) {
         return [];
@@ -38,17 +41,21 @@ class RemoteChoirDataSource {
           .toList();
 
       // Then get the choir details
-      final choirResponse = await _supabase
-          .from('choirs')
-          .select('''
-            id,
-            name,
-            owner_id,
-            created_at,
-            updated_at,
-            deleted
-          ''')
-          .inFilter('id', choirIds) as List;
+      final choirResponse = await fetchAllRowsChunkedIn(
+          choirIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('choirs')
+              .select('''
+                id,
+                name,
+                owner_id,
+                created_at,
+                updated_at,
+                deleted
+              ''')
+              .inFilter('id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       final choirs = choirResponse
           .map((json) => ChoirModel.fromJson(json as Map<String, dynamic>))
@@ -306,11 +313,13 @@ class RemoteChoirDataSource {
   Future<List<ChoirMemberModel>> getChoirMembersForUser(String userId) async {
     try {
       // First get choir IDs where user is a member
-      final memberResponse = await _supabase
+      final memberResponse = await fetchAllRows((from, to) => _supabase
           .from('choir_members')
           .select('choir_id')
           .eq('user_id', userId)
-          .eq('deleted', false) as List;
+          .eq('deleted', false)
+          .order('choir_id', ascending: true)
+          .range(from, to));
 
       if (memberResponse.isEmpty) {
         return [];
@@ -321,16 +330,22 @@ class RemoteChoirDataSource {
           .toList();
 
       // Get all members for those choirs
-      final allMembersResponse = await _supabase
-          .from('choir_members')
-          .select('''
-            choir_id,
-            user_id,
-            joined_at,
-            updated_at,
-            deleted
-          ''')
-          .inFilter('choir_id', choirIds) as List;
+      final allMembersResponse = await fetchAllRowsChunkedIn(
+          choirIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('choir_members')
+              .select('''
+                choir_id,
+                user_id,
+                joined_at,
+                updated_at,
+                deleted
+              ''')
+              .inFilter('choir_id', chunk)
+              // Composite order: unique within a chunk, so pages are stable.
+              .order('choir_id', ascending: true)
+              .order('user_id', ascending: true)
+              .range(from, to)));
 
       return allMembersResponse
           .map((json) => ChoirMemberModel.fromJson(json))

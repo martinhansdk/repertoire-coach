@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/favorite_track_model.dart';
+import 'postgrest_pagination.dart';
 
 /// Remote data source for favorite track operations using Supabase
 ///
@@ -17,7 +18,9 @@ class RemoteFavoriteTrackDataSource {
   /// Sorted by added_at descending (most recent first).
   Future<List<FavoriteTrackModel>> getFavorites(String userId) async {
     try {
-      final response = await _supabase
+      // Ordered by unique track_id (unique per user): pagination needs a
+      // total order; the UI orders its own reads from local.
+      final response = await fetchAllRows((from, to) => _supabase
           .from('favorite_tracks')
           .select('''
             track_id,
@@ -34,7 +37,8 @@ class RemoteFavoriteTrackDataSource {
             )
           ''')
           .eq('user_id', userId)
-          .order('added_at', ascending: false);
+          .order('track_id', ascending: true)
+          .range(from, to));
 
       return response
           .map<FavoriteTrackModel>((json) => FavoriteTrackModel.fromJson(json))

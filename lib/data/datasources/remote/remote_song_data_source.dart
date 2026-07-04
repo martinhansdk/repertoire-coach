@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/song_model.dart';
+import 'postgrest_pagination.dart';
 
 /// Remote data source for song operations using Supabase
 ///
@@ -124,11 +125,13 @@ class RemoteSongDataSource {
   Future<List<SongModel>> getSongsForUser(String userId) async {
     try {
       // First get choir IDs where user is a member
-      final memberResponse = await _supabase
+      final memberResponse = await fetchAllRows((from, to) => _supabase
           .from('choir_members')
           .select('choir_id')
           .eq('user_id', userId)
-          .eq('deleted', false) as List;
+          .eq('deleted', false)
+          .order('choir_id', ascending: true)
+          .range(from, to));
 
       if (memberResponse.isEmpty) {
         return [];
@@ -139,10 +142,14 @@ class RemoteSongDataSource {
           .toList();
 
       // Get concert IDs for those choirs
-      final concertResponse = await _supabase
-          .from('concerts')
-          .select('id')
-          .inFilter('choir_id', choirIds) as List;
+      final concertResponse = await fetchAllRowsChunkedIn(
+          choirIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('concerts')
+              .select('id')
+              .inFilter('choir_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       if (concertResponse.isEmpty) {
         return [];
@@ -153,18 +160,23 @@ class RemoteSongDataSource {
           .toList();
 
       // Get songs for those concerts
-      final songResponse = await _supabase
-          .from('songs')
-          .select('''
-            id,
-            concert_id,
-            title,
-            created_at,
-            updated_at,
-            deleted
-          ''')
-          .inFilter('concert_id', concertIds)
-          .order('title', ascending: true) as List;
+      // Ordered by unique id: pagination needs a total order, and sync
+      // consumers don't care about display order (the UI reads from local).
+      final songResponse = await fetchAllRowsChunkedIn(
+          concertIds,
+          (chunk) => fetchAllRows((from, to) => _supabase
+              .from('songs')
+              .select('''
+                id,
+                concert_id,
+                title,
+                created_at,
+                updated_at,
+                deleted
+              ''')
+              .inFilter('concert_id', chunk)
+              .order('id', ascending: true)
+              .range(from, to)));
 
       return songResponse
           .map((json) => SongModel.fromJson(json))
