@@ -233,42 +233,21 @@ Implemented a complete offline-first feature demonstrating the full stack:
 1. Manual: Complete Step 1 (Supabase project setup) using plan documentation
 2. Begin Step 3: Remote Data Sources implementation
 
-### Step 3: Remote Data Sources (Next Up)
-- [ ] Create BaseRemoteDataSource with error handling
-- [ ] Create RemoteChoirDataSource (CRUD operations via Supabase PostgreSQL)
-- [ ] Create RemoteConcertDataSource
-- [ ] Create RemoteSongDataSource
-- [ ] Create RemoteTrackDataSource
-- [ ] Create RemoteMarkerDataSource
-- [ ] Create RemoteUserPlaybackStateDataSource
-- [ ] Update all data models to implement fromJson/toJson for Supabase
-- [ ] Write unit tests for each remote data source (mock Supabase client)
-- [ ] Verify JSON serialization matches PostgreSQL schema
+### Steps 3–5: Remote Data Sources, Repositories, Sync Engine — SUPERSEDED (2026-07)
 
-### Step 4: Repository Updates (Multi-Source Pattern)
-- [ ] Update ConcertRepositoryImpl to accept both local and remote data sources
-- [ ] Update ChoirRepositoryImpl for multi-source
-- [ ] Update SongRepositoryImpl for multi-source
-- [ ] Update TrackRepositoryImpl for multi-source
-- [ ] Update MarkerRepositoryImpl for multi-source
-- [ ] Implement offline-first pattern (always read from local, sync in background)
-- [ ] Update providers to inject both local and remote data sources
-- [ ] Determine sync mode based on auth state
-- [ ] Write tests for offline/online mode behavior
-
-### Step 5: Sync Engine (Bidirectional - Push-Before-Pull Complete)
-- [ ] Add SyncQueue table to database schema (for offline operations)
-- [ ] Create SyncOperation, SyncConflict, SyncStatus models
-- [ ] Create SyncQueue service for offline queue management
-- [x] Create SyncService for remote-to-local sync (lib/core/services/sync_service.dart)
-- [x] Implement syncToCloud() - bidirectional push-before-pull in syncFromRemote()
-- [x] Implement syncFromCloud() - download remote changes (syncFromRemote method)
-- [x] Implement conflict resolution (newest change wins based on updated_at)
-- [x] Create sync providers for UI integration (lib/presentation/providers/sync_provider.dart)
-- [ ] Add periodic background sync (every 5 minutes)
-- [ ] Create sync status indicator widget
-- [ ] Handle network connectivity changes
-- [x] Write comprehensive sync tests (unit + integration) - test/core/services/sync_service_test.dart
+The original multi-source plan below was implemented and then redesigned.
+Current state (do NOT resurrect the old plan):
+- Remote data sources exist for all synced entities, with paged/chunked
+  reads (`postgrest_pagination.dart`).
+- Repositories are deliberately **local-only** — they never receive remote
+  data sources. The sync engine owns all remote I/O. "Update repositories to
+  accept both local and remote data sources" is an anti-goal; that dual
+  write path caused data-loss races and was removed.
+- The sync engine is tombstone-based with client-authoritative edit
+  timestamps. Design and invariants: `docs/SYNC_ARCHITECTURE.md`.
+  Procedure for changes: `.claude/skills/sync-change/`.
+- Remaining sync work is tracked as it arises via REGRESSION tests, not
+  here.
 
 ### Step 6: Storage Integration (Audio Files)
 - [x] Create CloudStorageService for Supabase Storage operations (AudioStorageService)
@@ -594,8 +573,7 @@ SELECT * FROM error_logs ORDER BY created_at DESC;
 - [ ] Test `choir_model.dart` (serialization, entity conversion)
 - [ ] Test `song_model.dart`
 - [ ] Test `track_model.dart`
-- [ ] Test `section_model.dart`
-- [ ] Test `user_playback_state_model.dart`
+- Note: `section_model.dart` and `user_playback_state_model.dart` no longer exist (markers moved into marker_sets payload; playback-state persistence removed in migration 009).
 
 ### Test Infrastructure Improvements
 

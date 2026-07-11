@@ -264,455 +264,67 @@ class User {
 }
 ```
 
-#### UserPlaybackState
-```dart
-class UserPlaybackState {
-  String id;  // Composite: userId_songId_trackId
-  String userId;
-  String songId;
-  String trackId;
-  int position;  // Last playback position in milliseconds
-  DateTime updatedAt;
-}
-```
+#### UserPlaybackState (removed)
+Playback-position persistence was removed: the `user_playback_states` table
+was dropped both remotely (migration 009) and locally (Drift migration).
+
 
 ## Database Schema (PostgreSQL)
 
-### Table Structure
+**Source of truth: `supabase/migrations/` — apply in numeric order.** This
+section is a summary only; it deliberately contains no SQL, because a
+duplicated schema here drifted badly in the past (it still described the
+migration-001 state after 013 had shipped). To inspect the live schema, use
+the Supabase MCP (`mcp__supabase__list_tables`, `execute_sql` for reads) or
+the schema-drift integration test, which compares model JSON against
+`information_schema` on every CI run.
 
-```sql
--- Users table (managed by Supabase Auth, extended with custom fields)
-CREATE TABLE users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  display_name VARCHAR(255),
-  last_accessed_concert_id UUID,
-  language_preference VARCHAR(10) DEFAULT 'en',  -- ISO 639-1 language code
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+### Current State Summary (as of migration 013)
 
--- Choirs table
-CREATE TABLE choirs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+| Table | Keys / notable columns | Notes |
+|---|---|---|
+| `users` | `id` (= auth.users.id), `email` | Profile row per auth user |
+| `choirs` | `id`, `owner_id` | Owner manages membership |
+| `choir_members` | PK (`choir_id`, `user_id`), `joined_at` | Membership; grants access to choir content |
+| `concerts` | `id`, `choir_id`, `concert_date` | Date-sorted in UI |
+| `songs` | `id`, `concert_id`, `title` | |
+| `tracks` | `id`, `song_id`, `audio_url`, `storage_path`, `duration_ms` | `updated_at` added in 013 |
+| `marker_sets` | `id`, `track_id`, `is_shared`, `is_time_synced`, `markers_json` | Markers live in the JSONB payload (010); no separate markers rows since then. CHECK: `is_time_synced` must match the payload (012) |
+| `favorite_tracks` | PK (`user_id`, `track_id`), `added_at` | Per-user |
 
--- Choir members junction table (many-to-many relationship)
-CREATE TABLE choir_members (
-  choir_id UUID NOT NULL REFERENCES choirs(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  joined_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (choir_id, user_id)
-);
+Dropped along the way: `user_playback_states` (009), row-per-marker
+`markers` data (folded into `marker_sets.markers_json` in 010; legacy table
+may still exist empty).
 
--- Concerts table
-CREATE TABLE concerts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  choir_id UUID NOT NULL REFERENCES choirs(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  concert_date DATE NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+**Sync columns** — every synced table carries:
+- `updated_at TIMESTAMPTZ`: client-authoritative edit time (UTC). The
+  `BEFORE UPDATE` stamping triggers were dropped in 013; the server never
+  rewrites it.
+- `deleted BOOLEAN NOT NULL DEFAULT false`: tombstone. App-level deletion is
+  a soft delete that syncs like an edit; rows are never removed by sync.
+  (FK `ON DELETE CASCADE` still applies to genuine hard deletes, e.g.
+  admin cleanup.)
 
--- Songs table
-CREATE TABLE songs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  concert_id UUID NOT NULL REFERENCES concerts(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+The local Drift schema mirrors these tables and adds a per-row `synced`
+flag; see `lib/data/datasources/local/database.dart`.
 
--- Tracks table
-CREATE TABLE tracks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,  -- Flexible: voice parts, ensemble, instrumental, practice recordings, etc.
-  audio_url TEXT,
-  storage_path TEXT,  -- Path in Supabase Storage
-  duration_ms INTEGER,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+### Row Level Security (RLS)
 
--- Marker sets table (shared or private)
-CREATE TABLE marker_sets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  is_shared BOOLEAN NOT NULL DEFAULT false,
-  created_by_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+All tables have RLS enabled. Access model (policies live in the migrations,
+primarily 001 and 008):
+- Users read/write their own `users` row and `favorite_tracks`.
+- Choir content (`concerts`, `songs`, `tracks`, `marker_sets`) is readable
+  and writable by members of the owning choir, resolved through the
+  `choir_members` chain; `marker_sets` additionally distinguishes shared
+  (`is_shared`) from creator-private sets.
+- Choir owners manage `choir_members`.
+- **Deletion is an UPDATE** (`deleted := true`) since 013, so the UPDATE
+  policies are what gate deletion; the old DELETE policies remain but are
+  unused by the app. When changing policies, verify UPDATE covers every
+  principal that should be able to delete.
 
--- Markers table (positions within marker sets)
-CREATE TABLE markers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  marker_set_id UUID NOT NULL REFERENCES marker_sets(id) ON DELETE CASCADE,
-  label VARCHAR(255) NOT NULL,
-  position_ms INTEGER NOT NULL,
-  display_order INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Playback states table (per-user, private)
-CREATE TABLE playback_states (
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
-  track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
-  position_ms INTEGER NOT NULL DEFAULT 0,
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (user_id, song_id, track_id)
-);
-
--- Favorite tracks table (per-user, synced across devices)
-CREATE TABLE favorite_tracks (
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
-  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
-  added_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (user_id, track_id)
-);
-
--- Indexes for performance
-CREATE INDEX idx_choir_members_user ON choir_members(user_id);
-CREATE INDEX idx_choir_members_choir ON choir_members(choir_id);
-CREATE INDEX idx_concerts_choir_date ON concerts(choir_id, concert_date);
-CREATE INDEX idx_songs_concert ON songs(concert_id);
-CREATE INDEX idx_tracks_song ON tracks(song_id);
-CREATE INDEX idx_marker_sets_track ON marker_sets(track_id);
-CREATE INDEX idx_marker_sets_user ON marker_sets(created_by_user_id);
-CREATE INDEX idx_markers_set ON markers(marker_set_id);
-CREATE INDEX idx_playback_states_user ON playback_states(user_id);
-CREATE INDEX idx_favorite_tracks_user ON favorite_tracks(user_id);
-CREATE INDEX idx_favorite_tracks_track ON favorite_tracks(track_id);
-CREATE INDEX idx_favorite_tracks_user_added ON favorite_tracks(user_id, added_at DESC);
-
--- Updated_at triggers
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_choirs_updated_at BEFORE UPDATE ON choirs
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_concerts_updated_at BEFORE UPDATE ON concerts
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_songs_updated_at BEFORE UPDATE ON songs
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_marker_sets_updated_at BEFORE UPDATE ON marker_sets
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_playback_states_updated_at BEFORE UPDATE ON playback_states
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-```
-
-### Common Queries
-
-**Get user's choirs:**
-```sql
-SELECT c.* FROM choirs c
-JOIN choir_members cm ON c.id = cm.choir_id
-WHERE cm.user_id = $1
-ORDER BY c.name;
-```
-
-**Get concerts for user (across all choirs, sorted by date):**
-```sql
-SELECT con.*, c.name as choir_name FROM concerts con
-JOIN choirs c ON con.choir_id = c.id
-JOIN choir_members cm ON c.id = cm.choir_id
-WHERE cm.user_id = $1
-ORDER BY
-  CASE WHEN con.concert_date >= CURRENT_DATE THEN 0 ELSE 1 END,
-  CASE WHEN con.concert_date >= CURRENT_DATE THEN con.concert_date END ASC,
-  CASE WHEN con.concert_date < CURRENT_DATE THEN con.concert_date END DESC;
-```
-
-**Get songs in a concert:**
-```sql
-SELECT * FROM songs
-WHERE concert_id = $1
-ORDER BY title;
-```
-
-**Get marker sets for a track (shared + user's private):**
-```sql
-SELECT ms.*,
-       (SELECT json_agg(m.* ORDER BY m.display_order)
-        FROM markers m
-        WHERE m.marker_set_id = ms.id) as markers
-FROM marker_sets ms
-WHERE ms.track_id = $1
-  AND (ms.is_shared = true OR ms.created_by_user_id = $2)
-ORDER BY ms.is_shared DESC, ms.name;
-```
-
-**Get or create playback state:**
-```sql
-INSERT INTO playback_states (user_id, song_id, track_id, position_ms)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (user_id, song_id, track_id)
-DO UPDATE SET position_ms = $4, updated_at = NOW()
-RETURNING *;
-```
-
-**Get user's favorite tracks (with track data):**
-```sql
--- Joins only to tracks table for basic track data
--- Song/concert/choir lookups done via providers in UI for real-time consistency
-SELECT
-  ft.track_id,
-  ft.song_id,
-  ft.added_at,
-  t.name,
-  t.audio_url,
-  t.storage_path,
-  t.duration_ms,
-  t.created_at
-FROM favorite_tracks ft
-JOIN tracks t ON ft.track_id = t.id
-WHERE ft.user_id = $1
-ORDER BY ft.added_at DESC;
-```
-
-### Row Level Security (RLS) Policies
-
-**Users table:**
-```sql
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-
--- Users can read their own profile
-CREATE POLICY users_select_own ON users
-  FOR SELECT USING (auth.uid() = id);
-
--- Any authenticated user can look up other users by email (needed for
--- the "add choir member" flow and for displaying member profiles).
--- The table only exposes non-sensitive columns (id, email, display_name).
-CREATE POLICY users_select_for_member_lookup ON users
-  FOR SELECT TO authenticated USING (true);
-
--- Users can update their own profile
-CREATE POLICY users_update_own ON users
-  FOR UPDATE USING (auth.uid() = id);
-```
-
-**Choirs table:**
-```sql
-ALTER TABLE choirs ENABLE ROW LEVEL SECURITY;
-
--- Users can read choirs they're members of
-CREATE POLICY choirs_select_member ON choirs
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM choir_members
-      WHERE choir_id = id AND user_id = auth.uid()
-    )
-  );
-
--- Users can create choirs (they become owner)
-CREATE POLICY choirs_insert_own ON choirs
-  FOR INSERT WITH CHECK (owner_id = auth.uid());
-
--- Only owner can update choir
-CREATE POLICY choirs_update_owner ON choirs
-  FOR UPDATE USING (owner_id = auth.uid());
-
--- Only owner can delete choir
-CREATE POLICY choirs_delete_owner ON choirs
-  FOR DELETE USING (owner_id = auth.uid());
-```
-
-**Choir members table:**
-```sql
-ALTER TABLE choir_members ENABLE ROW LEVEL SECURITY;
-
--- Users can read members of choirs they belong to
-CREATE POLICY choir_members_select ON choir_members
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM choir_members cm
-      WHERE cm.choir_id = choir_id AND cm.user_id = auth.uid()
-    )
-  );
-
--- Only choir owner can add members
-CREATE POLICY choir_members_insert ON choir_members
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM choirs
-      WHERE id = choir_id AND owner_id = auth.uid()
-    )
-  );
-
--- Only choir owner can remove members
-CREATE POLICY choir_members_delete ON choir_members
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM choirs
-      WHERE id = choir_id AND owner_id = auth.uid()
-    )
-  );
-```
-
-**Concerts, Songs, Tracks tables:**
-```sql
--- Similar RLS policies: users can read/write if they're choir members
--- (Policies check membership via choir_members join)
-```
-
-**Marker Sets and Markers:**
-```sql
-ALTER TABLE marker_sets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE markers ENABLE ROW LEVEL SECURITY;
-
--- Users can read shared marker sets if they're choir members
--- Users can read/write their own private marker sets
-CREATE POLICY marker_sets_select ON marker_sets
-  FOR SELECT USING (
-    is_shared = true AND EXISTS (
-      -- Check if user is member of choir that owns the track
-      SELECT 1 FROM tracks t
-      JOIN songs s ON t.song_id = s.id
-      JOIN concerts c ON s.concert_id = c.id
-      JOIN choir_members cm ON c.choir_id = cm.choir_id
-      WHERE t.id = track_id AND cm.user_id = auth.uid()
-    )
-    OR (is_shared = false AND created_by_user_id = auth.uid())
-  );
-
--- Choir members can create shared marker sets for their choir's tracks
--- Users can create private marker sets for any track they can access
-CREATE POLICY marker_sets_insert ON marker_sets
-  FOR INSERT WITH CHECK (
-    (is_shared = true AND EXISTS (
-      SELECT 1 FROM tracks t
-      JOIN songs s ON t.song_id = s.id
-      JOIN concerts c ON s.concert_id = c.id
-      JOIN choir_members cm ON c.choir_id = cm.choir_id
-      WHERE t.id = track_id AND cm.user_id = auth.uid()
-    ))
-    OR (is_shared = false AND created_by_user_id = auth.uid())
-  );
-
--- Choir members can update shared marker sets
--- Users can only update their own private marker sets
-CREATE POLICY marker_sets_update ON marker_sets
-  FOR UPDATE USING (
-    (is_shared = true AND EXISTS (
-      SELECT 1 FROM tracks t
-      JOIN songs s ON t.song_id = s.id
-      JOIN concerts c ON s.concert_id = c.id
-      JOIN choir_members cm ON c.choir_id = cm.choir_id
-      WHERE t.id = track_id AND cm.user_id = auth.uid()
-    ))
-    OR (is_shared = false AND created_by_user_id = auth.uid())
-  );
-
--- Choir members can delete shared marker sets; private sets only by creator
-CREATE POLICY marker_sets_delete ON marker_sets
-  FOR DELETE USING (
-    (is_shared = true AND EXISTS (
-      SELECT 1 FROM tracks t
-      JOIN songs s ON t.song_id = s.id
-      JOIN concerts c ON s.concert_id = c.id
-      JOIN choir_members cm ON c.choir_id = cm.choir_id
-      WHERE t.id = track_id AND cm.user_id = auth.uid()
-    ))
-    OR (is_shared = false AND created_by_user_id = auth.uid())
-  );
-
--- Markers inherit access from their marker set
-CREATE POLICY markers_select ON markers
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM marker_sets ms
-      WHERE ms.id = marker_set_id
-      AND (
-        ms.is_shared = true AND EXISTS (
-          SELECT 1 FROM tracks t
-          JOIN songs s ON t.song_id = s.id
-          JOIN concerts c ON s.concert_id = c.id
-          JOIN choir_members cm ON c.choir_id = cm.choir_id
-          WHERE t.id = ms.track_id AND cm.user_id = auth.uid()
-        )
-        OR (ms.is_shared = false AND ms.created_by_user_id = auth.uid())
-      )
-    )
-  );
-
-CREATE POLICY markers_insert ON markers
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM marker_sets ms
-      WHERE ms.id = marker_set_id
-      AND (
-        (ms.is_shared = true AND EXISTS (
-          SELECT 1 FROM tracks t
-          JOIN songs s ON t.song_id = s.id
-          JOIN concerts c ON s.concert_id = c.id
-          JOIN choir_members cm ON c.choir_id = cm.choir_id
-          WHERE t.id = ms.track_id AND cm.user_id = auth.uid()
-        ))
-        OR (ms.is_shared = false AND ms.created_by_user_id = auth.uid())
-      )
-    )
-  );
-
-CREATE POLICY markers_update ON markers
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM marker_sets ms
-      WHERE ms.id = marker_set_id
-      AND (
-        (ms.is_shared = true AND EXISTS (
-          SELECT 1 FROM tracks t
-          JOIN songs s ON t.song_id = s.id
-          JOIN concerts c ON s.concert_id = c.id
-          JOIN choir_members cm ON c.choir_id = cm.choir_id
-          WHERE t.id = ms.track_id AND cm.user_id = auth.uid()
-        ))
-        OR (ms.is_shared = false AND ms.created_by_user_id = auth.uid())
-      )
-    )
-  );
-
-CREATE POLICY markers_delete ON markers
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM marker_sets ms
-      WHERE ms.id = marker_set_id
-      AND (
-        (ms.is_shared = true AND EXISTS (
-          SELECT 1 FROM tracks t
-          JOIN songs s ON t.song_id = s.id
-          JOIN concerts c ON s.concert_id = c.id
-          JOIN choir_members cm ON c.choir_id = cm.choir_id
-          WHERE t.id = ms.track_id AND cm.user_id = auth.uid()
-        ))
-        OR (ms.is_shared = false AND ms.created_by_user_id = auth.uid())
-      )
-    )
-  );
-```
-
-**Playback States:**
-```sql
-ALTER TABLE playback_states ENABLE ROW LEVEL SECURITY;
-
--- Users can only access their own playback states
-CREATE POLICY playback_states_own ON playback_states
-  FOR ALL USING (user_id = auth.uid());
-```
+Run `mcp__supabase__get_advisors (type: "security")` after any schema or
+policy change.
 
 ### Data Integrity Constraints
 

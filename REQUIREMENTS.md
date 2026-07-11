@@ -39,7 +39,7 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 - **Multiple Tracks**: Each song can have multiple audio tracks for different voice parts
 - **Voice Parts**: Support for Soprano, Alto, Tenor, Bass, Full Choir, Piano Accompaniment, etc.
 - **Collaborative Management**: Any choir member can add/edit songs and upload tracks
-- **Per-User Metadata**: Each user maintains private section markers that follow the song across all contexts
+- **Per-User Metadata**: Each user maintains personal practice metadata; marker sets may be private or shared with the choir (see Marker Sets & Practice)
 
 ### 4. Audio File Management
 - **Import Method**: Choir members import audio files from their device
