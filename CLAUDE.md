@@ -65,28 +65,23 @@ Non-negotiables:
   chunk `IN` lists (`fetchAllRowsChunkedIn`) — see
   `lib/data/datasources/remote/postgrest_pagination.dart`.
 - New sync bug? Add the invariant to docs/SYNC_ARCHITECTURE.md and a
-  `REGRESSION:` test BEFORE fixing (TESTING_GUIDELINES.md → Sync Testing).
+  `REGRESSION:` test BEFORE fixing.
+
+For the full working procedure — bug-fix protocol, schema-change checklist,
+running all three test suites, seed reproduction — use the **sync-change**
+skill (`.claude/skills/sync-change/`).
 
 ## Web development server
 
 `scripts/run-web.sh` → http://localhost:8080 (loads `.env` credentials,
 hot reload, logs to `logs/`). Never serve Flutter web with a plain HTTP
-server.
+server. Prefer pressing `r` in the server console over browser refresh.
 
-**Drift WASM version matching:** `web/drift_worker.dart.js` and
-`web/sqlite3.wasm` must exactly match the `drift:` and `sqlite3:` versions in
-pubspec.yaml (download from the matching GitHub release tags). Symptoms of
-mismatch: `LinkError: Import ... 'dispatch_xFunc'` (drift worker), `LinkError:
-Import object field 'dispatch_xFunc' is not a Function` (sqlite3.wasm), or a
-blank page after "Using WasmStorageImplementation". After swapping WASM
-files: stop server, `rm -rf .dart_tool/build`, restart.
-
-**Blank page after reloads:** the dev server's hot-reload state corrupts
-after many reloads (common under Playwright). Fix:
-`docker ps --filter "publish=8080" --format "{{.ID}}" | xargs docker kill`,
-then `./scripts/run-web.sh`, wait for "lib/main.dart is being served", load
-in a fresh tab. Prefer pressing `r` in the server console over browser
-refresh.
+For blank pages, `LinkError: ... dispatch_xFunc` messages, dev-server
+corruption after reloads, or after upgrading `drift:`/`sqlite3:` → use the
+**web-wasm-doctor** skill (`.claude/skills/web-wasm-doctor/`); its
+`check_wasm.sh --fix` and `restart_web.sh --clear-cache` scripts handle
+diagnosis and repair.
 
 ## Other MCP servers
 

@@ -46,7 +46,9 @@ app.*.map.json
 /android/app/release
 
 # Claude Code local settings
-.claude/
+# Claude Code local state stays ignored, but project skills are versioned
+.claude/*
+!.claude/skills/
 
 # Playwright MCP artifacts
 .playwright-mcp/
