@@ -13,7 +13,7 @@ Deep documentation (read on demand, don't guess):
 | **Sync design & invariants** | docs/SYNC_ARCHITECTURE.md |
 | Testing standards | TESTING_GUIDELINES.md |
 | Docker & deployment | DOCKER.md |
-| Device debugging | DEVICE_DEBUGGING.md |
+| On-device debugging (logcat, background audio) | `.claude/skills/device-debugging/` |
 | Task list | TODO.md |
 
 ## CRITICAL: Flutter runs in Docker only
