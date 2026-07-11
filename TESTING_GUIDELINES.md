@@ -16,6 +16,7 @@ This document provides comprehensive testing standards and best practices for th
 7. [Coverage Goals](#coverage-goals)
 8. [Running Tests](#running-tests)
 9. [Test Checklist for New Features](#test-checklist-for-new-features)
+10. [Sync Testing](#sync-testing)
 
 ---
 
@@ -1021,6 +1022,74 @@ When implementing a new feature, ensure:
 1.  Increase screen test coverage to 80%.
 2.  Implement a strategy for testing platform-specific code (e.g., using fakes or integration tests on real devices).
 3.  Continue to write tests for all new features.
+
+
+## Sync Testing
+
+Sync is the most failure-prone part of the app — a small distributed system
+whose bugs live in interleavings and in mismatches between the client's model
+of the remote and the real Postgres. Three complementary suites guard it; the
+design and its invariants are documented in `docs/SYNC_ARCHITECTURE.md`.
+
+### 1. Deterministic regression tests (fast, run always)
+
+`test/core/sync/sync_algorithm_test.dart` and the sync regression group in
+`test/data/datasources/local/local_marker_data_source_test.dart`.
+
+Every historical failure mode has a test named `REGRESSION: ...` describing
+the property it protects (deletion-by-absence, push-time timestamps, mid-sync
+edit loss, tombstone conflicts, ...). **When a new sync bug is found: add the
+invariant to `docs/SYNC_ARCHITECTURE.md` and a `REGRESSION:` test here before
+fixing it.** A cautionary tale: a 2026-02 "fix" enshrined the
+mass-deletion-on-empty-read behavior with its own passing test — a written
+invariant is what stops a plausible-looking fix from re-breaking a
+load-bearing property.
+
+### 2. Multi-device property tests (fast, run always)
+
+`test/core/sync/multi_device_sync_property_test.dart` — a model checker:
+N simulated devices share one remote store while random interleaved edits,
+deletions, and syncs (including degraded syncs: per-item push failures, empty
+remote reads) are applied across ~120 seeds. After quiescing it asserts
+convergence and the core promise: **no acknowledged write is ever lost** —
+for every item, the surviving value everywhere is the one with the globally
+newest edit timestamp.
+
+If a seed fails, the failure message includes `seed=N`; reproduce it
+deterministically by running that seed's test by name.
+
+### 3. Integration tests against a real Supabase stack (opt-in)
+
+`test/integration/supabase_sync_integration_test.dart` runs the *real* remote
+data sources against a local Supabase (Postgres + PostgREST + Auth + RLS with
+the repo's actual migrations). This is the only layer that can catch server
+triggers, CHECK constraints, missing columns, RLS behavior, and response-row
+caps — the class of bug fakes cannot see by construction.
+
+```bash
+supabase start                # applies supabase/migrations + seed.sql
+supabase status -o env        # note API_URL, ANON_KEY, SERVICE_ROLE_KEY
+SUPABASE_TEST_URL=http://127.0.0.1:54321 \
+SUPABASE_TEST_ANON_KEY=... \
+SUPABASE_TEST_SERVICE_ROLE_KEY=... \
+  flutter test test/integration --tags integration
+```
+
+Without the env vars the suite self-skips, so plain `flutter test` stays
+green. CI runs it on every push touching `lib/`, `test/`, or `supabase/`
+(`.github/workflows/sync-integration.yml`).
+
+### Rules of thumb for sync changes
+
+- Schema change on a synced table? Extend the schema-drift test and write a
+  migration — the drift test compares model `toJson()` keys against
+  `information_schema` live.
+- New remote query for sync? It must page (`fetchAllRows`) with a total
+  ordering, and chunk any `IN (...)` id lists (`fetchAllRowsChunkedIn`).
+- Never mark a row synced unconditionally; always compare against the
+  snapshotted `updated_at`.
+- Deletion must always be a tombstone. If you find yourself inferring
+  deletion from absence, stop.
 
 ---
 
