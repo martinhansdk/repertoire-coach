@@ -29,8 +29,7 @@ class ChoirModel extends Choir {
       ownerId: choir.ownerId,
       createdAt: choir.createdAt,
       updatedAt: choir.updatedAt,
-      deleted: json['deleted'] as bool? ?? false,
-      deleted: false, // Domain entities are never deleted
+      deleted: false,
     );
   }
 
@@ -80,6 +79,7 @@ class ChoirModel extends Choir {
       ownerId: json['owner_id'],
       createdAt: DateTime.parse(createdAtString),
       updatedAt: DateTime.parse(updatedAtString),
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 

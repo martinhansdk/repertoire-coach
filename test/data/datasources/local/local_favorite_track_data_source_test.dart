@@ -220,8 +220,6 @@ void main() {
       expect(raw, isNull);
     });
 
-);
-
     test('getSyncedFavorites returns map of synced favorites', () async {
       await seedTrack(testTrack);
       await dataSource.addFavorite(userId, testFavorite, markForSync: false);

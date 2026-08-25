@@ -39,7 +39,7 @@ class MarkerSetModel extends MarkerSet {
       createdByUserId: markerSet.createdByUserId,
       createdAt: markerSet.createdAt,
       updatedAt: markerSet.updatedAt,
-      deleted: json['deleted'] as bool? ?? false,
+      deleted: false,
       markersJson: '[]',
     );
   }
@@ -110,6 +110,7 @@ class MarkerSetModel extends MarkerSet {
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       markersJson: markersJson,
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 

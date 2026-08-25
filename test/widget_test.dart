@@ -23,8 +23,6 @@ void main() {
     when(mockSupabaseService.isAuthenticated).thenReturn(false);
     final repository = ConcertRepositoryImpl(
       dataSource,
-      null, // No remote data source for offline tests
-      mockSupabaseService,
     );
 
     // Build HomeScreen directly (offline mode)

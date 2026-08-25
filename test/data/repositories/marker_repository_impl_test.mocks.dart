@@ -98,10 +98,17 @@ class MockRemoteMarkerDataSource extends _i1.Mock
       ) as _i4.Future<void>);
 
   @override
-  _i4.Future<void> deleteMarkerSet(String? id) => (super.noSuchMethod(
+  _i4.Future<void> deleteMarkerSet(
+    String? id,
+    DateTime? deletedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #deleteMarkerSet,
-          [id],
+          [
+            id,
+            deletedAt,
+          ],
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),

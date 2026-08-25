@@ -77,8 +77,9 @@ void main() {
       final expectedMap = {
         'choir_id': 'c1',
         'user_id': 'u1',
-        'joined_at': now.toIso8601String(),
-        'updated_at': now.toIso8601String(),
+        'joined_at': now.toUtc().toIso8601String(),
+        'updated_at': now.toUtc().toIso8601String(),
+        'deleted': false,
       };
       expect(result, expectedMap);
     });

@@ -37,7 +37,7 @@ void main() {
     }) {
       final dataSource = LocalMarkerDataSource(database);
       final fakeSupabaseService = _FakeSupabaseService();
-      final repository = MarkerRepositoryImpl(dataSource, null, fakeSupabaseService);
+      final repository = MarkerRepositoryImpl(dataSource);
 
       return ProviderScope(
         overrides: [

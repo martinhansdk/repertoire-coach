@@ -75,7 +75,8 @@ void main() {
         'choir_id': 'choir1',
         'name': 'Test Concert',
         'concert_date': now.toIso8601String(),
-        'created_at': now.toIso8601String(),
+        'created_at': now.toUtc().toIso8601String(),
+        'deleted': false,
       };
       expect(result, expectedMap);
     });

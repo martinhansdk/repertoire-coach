@@ -151,7 +151,7 @@ void main() {
         expect(json['user_id'], 'user-1');
         expect(json['track_id'], 'track-1');
         expect(json['song_id'], 'song-1');
-        expect(json['added_at'], dateTime.toIso8601String());
+        expect(json['added_at'], dateTime.toUtc().toIso8601String());
 
         // Track fields are not included (already in tracks table)
         expect(json.containsKey('track_name'), isFalse);
@@ -169,8 +169,8 @@ void main() {
         final json = model.toJson('user-1');
 
         // Only core fields present
-        expect(json.keys.length, 5);
-        expect(json.keys, containsAll(['user_id', 'track_id', 'song_id', 'added_at', 'updated_at']));
+        expect(json.keys.length, 6);
+        expect(json.keys, containsAll(['user_id', 'track_id', 'song_id', 'added_at', 'updated_at', 'deleted']));
       });
     });
 

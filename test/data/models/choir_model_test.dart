@@ -82,8 +82,9 @@ void main() {
         'id': 'c1',
         'name': 'Test Choir',
         'owner_id': 'u1',
-        'created_at': now.toIso8601String(),
-        'updated_at': now.toIso8601String(),
+        'created_at': now.toUtc().toIso8601String(),
+        'updated_at': now.toUtc().toIso8601String(),
+        'deleted': false,
       };
       expect(result, expectedMap);
     });

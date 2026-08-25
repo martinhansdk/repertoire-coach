@@ -29,8 +29,6 @@ void main() {
       when(mockSupabaseService.isAuthenticated).thenReturn(false);
       repository = SongRepositoryImpl(
         dataSource,
-        null, // No remote data source for offline tests
-        mockSupabaseService,
       );
     });
 

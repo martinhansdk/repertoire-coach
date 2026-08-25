@@ -99,8 +99,9 @@ void main() {
         'storage_path': null,
         'duration_ms': null,
         'file_path': '/path/to/file.mp3',
-        'created_at': now.toIso8601String(),
-        'updated_at': now.toIso8601String(),
+        'created_at': now.toUtc().toIso8601String(),
+        'updated_at': now.toUtc().toIso8601String(),
+        'deleted': false,
       };
       expect(result, expectedMap);
     });

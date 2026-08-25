@@ -27,7 +27,7 @@ class ChoirMemberModel extends ChoirMember {
       userId: choirMember.userId,
       joinedAt: choirMember.joinedAt,
       updatedAt: choirMember.updatedAt,
-      deleted: json['deleted'] as bool? ?? false,
+      deleted: false,
     );
   }
 
@@ -73,6 +73,7 @@ class ChoirMemberModel extends ChoirMember {
       userId: json['user_id'],
       joinedAt: DateTime.parse(joinedAtString),
       updatedAt: DateTime.parse(updatedAtString),
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 

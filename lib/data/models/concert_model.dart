@@ -36,7 +36,7 @@ class ConcertModel extends Concert {
       concertDate: concert.concertDate,
       createdAt: concert.createdAt,
       updatedAt: updatedAt ?? concert.createdAt,
-      deleted: json['deleted'] as bool? ?? false,
+      deleted: false,
     );
   }
 
@@ -92,6 +92,7 @@ class ConcertModel extends Concert {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : DateTime.parse(json['created_at']),
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 

@@ -30,8 +30,6 @@ void main() {
 
       repository = ChoirRepositoryImpl(
         dataSource,
-        null, // No remote data source for offline tests
-        mockSupabaseService,
       );
 
       // Seed test data

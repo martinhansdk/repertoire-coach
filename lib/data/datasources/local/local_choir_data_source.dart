@@ -249,7 +249,8 @@ class LocalChoirDataSource {
   Future<bool> isMember(String choirId, String userId) async {
     final member = await (_database.select(_database.choirMembers)
           ..where((m) => m.choirId.equals(choirId))
-          ..where((m) => m.userId.equals(userId)))
+          ..where((m) => m.userId.equals(userId))
+          ..where((m) => m.deleted.equals(false)))
         .getSingleOrNull();
 
     return member != null;

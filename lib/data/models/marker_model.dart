@@ -33,7 +33,7 @@ class MarkerModel extends Marker {
       order: marker.order,
       createdAt: marker.createdAt,
       updatedAt: marker.updatedAt,
-      deleted: json['deleted'] as bool? ?? false,
+      deleted: false,
     );
   }
 
@@ -92,6 +92,7 @@ class MarkerModel extends Marker {
       order: json['display_order'],
       createdAt: DateTime.parse(createdAtString),
       updatedAt: DateTime.parse(updatedAtString),
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 

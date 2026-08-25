@@ -27,8 +27,6 @@ void main() {
       when(mockSupabaseService.isAuthenticated).thenReturn(false);
       repository = ConcertRepositoryImpl(
         dataSource,
-        null, // No remote data source for offline tests
-        mockSupabaseService,
       );
 
       // Seed test data

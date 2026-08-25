@@ -262,10 +262,17 @@ class MockLocalChoirDataSource extends _i1.Mock
       ) as _i3.Future<List<_i4.ChoirModel>>);
 
   @override
-  _i3.Future<void> markChoirAsSynced(String? id) => (super.noSuchMethod(
+  _i3.Future<void> markChoirAsSynced(
+    String? id,
+    DateTime? expectedUpdatedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #markChoirAsSynced,
-          [id],
+          [
+            id,
+            expectedUpdatedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -286,6 +293,7 @@ class MockLocalChoirDataSource extends _i1.Mock
   _i3.Future<void> markMemberAsSynced(
     String? choirId,
     String? userId,
+    DateTime? expectedUpdatedAt,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -293,18 +301,8 @@ class MockLocalChoirDataSource extends _i1.Mock
           [
             choirId,
             userId,
+            expectedUpdatedAt,
           ],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> hardDeleteSyncedChoirsNotIn(Set<String>? keepIds) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #hardDeleteSyncedChoirsNotIn,
-          [keepIds],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -315,17 +313,6 @@ class MockLocalChoirDataSource extends _i1.Mock
         Invocation.method(
           #hardDeleteSyncedDeletedChoirs,
           [],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> hardDeleteSyncedMembersNotIn(Set<String>? keepIds) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #hardDeleteSyncedMembersNotIn,
-          [keepIds],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -478,21 +465,17 @@ class MockLocalConcertDataSource extends _i1.Mock
       ) as _i3.Future<List<_i7.ConcertModel>>);
 
   @override
-  _i3.Future<void> markAsSynced(String? id) => (super.noSuchMethod(
-        Invocation.method(
-          #markAsSynced,
-          [id],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> hardDeleteConcertsNotIn(Set<String>? keepIds) =>
+  _i3.Future<void> markAsSynced(
+    String? id,
+    DateTime? expectedUpdatedAt,
+  ) =>
       (super.noSuchMethod(
         Invocation.method(
-          #hardDeleteConcertsNotIn,
-          [keepIds],
+          #markAsSynced,
+          [
+            id,
+            expectedUpdatedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -632,21 +615,17 @@ class MockLocalSongDataSource extends _i1.Mock
       ) as _i3.Future<List<_i9.SongModel>>);
 
   @override
-  _i3.Future<void> markAsSynced(String? id) => (super.noSuchMethod(
-        Invocation.method(
-          #markAsSynced,
-          [id],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> hardDeleteSongsNotIn(Set<String>? keepIds) =>
+  _i3.Future<void> markAsSynced(
+    String? id,
+    DateTime? expectedUpdatedAt,
+  ) =>
       (super.noSuchMethod(
         Invocation.method(
-          #hardDeleteSongsNotIn,
-          [keepIds],
+          #markAsSynced,
+          [
+            id,
+            expectedUpdatedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -778,17 +757,6 @@ class MockLocalTrackDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<void> hardDeleteTracksNotIn(Set<String>? keepIds) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #hardDeleteTracksNotIn,
-          [keepIds],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
   _i3.Future<List<_i11.TrackModel>> getUnsyncedTracks() => (super.noSuchMethod(
         Invocation.method(
           #getUnsyncedTracks,
@@ -799,10 +767,17 @@ class MockLocalTrackDataSource extends _i1.Mock
       ) as _i3.Future<List<_i11.TrackModel>>);
 
   @override
-  _i3.Future<void> markAsSynced(String? id) => (super.noSuchMethod(
+  _i3.Future<void> markAsSynced(
+    String? id,
+    DateTime? expectedUpdatedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #markAsSynced,
-          [id],
+          [
+            id,
+            expectedUpdatedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -954,21 +929,17 @@ class MockLocalMarkerDataSource extends _i1.Mock
       ) as _i3.Future<List<_i13.MarkerSetModel>>);
 
   @override
-  _i3.Future<void> markMarkerSetAsSynced(String? id) => (super.noSuchMethod(
-        Invocation.method(
-          #markMarkerSetAsSynced,
-          [id],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> hardDeleteMarkerSetsNotIn(Set<String>? keepIds) =>
+  _i3.Future<void> markMarkerSetAsSynced(
+    String? id,
+    DateTime? expectedUpdatedAt,
+  ) =>
       (super.noSuchMethod(
         Invocation.method(
-          #hardDeleteMarkerSetsNotIn,
-          [keepIds],
+          #markMarkerSetAsSynced,
+          [
+            id,
+            expectedUpdatedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -1122,17 +1093,6 @@ class MockLocalMarkerDataSource extends _i1.Mock
         returnValue:
             _i3.Future<List<_i14.MarkerModel>>.value(<_i14.MarkerModel>[]),
       ) as _i3.Future<List<_i14.MarkerModel>>);
-
-  @override
-  _i3.Future<void> hardDeleteMarkersNotIn(Set<String>? keepIds) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #hardDeleteMarkersNotIn,
-          [keepIds],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
 
   @override
   _i3.Future<void> markMarkerAsSynced(String? id) => (super.noSuchMethod(
@@ -1295,6 +1255,7 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
   _i3.Future<void> markAsSynced(
     List<String>? trackIds,
     String? userId,
+    DateTime? expectedUpdatedAt,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1302,6 +1263,7 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
           [
             trackIds,
             userId,
+            expectedUpdatedAt,
           ],
         ),
         returnValue: _i3.Future<void>.value(),
@@ -1338,23 +1300,6 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
         Invocation.method(
           #hardDeleteSyncedDeleted,
           [userId],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> hardDeleteSyncedNotIn(
-    String? userId,
-    Set<String>? keepTrackIds,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #hardDeleteSyncedNotIn,
-          [
-            userId,
-            keepTrackIds,
-          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -1429,10 +1374,17 @@ class MockRemoteChoirDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<void> deleteChoir(String? id) => (super.noSuchMethod(
+  _i3.Future<void> deleteChoir(
+    String? id,
+    DateTime? deletedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #deleteChoir,
-          [id],
+          [
+            id,
+            deletedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -1442,6 +1394,7 @@ class MockRemoteChoirDataSource extends _i1.Mock
   _i3.Future<void> addMember(
     String? choirId,
     String? userId,
+    DateTime? updatedAt,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1449,6 +1402,7 @@ class MockRemoteChoirDataSource extends _i1.Mock
           [
             choirId,
             userId,
+            updatedAt,
           ],
         ),
         returnValue: _i3.Future<void>.value(),
@@ -1459,6 +1413,7 @@ class MockRemoteChoirDataSource extends _i1.Mock
   _i3.Future<void> removeMember(
     String? choirId,
     String? userId,
+    DateTime? deletedAt,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1466,6 +1421,7 @@ class MockRemoteChoirDataSource extends _i1.Mock
           [
             choirId,
             userId,
+            deletedAt,
           ],
         ),
         returnValue: _i3.Future<void>.value(),
@@ -1589,10 +1545,17 @@ class MockRemoteConcertDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<void> deleteConcert(String? id) => (super.noSuchMethod(
+  _i3.Future<void> deleteConcert(
+    String? id,
+    DateTime? deletedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #deleteConcert,
-          [id],
+          [
+            id,
+            deletedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -1648,10 +1611,17 @@ class MockRemoteSongDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<void> deleteSong(String? id) => (super.noSuchMethod(
+  _i3.Future<void> deleteSong(
+    String? id,
+    DateTime? deletedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #deleteSong,
-          [id],
+          [
+            id,
+            deletedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -1718,10 +1688,17 @@ class MockRemoteTrackDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<void> deleteTrack(String? id) => (super.noSuchMethod(
+  _i3.Future<void> deleteTrack(
+    String? id,
+    DateTime? deletedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #deleteTrack,
-          [id],
+          [
+            id,
+            deletedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -1798,10 +1775,17 @@ class MockRemoteMarkerDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<void> deleteMarkerSet(String? id) => (super.noSuchMethod(
+  _i3.Future<void> deleteMarkerSet(
+    String? id,
+    DateTime? deletedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #deleteMarkerSet,
-          [id],
+          [
+            id,
+            deletedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -1935,6 +1919,7 @@ class MockRemoteFavoriteTrackDataSource extends _i1.Mock
     String? userId,
     String? trackId,
     String? songId,
+    DateTime? updatedAt,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1943,6 +1928,7 @@ class MockRemoteFavoriteTrackDataSource extends _i1.Mock
             userId,
             trackId,
             songId,
+            updatedAt,
           ],
         ),
         returnValue: _i3.Future<void>.value(),
@@ -1953,6 +1939,7 @@ class MockRemoteFavoriteTrackDataSource extends _i1.Mock
   _i3.Future<void> removeFavorite(
     String? userId,
     String? trackId,
+    DateTime? deletedAt,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1960,6 +1947,7 @@ class MockRemoteFavoriteTrackDataSource extends _i1.Mock
           [
             userId,
             trackId,
+            deletedAt,
           ],
         ),
         returnValue: _i3.Future<void>.value(),

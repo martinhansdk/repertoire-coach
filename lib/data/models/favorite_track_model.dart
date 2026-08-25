@@ -25,7 +25,7 @@ class FavoriteTrackModel extends FavoriteTrack {
     return FavoriteTrackModel(
       addedAt: favorite.addedAt,
       updatedAt: favorite.updatedAt,
-      deleted: json['deleted'] as bool? ?? false,
+      deleted: false,
       track: favorite.track,
     );
   }
@@ -101,6 +101,7 @@ class FavoriteTrackModel extends FavoriteTrack {
       addedAt: addedAt,
       updatedAt: updatedAt,
       track: track,
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 

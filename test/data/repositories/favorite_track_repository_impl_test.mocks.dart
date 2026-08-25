@@ -158,6 +158,7 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
   _i3.Future<void> markAsSynced(
     List<String>? trackIds,
     String? userId,
+    DateTime? expectedUpdatedAt,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -165,6 +166,7 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
           [
             trackIds,
             userId,
+            expectedUpdatedAt,
           ],
         ),
         returnValue: _i3.Future<void>.value(),
@@ -201,23 +203,6 @@ class MockLocalFavoriteTrackDataSource extends _i1.Mock
         Invocation.method(
           #hardDeleteSyncedDeleted,
           [userId],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> hardDeleteSyncedNotIn(
-    String? userId,
-    Set<String>? keepTrackIds,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #hardDeleteSyncedNotIn,
-          [
-            userId,
-            keepTrackIds,
-          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
@@ -329,17 +314,6 @@ class MockLocalTrackDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<void> hardDeleteTracksNotIn(Set<String>? keepIds) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #hardDeleteTracksNotIn,
-          [keepIds],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
   _i3.Future<List<_i7.TrackModel>> getUnsyncedTracks() => (super.noSuchMethod(
         Invocation.method(
           #getUnsyncedTracks,
@@ -349,10 +323,17 @@ class MockLocalTrackDataSource extends _i1.Mock
       ) as _i3.Future<List<_i7.TrackModel>>);
 
   @override
-  _i3.Future<void> markAsSynced(String? id) => (super.noSuchMethod(
+  _i3.Future<void> markAsSynced(
+    String? id,
+    DateTime? expectedUpdatedAt,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #markAsSynced,
-          [id],
+          [
+            id,
+            expectedUpdatedAt,
+          ],
         ),
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),

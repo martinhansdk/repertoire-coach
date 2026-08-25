@@ -124,7 +124,7 @@ class LocalFavoriteTrackDataSource {
     if (!markForSync) {
       final existing = await (_database.select(_database.favoriteTracks)
             ..where((f) => f.userId.equals(userId))
-            ..where((f) => f.trackId.equals(favorite.trackId)))
+            ..where((f) => f.trackId.equals(favorite.track.id)))
           .getSingleOrNull();
       // An unsynced local change (edit or soft-delete) that is not older than
       // the incoming row wins locally; it is resolved against remote on the

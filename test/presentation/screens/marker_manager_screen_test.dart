@@ -40,8 +40,7 @@ void main() {
     setUp(() async {
       database = db.AppDatabase.forTesting(NativeDatabase.memory());
       dataSource = LocalMarkerDataSource(database);
-      final fakeSupabaseService = _FakeSupabaseService(testUserId);
-      repository = MarkerRepositoryImpl(dataSource, null, fakeSupabaseService);
+      repository = MarkerRepositoryImpl(dataSource);
     });
 
     tearDown(() async {

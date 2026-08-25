@@ -45,8 +45,6 @@ void main() {
       when(mockSupabaseService.isAuthenticated).thenReturn(false);
       final repository = ConcertRepositoryImpl(
         dataSource,
-        null,
-        mockSupabaseService,
       );
 
       // Seed the concert
@@ -103,8 +101,6 @@ void main() {
       when(mockSupabaseService.isAuthenticated).thenReturn(false);
       final repository = ConcertRepositoryImpl(
         dataSource,
-        null,
-        mockSupabaseService,
       );
       await dataSource.insertConcert(ConcertModel.fromEntity(concert));
 
@@ -163,8 +159,6 @@ void main() {
       when(mockSupabaseService.isAuthenticated).thenReturn(false);
       final repository = ConcertRepositoryImpl(
         dataSource,
-        null,
-        mockSupabaseService,
       );
       await dataSource.insertConcert(ConcertModel.fromEntity(concert));
 
@@ -227,8 +221,6 @@ void main() {
       when(mockSupabaseService.isAuthenticated).thenReturn(false);
       final repository = ConcertRepositoryImpl(
         dataSource,
-        null,
-        mockSupabaseService,
       );
 
       // Act
@@ -282,8 +274,6 @@ void main() {
       when(mockSupabaseService.isAuthenticated).thenReturn(false);
       final repository = ConcertRepositoryImpl(
         dataSource,
-        null,
-        mockSupabaseService,
       );
 
       // Act
@@ -340,8 +330,6 @@ void main() {
       when(mockSupabaseService.isAuthenticated).thenReturn(false);
       final repository = ConcertRepositoryImpl(
         dataSource,
-        null,
-        mockSupabaseService,
       );
 
       // Act

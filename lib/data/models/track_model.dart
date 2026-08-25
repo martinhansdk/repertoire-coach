@@ -37,7 +37,7 @@ class TrackModel extends Track {
       filePath: track.filePath,
       createdAt: track.createdAt,
       updatedAt: track.updatedAt,
-      deleted: json['deleted'] as bool? ?? false,
+      deleted: false,
     );
   }
 
@@ -102,6 +102,7 @@ class TrackModel extends Track {
       createdAt: DateTime.parse(json['created_at']),
       updatedAt:
           DateTime.parse((json['updated_at'] ?? json['created_at']) as String),
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 
