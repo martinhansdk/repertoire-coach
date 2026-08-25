@@ -42,6 +42,10 @@ in `flutter-mcp-server/` — fix its parsers when a tool misbehaves
 2. Pass → commit and push. Fail → query details
    (`get_test_results failedOnly: true`, `get_analyze_results severity: error`),
    fix, revalidate. Never commit red.
+3. **Then watch CI to completion** (`gh run watch <id> --exit-status`) and fix
+   any failures before moving on to the next task. Local validation does not
+   cover everything CI does — iOS/Android/web builds and the Sync integration
+   workflow (real Supabase stack) run only there.
 
 ## Sync code: read the invariants first
 
