@@ -45,7 +45,9 @@ END $$;
 -- ============================================================
 -- 2. Client-authoritative updated_at: drop server stamping triggers
 --    (users/playback_states are not part of the sync algorithm; users trigger
---    is left in place, playback_states was dropped in migration 009.)
+--    is left in place. NOTE: playback_states was NOT actually dropped by
+--    migration 009 -- that statement used the Drift-side name
+--    `user_playback_states` and silently no-opped. Migration 014 drops it.)
 -- ============================================================
 DROP TRIGGER IF EXISTS update_choirs_updated_at      ON choirs;
 DROP TRIGGER IF EXISTS update_concerts_updated_at    ON concerts;
