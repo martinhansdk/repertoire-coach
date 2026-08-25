@@ -28,7 +28,7 @@ void main() {
   group('fetchAllRows', () {
     test('returns everything across multiple pages, in order', () async {
       final backend = _FakeBackend(2500);
-      final rows = await fetchAllFrom(backend);
+      final rows = await _fetchAllFrom(backend);
 
       expect(rows.length, 2500);
       expect(rows.first['id'], 'row-0');
@@ -42,13 +42,13 @@ void main() {
       // The exact field condition: >1000 rows, previously silently truncated
       // to the first 1000 by the server with no error.
       final backend = _FakeBackend(1100);
-      final rows = await fetchAllFrom(backend);
+      final rows = await _fetchAllFrom(backend);
       expect(rows.length, 1100);
     });
 
     test('total an exact multiple of the page size terminates', () async {
       final backend = _FakeBackend(2000);
-      final rows = await fetchAllFrom(backend);
+      final rows = await _fetchAllFrom(backend);
       expect(rows.length, 2000);
       // A full final page can't prove completion; one extra (empty) probe.
       expect(backend.calls.length, 3);
@@ -56,14 +56,14 @@ void main() {
 
     test('fewer rows than a page -> single request', () async {
       final backend = _FakeBackend(7);
-      final rows = await fetchAllFrom(backend);
+      final rows = await _fetchAllFrom(backend);
       expect(rows.length, 7);
       expect(backend.calls.length, 1);
     });
 
     test('empty result -> single request, empty list', () async {
       final backend = _FakeBackend(0);
-      final rows = await fetchAllFrom(backend);
+      final rows = await _fetchAllFrom(backend);
       expect(rows, isEmpty);
       expect(backend.calls.length, 1);
     });
@@ -72,7 +72,7 @@ void main() {
         'DOCUMENTED LIMIT: a server row cap below pageSize truncates — '
         'pageSize must never exceed the PostgREST max-rows setting', () async {
       final backend = _FakeBackend(900, serverCap: 500);
-      final rows = await fetchAllFrom(backend); // pageSize 1000 > cap 500
+      final rows = await _fetchAllFrom(backend); // pageSize 1000 > cap 500
       // The loop sees a 500-row "short" page and stops: this is the failure
       // mode you get if max-rows is lowered without lowering pageSize.
       expect(rows.length, 500);
@@ -129,5 +129,5 @@ void main() {
 }
 
 /// Small shim so the default-pageSize call sites read cleanly above.
-Future<List<Map<String, dynamic>>> fetchAllFrom(_FakeBackend b) =>
+Future<List<Map<String, dynamic>>> _fetchAllFrom(_FakeBackend b) =>
     fetchAllRows(b.fetch);

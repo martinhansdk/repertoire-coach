@@ -58,7 +58,7 @@ class RemoteChoirDataSource {
               .range(from, to)));
 
       final choirs = choirResponse
-          .map((json) => ChoirModel.fromJson(json as Map<String, dynamic>))
+          .map((json) => ChoirModel.fromJson(json))
           .toList();
 
       return choirs;
