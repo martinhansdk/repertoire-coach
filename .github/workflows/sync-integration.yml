@@ -36,11 +36,12 @@ jobs:
       # Starts the full local stack and applies supabase/migrations + seed.sql.
       # Skipping unneeded services keeps startup fast.
       - name: Start Supabase
-        run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector
+        run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 
       # Exposes API_URL, ANON_KEY, SERVICE_ROLE_KEY as env vars.
+      # Strip surrounding quotes that some CLI versions add to values.
       - name: Export Supabase credentials
-        run: supabase status -o env >> "$GITHUB_ENV"
+        run: supabase status -o env | sed 's/="\(.*\)"$/=\1/' >> "$GITHUB_ENV"
 
       - uses: subosito/flutter-action@v2
         with:
