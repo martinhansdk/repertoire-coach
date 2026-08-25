@@ -20,7 +20,9 @@ $$;
 REVOKE ALL ON FUNCTION public.table_columns(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.table_columns(text) TO service_role;
 
--- Hosted Supabase grants service_role full SQL access to public tables by default;
--- the local CLI stack does not, so we add it explicitly here.
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO service_role;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO service_role;
+-- Hosted Supabase grants SQL-level access to public tables by default as a
+-- platform default; the local CLI stack does not replicate this automatically,
+-- so we add it explicitly here. RLS policies still enforce row-level access.
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
