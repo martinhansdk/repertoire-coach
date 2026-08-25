@@ -34,7 +34,11 @@ existing screens still appear to work. Each maps to named `REGRESSION:` tests.
 3. **Newest edit wins, uniformly.** Conflict resolution compares edit times
    only — including deletions in both directions: a newer edit deliberately
    overrides an older tombstone (resurrection), a newer tombstone overrides
-   an older edit.
+   an older edit. This holds at *both* layers: the algorithm resolves against
+   the remote snapshot it read, and the remote tombstone write is itself
+   conditional (`WHERE updated_at <= deletedAt`). The second layer is what
+   keeps Invariant 1 true for deletions — a degraded read that reports a row
+   as absent must not let an older deletion overwrite a newer remote edit.
 4. **Every "mark as synced" is conditional** on the timestamp snapshotted at
    the start of the run (`WHERE updated_at = ?`), and every pull-side upsert
    refuses to overwrite an unsynced local row that is not older than the
@@ -151,6 +155,10 @@ Key differences from the pre-013 design:
   from a remote read.
 - `deleteOnRemote(id, deletedAt)` performs an UPDATE (`deleted = true`,
   `updated_at = deletedAt`) — remote rows are never hard-deleted by sync.
+  The UPDATE carries `.lte('updated_at', deletedAt)` so it is itself a
+  newest-wins write (see Invariant 3): a tombstone can never clobber a
+  newer remote edit, even when the sync run's remote read was degraded and
+  reported the row as absent.
 - Tombstones are purged locally only once fully applied on both sides
   (synced AND deleted), at the end of the run.
 
