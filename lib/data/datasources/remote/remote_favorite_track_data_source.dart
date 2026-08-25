@@ -99,14 +99,18 @@ class RemoteFavoriteTrackDataSource {
       String userId, String trackId, DateTime deletedAt) async {
     try {
       // Soft delete: tombstones sync like edits (newest wins).
+      // The lte filter enforces newest-wins server-side: if the remote row is
+      // newer than the deletion, 0 rows match and the tombstone is not planted.
+      final deletedAtIso = deletedAt.toUtc().toIso8601String();
       await _supabase
           .from('favorite_tracks')
           .update({
             'deleted': true,
-            'updated_at': deletedAt.toUtc().toIso8601String(),
+            'updated_at': deletedAtIso,
           })
           .eq('user_id', userId)
-          .eq('track_id', trackId);
+          .eq('track_id', trackId)
+          .lte('updated_at', deletedAtIso);
     } on PostgrestException catch (e) {
       throw Exception('Failed to remove favorite from Supabase: ${e.message}');
     } catch (e) {

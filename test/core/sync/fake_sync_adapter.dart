@@ -177,7 +177,12 @@ class FakeSyncAdapter implements SyncAdapter<FakeItem> {
     }
     // Soft delete: the remote row becomes a tombstone stamped with the local
     // deletion time. Rows are never removed.
+    // Newest wins, like the real datasources' conditional UPDATE: a remote row
+    // newer than the deletion is left untouched.
     final existing = remote[id];
+    if (existing != null && existing.syncTimestamp.isAfter(deletedAt)) {
+      return;
+    }
     remote[id] = (existing ??
             FakeItem(syncId: id, syncTimestamp: deletedAt, data: ''))
         .copyWith(deleted: true, syncTimestamp: deletedAt);

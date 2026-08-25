@@ -146,10 +146,17 @@ class RemoteChoirDataSource {
     try {
       // Soft delete: tombstones sync like edits (newest wins) and deletion is
       // never inferred from row absence.
-      await _supabase.from('choirs').update({
-        'deleted': true,
-        'updated_at': deletedAt.toUtc().toIso8601String(),
-      }).eq('id', id);
+      // The lte filter enforces newest-wins server-side: if the remote row is
+      // newer than the deletion, 0 rows match and the tombstone is not planted.
+      final deletedAtIso = deletedAt.toUtc().toIso8601String();
+      await _supabase
+          .from('choirs')
+          .update({
+            'deleted': true,
+            'updated_at': deletedAtIso,
+          })
+          .eq('id', id)
+          .lte('updated_at', deletedAtIso);
     } on PostgrestException catch (e) {
       throw Exception('Failed to delete choir from Supabase: ${e.message}');
     } catch (e) {
@@ -189,14 +196,18 @@ class RemoteChoirDataSource {
       String choirId, String userId, DateTime deletedAt) async {
     try {
       // Soft delete: tombstones sync like edits (newest wins).
+      // The lte filter enforces newest-wins server-side: if the remote row is
+      // newer than the deletion, 0 rows match and the tombstone is not planted.
+      final deletedAtIso = deletedAt.toUtc().toIso8601String();
       await _supabase
           .from('choir_members')
           .update({
             'deleted': true,
-            'updated_at': deletedAt.toUtc().toIso8601String(),
+            'updated_at': deletedAtIso,
           })
           .eq('choir_id', choirId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .lte('updated_at', deletedAtIso);
     } on PostgrestException catch (e) {
       throw Exception('Failed to remove member from Supabase: ${e.message}');
     } catch (e) {

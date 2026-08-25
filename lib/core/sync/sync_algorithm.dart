@@ -65,7 +65,11 @@ class SyncAlgorithm<T extends Syncable> {
             pulled++;
           } else if (localItem.isDeleted) {
             // Local deletion wins (or remote never saw this item).
-            if (remoteItem != null && !remoteItem.isDeleted) {
+            // Push the tombstone even when remoteItem == null: the remote row
+            // may exist but be invisible to this read (RLS, partial read), and
+            // other devices holding a live copy must still learn about the
+            // deletion. deleteOnRemote is newest-wins-guarded, so this is safe.
+            if (remoteItem == null || !remoteItem.isDeleted) {
               await adapter.deleteOnRemote(id, localItem.syncTimestamp);
               pushedDeletes++;
             }

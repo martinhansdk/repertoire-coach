@@ -133,10 +133,17 @@ class RemoteConcertDataSource {
     try {
       // Soft delete: tombstones sync like edits (newest wins) and deletion is
       // never inferred from row absence.
-      await _supabase.from('concerts').update({
-        'deleted': true,
-        'updated_at': deletedAt.toUtc().toIso8601String(),
-      }).eq('id', id);
+      // The lte filter enforces newest-wins server-side: if the remote row is
+      // newer than the deletion, 0 rows match and the tombstone is not planted.
+      final deletedAtIso = deletedAt.toUtc().toIso8601String();
+      await _supabase
+          .from('concerts')
+          .update({
+            'deleted': true,
+            'updated_at': deletedAtIso,
+          })
+          .eq('id', id)
+          .lte('updated_at', deletedAtIso);
     } on PostgrestException catch (e) {
       throw Exception('Failed to delete concert from Supabase: ${e.message}');
     } catch (e) {
