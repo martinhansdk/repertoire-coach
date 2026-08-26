@@ -265,8 +265,12 @@ class User {
 ```
 
 #### UserPlaybackState (removed)
-Playback-position persistence was removed: the `user_playback_states` table
-was dropped both remotely (migration 009) and locally (Drift migration).
+Playback-position persistence was removed. The local Drift table
+`user_playback_states` was dropped by a Drift migration. Remotely the table
+was named `playback_states`, so migration 009's
+`DROP TABLE IF EXISTS user_playback_states` silently no-opped and the remote
+table survived — RLS-enabled, still carrying an `updated_at` trigger — until
+**migration 014** dropped it with CASCADE.
 
 
 ## Database Schema (PostgreSQL)
@@ -279,7 +283,7 @@ the Supabase MCP (`mcp__supabase__list_tables`, `execute_sql` for reads) or
 the schema-drift integration test, which compares model JSON against
 `information_schema` on every CI run.
 
-### Current State Summary (as of migration 013)
+### Current State Summary (as of migration 014)
 
 | Table | Keys / notable columns | Notes |
 |---|---|---|
@@ -292,9 +296,10 @@ the schema-drift integration test, which compares model JSON against
 | `marker_sets` | `id`, `track_id`, `is_shared`, `is_time_synced`, `markers_json` | Markers live in the JSONB payload (010); no separate markers rows since then. CHECK: `is_time_synced` must match the payload (012) |
 | `favorite_tracks` | PK (`user_id`, `track_id`), `added_at` | Per-user |
 
-Dropped along the way: `user_playback_states` (009), row-per-marker
-`markers` data (folded into `marker_sets.markers_json` in 010; legacy table
-may still exist empty).
+Dropped along the way: the row-per-marker `markers` table (backfilled into
+`marker_sets.markers_json`, then dropped along with its RLS policies in 010)
+and `playback_states` (intended for 009, actually dropped in 014 — see
+UserPlaybackState above).
 
 **Sync columns** — every synced table carries:
 - `updated_at TIMESTAMPTZ`: client-authoritative edit time (UTC). The
