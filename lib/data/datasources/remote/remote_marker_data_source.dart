@@ -2,13 +2,14 @@ import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../models/marker_model.dart';
 import '../../models/marker_set_model.dart';
 import 'postgrest_pagination.dart';
 
-/// Remote data source for marker and marker set operations using Supabase
+/// Remote data source for marker set operations using Supabase
 ///
-/// Provides CRUD operations for markers and marker sets with cloud persistence.
+/// Provides CRUD operations for marker sets with cloud persistence. Individual
+/// markers are not rows: they live in the `marker_sets.markers_json` payload,
+/// so the set is the unit of remote I/O (and of sync conflict).
 /// All operations require authentication and respect Row Level Security policies.
 class RemoteMarkerDataSource {
   final SupabaseClient _supabase;
@@ -157,120 +158,6 @@ class RemoteMarkerDataSource {
   }
 
   // ============================================================================
-  // MARKER OPERATIONS
-  // ============================================================================
-
-  /// Get all markers for a marker set from Supabase
-  Future<List<MarkerModel>> getMarkersBySetId(String markerSetId) async {
-    try {
-      final response = await _supabase
-          .from('markers')
-          .select('''
-            id,
-            marker_set_id,
-            label,
-            position_ms,
-            display_order,
-            created_at,
-            updated_at
-          ''')
-          .eq('marker_set_id', markerSetId)
-          .order('display_order', ascending: true) as List;
-
-      return response
-          .map((json) => MarkerModel.fromJson(json))
-          .toList();
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to fetch markers from Supabase: ${e.message}');
-    } catch (e) {
-      throw Exception('Unexpected error fetching markers: $e');
-    }
-  }
-
-  /// Get marker by ID from Supabase
-  Future<MarkerModel?> getMarkerById(String id) async {
-    try {
-      final response = await _supabase
-          .from('markers')
-          .select('''
-            id,
-            marker_set_id,
-            label,
-            position_ms,
-            display_order,
-            created_at,
-            updated_at
-          ''')
-          .eq('id', id)
-          .maybeSingle();
-
-      if (response == null) {
-        return null;
-      }
-
-      return MarkerModel.fromJson(response);
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to fetch marker from Supabase: ${e.message}');
-    } catch (e) {
-      throw Exception('Unexpected error fetching marker: $e');
-    }
-  }
-
-  /// Create a new marker in Supabase
-  Future<void> createMarker(MarkerModel marker) async {
-    try {
-      await _supabase.from('markers').insert(marker.toJson());
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to create marker in Supabase: ${e.message}');
-    } catch (e) {
-      throw Exception('Unexpected error creating marker: $e');
-    }
-  }
-
-  /// Update an existing marker in Supabase
-  Future<void> updateMarker(MarkerModel marker) async {
-    try {
-      await _supabase
-          .from('markers')
-          .update({
-            'label': marker.label,
-            'position_ms': marker.positionMs,
-            'display_order': marker.order,
-          })
-          .eq('id', marker.id);
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to update marker in Supabase: ${e.message}');
-    } catch (e) {
-      throw Exception('Unexpected error updating marker: $e');
-    }
-  }
-
-  /// Delete a marker from Supabase
-  Future<void> deleteMarker(String id) async {
-    try {
-      await _supabase.from('markers').delete().eq('id', id);
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to delete marker from Supabase: ${e.message}');
-    } catch (e) {
-      throw Exception('Unexpected error deleting marker: $e');
-    }
-  }
-
-  /// Delete all markers for a marker set from Supabase
-  Future<void> deleteMarkersBySetId(String markerSetId) async {
-    try {
-      await _supabase
-          .from('markers')
-          .delete()
-          .eq('marker_set_id', markerSetId);
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to delete markers from Supabase: ${e.message}');
-    } catch (e) {
-      throw Exception('Unexpected error deleting markers: $e');
-    }
-  }
-
-  // ============================================================================
   // SYNC OPERATIONS - Get all data for a user
   // ============================================================================
 
@@ -384,15 +271,6 @@ class RemoteMarkerDataSource {
     } catch (e) {
       throw Exception('Unexpected error fetching marker sets for user: $e');
     }
-  }
-
-  /// Get all markers accessible to a user from Supabase
-  ///
-  /// Returns markers from all marker sets that the user can access
-  /// (shared marker sets and private ones created by the user).
-  /// Used for sync operations to pull all accessible markers at once.
-  Future<List<MarkerModel>> getMarkersForUser(String userId) async {
-    return const [];
   }
 
   /// True iff every non-empty label in the payload has a non-null position_ms.

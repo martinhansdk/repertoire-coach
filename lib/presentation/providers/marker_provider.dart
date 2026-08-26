@@ -1,11 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/local/local_marker_data_source.dart';
-import '../../data/datasources/remote/remote_marker_data_source.dart';
 import '../../data/repositories/marker_repository_impl.dart';
 import '../../domain/entities/marker.dart';
 import '../../domain/entities/marker_set.dart';
 import '../../domain/repositories/marker_repository.dart';
-import 'auth_provider.dart';
 import 'concert_provider.dart';
 
 /// Provider for the local marker data source
@@ -14,18 +12,6 @@ import 'concert_provider.dart';
 final localMarkerDataSourceProvider = Provider<LocalMarkerDataSource>((ref) {
   final database = ref.watch(databaseProvider);
   return LocalMarkerDataSource(database);
-});
-
-/// Provider for the remote marker data source
-///
-/// Provides Supabase-backed storage for markers and marker sets.
-/// Returns null if not authenticated.
-final remoteMarkerDataSourceProvider = Provider<RemoteMarkerDataSource?>((ref) {
-  final supabaseService = ref.watch(supabaseServiceProvider);
-  if (!supabaseService.isAuthenticated) {
-    return null;
-  }
-  return RemoteMarkerDataSource(supabaseService.client);
 });
 
 /// Provider for the marker repository

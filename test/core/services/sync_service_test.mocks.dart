@@ -1792,70 +1792,6 @@ class MockRemoteMarkerDataSource extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<List<_i14.MarkerModel>> getMarkersBySetId(String? markerSetId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getMarkersBySetId,
-          [markerSetId],
-        ),
-        returnValue:
-            _i3.Future<List<_i14.MarkerModel>>.value(<_i14.MarkerModel>[]),
-      ) as _i3.Future<List<_i14.MarkerModel>>);
-
-  @override
-  _i3.Future<_i14.MarkerModel?> getMarkerById(String? id) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getMarkerById,
-          [id],
-        ),
-        returnValue: _i3.Future<_i14.MarkerModel?>.value(),
-      ) as _i3.Future<_i14.MarkerModel?>);
-
-  @override
-  _i3.Future<void> createMarker(_i14.MarkerModel? marker) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #createMarker,
-          [marker],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> updateMarker(_i14.MarkerModel? marker) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #updateMarker,
-          [marker],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> deleteMarker(String? id) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteMarker,
-          [id],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
-  _i3.Future<void> deleteMarkersBySetId(String? markerSetId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #deleteMarkersBySetId,
-          [markerSetId],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
-
-  @override
   _i3.Future<List<_i13.MarkerSetModel>> getMarkerSetsForUser(String? userId) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1865,17 +1801,6 @@ class MockRemoteMarkerDataSource extends _i1.Mock
         returnValue: _i3.Future<List<_i13.MarkerSetModel>>.value(
             <_i13.MarkerSetModel>[]),
       ) as _i3.Future<List<_i13.MarkerSetModel>>);
-
-  @override
-  _i3.Future<List<_i14.MarkerModel>> getMarkersForUser(String? userId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getMarkersForUser,
-          [userId],
-        ),
-        returnValue:
-            _i3.Future<List<_i14.MarkerModel>>.value(<_i14.MarkerModel>[]),
-      ) as _i3.Future<List<_i14.MarkerModel>>);
 }
 
 /// A class which mocks [RemoteFavoriteTrackDataSource].

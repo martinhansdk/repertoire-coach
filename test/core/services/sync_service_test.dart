@@ -74,8 +74,6 @@ void main() {
           .thenAnswer((_) async => []);
       when(mockRemoteMarkerDataSource.getMarkerSetsForUser(testUserId))
           .thenAnswer((_) async => []);
-      when(mockRemoteMarkerDataSource.getMarkersForUser(testUserId))
-          .thenAnswer((_) async => []);
       when(mockRemoteFavoriteTrackDataSource.getFavorites(testUserId))
           .thenAnswer((_) async => []);
 
