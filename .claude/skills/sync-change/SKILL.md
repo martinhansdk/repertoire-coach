@@ -29,6 +29,12 @@ read that first, always. This skill is the working procedure around it.
    - Repositories never write to Supabase; the sync layer owns remote I/O.
    - markSynced is conditional on the snapshotted timestamp; upserts never
      overwrite newer unsynced local rows.
+   - Newest-wins holds at BOTH layers: the algorithm resolves against the
+     snapshot it read, AND the remote tombstone UPDATE carries
+     `.lte('updated_at', deletedAt)`. The algorithm calls `deleteOnRemote`
+     even when the remote copy looks absent (a degraded read is "no
+     information", not "no row"), so the write itself must be the guard.
+     Without it an older deletion can clobber a newer remote edit.
    - Any new remote read for sync must page and chunk (see below).
 
 ## Fixing a sync bug (strict order)
@@ -63,7 +69,10 @@ read that first, always. This skill is the working procedure around it.
    cover every principal that should be able to delete (the migration-013
    lesson).
 4. Update the model's `toJson`/`fromJson`, the Drift table + a local
-   migration, and the remote datasource's column list.
+   migration, and the remote datasource's column list. A new entity's
+   `deleteOnRemote` must be a soft-delete UPDATE guarded with
+   `.lte('updated_at', deletedAt)` — copy an existing one rather than
+   writing a plain UPDATE.
 5. The schema-drift integration test compares `toJson()` keys against
    `information_schema` live — extend it for new models, and run it.
 6. Run `mcp__supabase__get_advisors (type: "security")` after applying.
