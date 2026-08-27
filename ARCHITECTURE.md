@@ -506,8 +506,23 @@ MaterialApp(
 5. Other choir members: on play, app requests a presigned GET URL from `audio-signer`; URL is valid for 24 hours
 
 ### Sync Strategy
-1. Per-user data (private marker sets, favorite tracks) syncs via PostgreSQL real-time
-2. Real-time subscriptions notify clients of data changes
+
+**Today — pull-based.** Sync runs on explicit triggers (sign-in, screen
+loads, manual refresh), pushes local changes before pulling remote ones, and
+resolves conflicts by newest edit time. Per-user data that syncs is private
+marker sets and favorite tracks. See **docs/SYNC_ARCHITECTURE.md** for the
+algorithm and its invariants.
+
+**Planned — Postgres real-time subscriptions** to notify clients of remote
+changes instead of waiting for the next trigger. Not implemented yet: there
+are currently no channels or `.stream()` subscriptions in `lib/`. The task
+breakdown lives in TODO.md → "Step 7: Real-time Subscriptions".
+
+This changes *when* a sync runs, not how it resolves — the invariants in
+docs/SYNC_ARCHITECTURE.md still apply. A subscription callback should drive
+the existing `SyncController` (which already coalesces overlapping runs)
+rather than writing to the local DB directly, so that remote events go
+through the same conflict resolution as every other pull.
 
 ## Error Handling
 
