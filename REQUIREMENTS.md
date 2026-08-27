@@ -1,7 +1,7 @@
 # Repertoire Coach - Requirements
 
 ## Overview
-A collaborative mobile and desktop application for practicing choir singing. Users organize into choirs, share concerts and songs with multiple voice parts, and maintain personal practice metadata including section markers and playback positions.
+A collaborative mobile and desktop application for practicing choir singing. Users organize into choirs, share concerts and songs with multiple voice parts, and maintain personal practice metadata including section markers.
 
 ## Platform Requirements
 
@@ -53,7 +53,6 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 - Standard playback controls (play, pause, seek)
 - **Quick Rewind**: Button to go back 10 seconds instantly
 - Display current playback position and total duration
-- **Resume Playback**: System saves playback position per user per song for resuming later
 
 ### 6. Marker Sets & Practice
 - **Marker Sets**: Named collections of position markers for a track (e.g., "Musical Structure", "Bar Numbers", "Lyrics")
@@ -86,7 +85,7 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 - **Songs**: Song metadata, track information synced to cloud (shared within choir)
 - **Audio Files**: Stored in cloud, accessible to all choir members
 - **Shared Marker Sets**: Marker sets and markers synced to cloud (shared within choir, editable by any member)
-- **Per-User Data**: Private marker sets, playback positions, most recently accessed concert, **favorite tracks** synced per user
+- **Per-User Data**: Private marker sets, most recently accessed concert, **favorite tracks** synced per user
 - **User Authentication**: Required for syncing data across devices
 
 ### 9. Android Auto Integration
@@ -140,16 +139,14 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 1. App opens to user's most recently accessed concert
 2. User selects a song from the concert
 3. User selects which voice part to practice (e.g., Tenor)
-4. Audio resumes from user's last saved playback position (if any)
-5. User plays the track
-6. User can:
+4. User plays the track (playback always starts at the beginning)
+5. User can:
    - Use quick rewind to replay difficult parts
    - View available marker sets (both shared and private)
    - Create new markers during playback with labels
    - Organize markers into named sets (shared or private)
    - Select marker ranges from any set to loop repeatedly
    - Edit/improve existing shared marker sets
-7. Playback position automatically saved for next session
 
 ### Using Marker Sets for Practice
 1. User opens a song they've practiced before (or any choir song)
@@ -217,7 +214,7 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 
 ### Security
 - Secure user authentication
-- Private user data (section markers, playback positions)
+- Private user data (section markers)
 - Choir-based access control (only members can access choir content)
 - Choir owner permissions for member management
 - Secure cloud storage for audio files
@@ -228,3 +225,17 @@ A collaborative mobile and desktop application for practicing choir singing. Use
 - Choir owner transfer
 - Bulk member management
 - Translation of user-generated content (optional feature)
+
+## Out of Scope (by decision)
+
+Deliberately dropped. Listed here so they are not reintroduced as
+"missing features".
+
+- **Resume playback position.** Playback always starts at the beginning of
+  a track. The per-user position store was removed: the local Drift table
+  went in a Drift migration, and the remote table (`playback_states`) in
+  migration 014 — migration 009 had intended to drop it but used the local
+  table's name and silently no-opped. Restoring this would need a new
+  synced table plus its own sync adapter, not just UI work.
+- **Practice statistics.**
+- **Pitch adjustment.**

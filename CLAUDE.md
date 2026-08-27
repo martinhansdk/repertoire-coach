@@ -141,4 +141,6 @@ Details in DOCKER.md.
   (`is_shared`); markers live inside `marker_sets.markers_json` — the set is
   the unit of sync and conflict.
 - Concerts are date-sorted (upcoming first); no manual ordering.
-- Out of scope by decision: practice statistics, pitch adjustment.
+- Out of scope by decision: practice statistics, pitch adjustment, resume
+  playback position (its store was dropped in migrations 009/014 — playback
+  always starts at 0:00). See REQUIREMENTS.md → Out of Scope.

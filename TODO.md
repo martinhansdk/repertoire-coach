@@ -53,7 +53,7 @@ Implemented a complete offline-first feature demonstrating the full stack:
 
 ## Phase 1: Core Functionality (Local-First)
 
-**Status:** 🟡 Mostly Complete - Core features done, missing playback position persistence
+**Status:** ✅ Complete — playback position persistence is out of scope (see REQUIREMENTS.md → Out of Scope)
 
 **What Works:**
 - ✅ Full choir management (create, view, add/remove members)
@@ -66,14 +66,14 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - ✅ All data persists locally in SQLite
 
 **What's Missing:**
-- ✅ ~~Playback position auto-save/resume~~ (DONE - 2025-11-27)
+- ❌ Playback position auto-save/resume — REMOVED, now out of scope (was added 2025-11-27, persistence dropped in migrations 009/014)
 - ✅ ~~Quick rewind button (10 seconds)~~ (DONE - 2025-11-27)
 - ❌ Filter concerts by choir
 - ❌ Default to last accessed concert on launch
 - ❌ Section markers (data layer not implemented)
 
 **Next Steps:**
-1. ~~Implement playback position persistence~~ ✅ DONE (2025-11-27)
+1. ~~Implement playback position persistence~~ ❌ REMOVED — out of scope (see REQUIREMENTS.md)
 2. ~~Add quick rewind button~~ ✅ DONE (2025-11-27)
 3. Add concert filtering
 4. Implement last accessed concert tracking
@@ -137,10 +137,9 @@ Implemented a complete offline-first feature demonstrating the full stack:
   - [x] Track progress
   - [x] Switch tracks/songs
   - [x] Quick rewind (10 seconds)
-- [x] Implement use cases for Playback Position:
-  - [x] Save playback position automatically (every 5 seconds)
-  - [x] Get saved playback position
-  - [x] Resume from saved position on track load
+- ❌ Use cases for Playback Position — REMOVED, out of scope. The
+  playback_states table was dropped (migrations 009/014); do not
+  reimplement without adding a new synced table first.
 - [ ] Implement use case: Update user's last accessed concert
 
 ### Presentation Layer - Choir, Concert & Song Management
@@ -180,8 +179,7 @@ Implemented a complete offline-first feature demonstrating the full stack:
 - [x] File import functionality (FileStorageService + file_picker)
 - [x] Android sharing integration (receive_sharing_intent)
 - [x] Quick rewind button (10 seconds) - Added 2025-11-27
-- [x] Save playback position automatically (every 5 seconds while playing) - Added 2025-11-27
-- [x] Resume from saved position on track load - Added 2025-11-27
+- ❌ Playback position auto-save / resume — REMOVED, out of scope
 
 ## Phase 2: Cloud Integration
 

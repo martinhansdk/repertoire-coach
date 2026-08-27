@@ -506,7 +506,7 @@ MaterialApp(
 5. Other choir members: on play, app requests a presigned GET URL from `audio-signer`; URL is valid for 24 hours
 
 ### Sync Strategy
-1. Per-user data (sections, playback positions) syncs via PostgreSQL real-time
+1. Per-user data (private marker sets, favorite tracks) syncs via PostgreSQL real-time
 2. Real-time subscriptions notify clients of data changes
 
 ## Error Handling
@@ -601,7 +601,6 @@ MaterialApp(
 - Song library UI (within concerts)
 - Audio file import
 - Local playback (without cloud)
-- Playback position saving
 - Language preference in settings
 
 ### Phase 2: Cloud Integration
